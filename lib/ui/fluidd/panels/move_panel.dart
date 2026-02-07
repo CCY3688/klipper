@@ -1,0 +1,144 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../state/printer_controller.dart';
+import '../widgets/fluidd_card.dart';
+
+class MovePanel extends StatefulWidget {
+  const MovePanel({super.key});
+
+  @override
+  State<MovePanel> createState() => _MovePanelState();
+}
+
+class _MovePanelState extends State<MovePanel> {
+  double _stepInfo = 10.0; // Default 10mm
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.read<PrinterController>();
+
+    return FluiddCard(
+      title: 'Toolhead',
+      actions: [
+        TextButton.icon(
+          onPressed: () => c.sendGcode('G28'),
+          icon: const Icon(Icons.home, size: 16, color: Colors.blue),
+          label: const Text('ALL', style: TextStyle(color: Colors.blue)),
+        ),
+      ],
+      child: Column(
+        children: [
+          // Homing Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _HomeBtn(axis: 'X', onPressed: () => c.sendGcode('G28 X')),
+              _HomeBtn(axis: 'Y', onPressed: () => c.sendGcode('G28 Y')),
+              _HomeBtn(axis: 'Z', onPressed: () => c.sendGcode('G28 Z')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Directional Arrows
+          Row(
+            children: [
+              // XY Pad
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    _ArrowBtn(icon: Icons.arrow_upward, label: 'Y+', onPressed: () => c.sendGcode('G91\nG1 Y$_stepInfo F3000\nG90')),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _ArrowBtn(icon: Icons.arrow_back, label: 'X-', onPressed: () => c.sendGcode('G91\nG1 X-$_stepInfo F3000\nG90')),
+                        const SizedBox(width: 8),
+                         const Icon(Icons.api, color: Colors.grey), // Center icon placeholder
+                        const SizedBox(width: 8),
+                        _ArrowBtn(icon: Icons.arrow_forward, label: 'X+', onPressed: () => c.sendGcode('G91\nG1 X$_stepInfo F3000\nG90')),
+                      ],
+                    ),
+                    _ArrowBtn(icon: Icons.arrow_downward, label: 'Y-', onPressed: () => c.sendGcode('G91\nG1 Y-$_stepInfo F3000\nG90')),
+                  ],
+                ),
+              ),
+              // Z Pad
+              Expanded(
+                flex: 1,
+                child: Column(
+                  children: [
+                    _ArrowBtn(icon: Icons.arrow_upward, label: 'Z+', color: Colors.blueAccent, onPressed: () => c.sendGcode('G91\nG1 Z$_stepInfo F600\nG90')),
+                    const SizedBox(height: 12),
+                    const Icon(Icons.height, color: Colors.grey, size: 16),
+                    const SizedBox(height: 12),
+                    _ArrowBtn(icon: Icons.arrow_downward, label: 'Z-', color: Colors.blueAccent, onPressed: () => c.sendGcode('G91\nG1 Z-$_stepInfo F600\nG90')),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Step Selection
+          Wrap(
+            spacing: 8,
+            children: [0.1, 1.0, 10.0, 50.0, 100.0].map((step) {
+              final isSelected = _stepInfo == step;
+              return ChoiceChip(
+                label: Text('$step'),
+                selected: isSelected,
+                onSelected: (v) => setState(() => _stepInfo = step),
+                selectedColor: Colors.blue,
+                backgroundColor: const Color(0xFF1E1E1E),
+                labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.grey),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)), // Match Fluidd square chips
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeBtn extends StatelessWidget {
+  final String axis;
+  final VoidCallback onPressed;
+  const _HomeBtn({required this.axis, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Colors.blueGrey),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+      child: Text('Home $axis', style: const TextStyle(color: Colors.white70)),
+    );
+  }
+}
+
+class _ArrowBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? color;
+  final VoidCallback onPressed;
+
+  const _ArrowBtn({required this.icon, required this.label, this.color, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        width: 48, 
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFF3A3F44),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Icon(icon, color: color ?? Colors.white70),
+      ),
+    );
+  }
+}
