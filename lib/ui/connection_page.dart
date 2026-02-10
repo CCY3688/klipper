@@ -70,7 +70,9 @@ class _ConnectionPageState extends State<ConnectionPage> {
       await ConfigStore().save(config, _profile);
 
       if (!mounted) return;
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DashboardPage()));
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const DashboardPage()));
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -86,20 +88,35 @@ class _ConnectionPageState extends State<ConnectionPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(controller: _host, decoration: const InputDecoration(labelText: 'Host/IP')),
-            TextField(controller: _port, decoration: const InputDecoration(labelText: 'Port'), keyboardType: TextInputType.number),
-            TextField(controller: _apiKey, decoration: const InputDecoration(labelText: 'API Key (optional)')),
+            TextField(
+              controller: _host,
+              decoration: const InputDecoration(labelText: 'Host/IP'),
+            ),
+            TextField(
+              controller: _port,
+              decoration: const InputDecoration(labelText: 'Port'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: _apiKey,
+              decoration: const InputDecoration(
+                labelText: 'API Key (optional)',
+              ),
+            ),
             const SizedBox(height: 12),
             DropdownButtonFormField<StatusProfile>(
               initialValue: _profile,
               items: StatusProfile.values
                   .map((p) => DropdownMenuItem(value: p, child: Text(p.name)))
                   .toList(),
-              onChanged: _busy ? null : (v) => setState(() => _profile = v ?? _profile),
+              onChanged: _busy
+                  ? null
+                  : (v) => setState(() => _profile = v ?? _profile),
               decoration: const InputDecoration(labelText: 'Profile'),
             ),
             const SizedBox(height: 16),
-            if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: Colors.red)),
             const Spacer(),
             SizedBox(
               width: double.infinity,

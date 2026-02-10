@@ -19,40 +19,108 @@ class StatusPanel extends StatelessWidget {
     );
   }
 
+  /// 根据 klippy 和打印状态返回显示状态和颜色
+  (String, Color) _getDisplayState(PrinterController c) {
+    // 首先检查 App 连接阶段
+    if (c.phase == AppConnPhase.idle || 
+        c.phase == AppConnPhase.disconnected ||
+        c.phase == AppConnPhase.error) {
+      return ('NOT CONNECTED', Colors.grey);
+    }
+    
+    if (c.phase == AppConnPhase.connecting || c.phase == AppConnPhase.reconnecting) {
+      return ('CONNECTING...', Colors.orangeAccent);
+    }
+    
+    // 检查 Klippy 连接状态
+    if (!c.klippyConnected) {
+      return ('KLIPPY DISCONNECTED', Colors.redAccent);
+    }
+    
+    // 根据 klippy 状态返回
+    switch (c.klippyState) {
+      case 'startup':
+        return ('STARTING UP', Colors.orangeAccent);
+      case 'shutdown':
+        return ('SHUTDOWN', Colors.redAccent);
+      case 'error':
+        return ('ERROR', Colors.redAccent);
+      case 'ready':
+        // Klippy ready，显示打印状态
+        final printState = c.printState;
+        switch (printState) {
+          case 'printing':
+            return ('PRINTING', Colors.greenAccent);
+          case 'paused':
+            return ('PAUSED', Colors.yellowAccent);
+          case 'error':
+            return ('PRINT ERROR', Colors.redAccent);
+          case 'complete':
+            return ('COMPLETE', Colors.lightBlueAccent);
+          case 'cancelled':
+            return ('CANCELLED', Colors.orange);
+          case 'standby':
+            return ('STANDBY', Colors.white);
+          default:
+            return (printState.toUpperCase(), Colors.white);
+        }
+      default:
+        return (c.klippyState.toUpperCase(), Colors.grey);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.watch<PrinterController>();
     
-    // Status color logic (simplified)
-    Color statusColor = Colors.white;
-    if (c.printState == 'printing') statusColor = Colors.greenAccent;
-    else if (c.printState == 'error') statusColor = Colors.redAccent;
-    else if (c.printState == 'paused') statusColor = Colors.yellowAccent;
+    final (displayState, statusColor) = _getDisplayState(c);
 
     return FluiddCard(
       title: 'Status',
       child: Column(
         children: [
-          _buildRow('State', c.printState.toUpperCase(), valueColor: statusColor),
-          const Divider(color: Colors.white24),
-          _buildRow('File', c.filename.isEmpty ? '--' : c.filename),
-          _buildRow('Progress', '${(c.progress * 100).toStringAsFixed(1)} %'),
-          const SizedBox(height: 8),
-          LinearProgressIndicator( value: c.progress, backgroundColor: Colors.black26, color: Colors.blue ),
-          const SizedBox(height: 16),
-          const Align(alignment: Alignment.centerLeft, child: Text("Toolhead Position", style: TextStyle(color: Colors.grey, fontSize: 12))),
-          if (c.toolheadPosition != null && c.toolheadPosition!.length >= 3) ...[
-             const SizedBox(height: 4),
-             Row(
-               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-               children: [
-                 _CoordBadge(axis: 'X', val: c.toolheadPosition![0]),
-                 _CoordBadge(axis: 'Y', val: c.toolheadPosition![1]),
-                 _CoordBadge(axis: 'Z', val: c.toolheadPosition![2]),
-               ],
-             )
-          ] else 
-             const Text("--", style: TextStyle(color: Colors.white54)),
+          _buildRow('State', displayState, valueColor: statusColor),
+          
+          // 当 klippy 未就绪时显示错误/状态消息
+          if (!c.klippyReady && c.phase == AppConnPhase.connected) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                c.klippyStateMessage,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+              ),
+            ),
+          ],
+          
+          // 仅在 klippy 就绪时显示打印详情
+          if (c.klippyReady) ...[
+            const Divider(color: Colors.white24),
+            _buildRow('File', c.filename.isEmpty ? '--' : c.filename),
+            _buildRow('Progress', '${(c.progress * 100).toStringAsFixed(1)} %'),
+            const SizedBox(height: 8),
+            LinearProgressIndicator( value: c.progress, backgroundColor: Colors.black26, color: Colors.blue ),
+            const SizedBox(height: 16),
+            const Align(alignment: Alignment.centerLeft, child: Text("Toolhead Position", style: TextStyle(color: Colors.grey, fontSize: 12))),
+            if (c.toolheadPosition != null && c.toolheadPosition!.length >= 3) ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _CoordBadge(axis: 'X', val: c.toolheadPosition![0]),
+                  _CoordBadge(axis: 'Y', val: c.toolheadPosition![1]),
+                  _CoordBadge(axis: 'Z', val: c.toolheadPosition![2]),
+                ],
+              )
+            ] else 
+              const Text("--", style: TextStyle(color: Colors.white54)),
+          ],
         ],
       ),
     );

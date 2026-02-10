@@ -141,3 +141,25 @@ class PrinterStatus {
     );
   }
 }
+
+class MoonrakerFileItem {
+  final String path; // relative path under root
+  final String filename;
+  final int size;
+  final double modified; // unix seconds (Moonraker)
+
+  const MoonrakerFileItem({
+    required this.path,
+    required this.filename,
+    required this.size,
+    required this.modified,
+  });
+
+  factory MoonrakerFileItem.fromJson(JsonMap j) {
+    final p = (j['path'] ?? j['filename'] ?? '').toString();
+    final fn = (j['filename'] ?? '').toString();
+    final sz = (j['size'] as num?)?.toInt() ?? 0;
+    final mod = (j['modified'] as num?)?.toDouble() ?? 0;
+    return MoonrakerFileItem(path: p, filename: fn, size: sz, modified: mod);
+  }
+}

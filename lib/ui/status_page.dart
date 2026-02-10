@@ -38,6 +38,16 @@ class StatusPage extends StatelessWidget {
                   style: const TextStyle(color: Colors.red)),
             Text('proc_stat_notify_count: ${c.procStatNotifyCount}'),
             Text('Moonraker: ${c.moonrakerVersion}'),
+            const Divider(),
+            
+            // Klippy 状态（新增）
+            Text('klippyConnected: ${c.klippyConnected}'),
+            Text('klippyState: ${c.klippyState}'),
+            Text('klippyReady: ${c.klippyReady}'),
+            Text('klippyStateMessage: ${c.klippyStateMessage}',
+                style: TextStyle(color: c.klippyReady ? Colors.green : Colors.orange)),
+            const Divider(),
+            
             Text('Klippy(server/info): ${c.klippyStateFromServerInfo}'),
             Text('Printer(printer/info): ${c.printerState}'),
             const Divider(),

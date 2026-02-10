@@ -3,13 +3,17 @@ import 'package:provider/provider.dart';
 //数据可能需要在多个页面显示。Provider 就像一个“全局广播站”，当数据更新时，所有订阅了这个数据的页面都会自动刷新。
 
 import 'state/printer_controller.dart';
+import 'state/navigation_controller.dart';
 import 'ui/connection_page.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => PrinterController(),
-      //将控制器 PrinterController “挂”在了整个 App 的顶层，任何页面都可以通过 Provider 访问它。
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => PrinterController()),
+        ChangeNotifierProvider(create: (_) => NavigationController()),
+      ],
+      //将控制器 PrinterController 和 NavigationController "挂"在了整个 App 的顶层，任何页面都可以通过 Provider 访问它们。
       child: const MyApp(),
     ),
   );
@@ -25,7 +29,7 @@ class MyApp extends StatelessWidget {
       title: 'Delta Writer Client',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
-        useMaterial3: true,
+        //useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFF181A1B), 
         cardColor: const Color(0xFF2C3034),
         colorScheme: const ColorScheme.dark(

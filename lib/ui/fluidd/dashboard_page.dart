@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../state/printer_controller.dart';
+import '../../state/navigation_controller.dart';
+import '../writing/writing_page.dart';
 import 'panels/console_panel.dart';
 import 'panels/move_panel.dart';
 import 'panels/status_panel.dart';
+import 'panels/paper_preview_panel.dart';
+import 'panels/tasks_panel.dart';
 import 'sidebar.dart';
-import 'widgets/fluidd_card.dart';
+import 'widgets/klippy_status_card.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final nav = context.watch<NavigationController>();
+    
     return Scaffold(
       backgroundColor: const Color(0xFF181A1B), // Main BG
       body: Row(
@@ -30,7 +36,10 @@ class DashboardPage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      const Text('Fluidd (Flutter)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      Text(
+                        _getPageTitle(nav.currentTab),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
                       const Spacer(),
                       Consumer<PrinterController>(
                         builder: (context, c, _) => Chip(
@@ -56,68 +65,110 @@ class DashboardPage extends StatelessWidget {
                   ),
                 ),
                 
-                // Dashboard Grid
+                // Page Content based on current tab
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Responsive logic: If wide enough, 2 columns.
-                        final isWide = constraints.maxWidth > 900;
-                        
-                        if (isWide) {
-                          return const Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Left Column: Status, Move, Macros
-                              Expanded(
-                                flex: 5,
-                                child: Column(
-                                  children: [
-                                    StatusPanel(),
-                                    MovePanel(),
-                                    FluiddCard(
-                                      title: 'Macros',
-                                      child: Center(child: Text('Macros Placeholder', style: TextStyle(color: Colors.grey))),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: 16),
-                              // Right Column: Console, Jobs
-                              Expanded(
-                                flex: 6,
-                                child: Column(
-                                  children: [
-                                    ConsolePanel(),
-                                    FluiddCard(
-                                      title: 'Job Queue',
-                                      child: Center(child: Text('Job Queue Placeholder', style: TextStyle(color: Colors.grey))),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        } else {
-                          // Mobile: Stack everything
-                          return const Column(
-                            children: [
-                               StatusPanel(),
-                               MovePanel(),
-                               FluiddCard(title: 'Macros', child: SizedBox(height: 50)),
-                               ConsolePanel(),
-                            ],
-                          );
-                        }
-                      },
-                    ),
-                  ),
+                  child: _buildPageContent(nav.currentTab),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+  
+  String _getPageTitle(SidebarTab tab) {
+    switch (tab) {
+      case SidebarTab.dashboard:
+        return 'Delta Writer - 控制面板';
+      case SidebarTab.writing:
+        return 'Delta Writer - 文本编辑';
+      case SidebarTab.history:
+        return 'Delta Writer - 历史记录';
+      case SidebarTab.settings:
+        return 'Delta Writer - 设置';
+    }
+  }
+  
+  Widget _buildPageContent(SidebarTab tab) {
+    switch (tab) {
+      case SidebarTab.dashboard:
+        return _buildDashboardContent();
+      case SidebarTab.writing:
+        return const WritingPage();
+      case SidebarTab.history:
+        return _buildPlaceholderPage('历史记录', Icons.history);
+      case SidebarTab.settings:
+        return _buildPlaceholderPage('设置', Icons.settings);
+    }
+  }
+  
+  Widget _buildPlaceholderPage(String title, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 64, color: Colors.grey.shade600),
+          const SizedBox(height: 16),
+          Text(
+            '$title - 开发中',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 18),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildDashboardContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Consumer<PrinterController>(
+        builder: (context, c, _) {
+          final isWide = MediaQuery.of(context).size.width > 900;
+          final showKlippyCard = !c.klippyReady && c.phase == AppConnPhase.connected;
+          
+          if (isWide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Column: Klippy Status (if needed), Status, Move, Macros
+                Expanded(
+                  flex: 5,
+                  child: Column(
+                    children: [
+                      if (showKlippyCard) const KlippyStatusCard(),
+                      const StatusPanel(),
+                      const MovePanel(),
+                      const PaperPreviewPanel(),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Right Column: Console, Jobs
+                const Expanded(
+                  flex: 6,
+                  child: Column(
+                    children: [
+                      ConsolePanel(),
+                      TasksPanel(),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // Mobile: Stack everything
+            return Column(
+              children: [
+                if (showKlippyCard) const KlippyStatusCard(),
+                const StatusPanel(),
+                const MovePanel(),
+                const PaperPreviewPanel(),
+                const ConsolePanel(),
+              ],
+            );
+          }
+        },
       ),
     );
   }

@@ -34,10 +34,60 @@ class PrinterController extends ChangeNotifier {
   final AppLogger logger = AppLogger();
   int procStatNotifyCount = 0;
 
+  // ====== Tasks / Files (gcodes) ======
+  bool gcodeFilesLoading = false;
+  String? gcodeFilesError;
+  List<MoonrakerFileItem> gcodeFiles = const [];
+
     // ====== 为了尽量不改 UI，保留一些 getter ======
   String get moonrakerVersion => serverInfo?.moonrakerVersion ?? '';
   String get klippyStateFromServerInfo => serverInfo?.klippyState ?? '';
   String get printerState => printerInfo?.state ?? '';
+
+  // ====== Klippy 状态相关 getter（参考 Fluidd） ======
+  /// Klippy 是否已就绪（klippy_connected 且 klippy_state == 'ready'）
+  bool get klippyReady {
+    final info = serverInfo;
+    if (info == null) return false;
+    return info.klippyConnected && info.klippyState == 'ready';
+  }
+
+  /// Klippy 是否已连接
+  bool get klippyConnected => serverInfo?.klippyConnected ?? false;
+
+  /// Klippy 状态（ready, startup, shutdown, error, disconnected）
+  String get klippyState => serverInfo?.klippyState ?? 'disconnected';
+
+  /// Klippy 状态消息（用于显示错误详情）
+  String get klippyStateMessage {
+    final info = serverInfo;
+    if (info == null) return 'Not connected to Moonraker';
+    
+    // 如果 klippy 未连接
+    if (!info.klippyConnected) {
+      return 'Klippy not connected';
+    }
+    
+    // 从 printerInfo 获取状态消息
+    final msg = printerInfo?.stateMessage ?? '';
+    if (msg.isNotEmpty) {
+      return msg;
+    }
+    
+    // 根据状态返回默认消息
+    switch (info.klippyState) {
+      case 'ready':
+        return 'Printer is ready';
+      case 'startup':
+        return 'Klipper is starting up...';
+      case 'shutdown':
+        return 'Klipper has shutdown';
+      case 'error':
+        return 'Klipper error';
+      default:
+        return 'Unknown state: ${info.klippyState}';
+    }
+  }
 
   String get printState => status.printStats?.state ?? 'unknown';
   String get filename => status.printStats?.filename ?? '';
@@ -145,6 +195,92 @@ class PrinterController extends ChangeNotifier {
     notifyListeners(); 
   }
 
+  Future<void> refreshGcodeFiles() async {
+    final repo = _repo;
+    if (repo == null) {
+      gcodeFilesError = 'Not connected to Moonraker';
+      notifyListeners();
+      return;
+    }
+
+    gcodeFilesLoading = true;
+    gcodeFilesError = null;
+    notifyListeners();
+
+    try {
+      final files = await repo.listGcodeFiles(root: 'gcodes');
+      // simple sort: newest first
+      files.sort((a, b) => b.modified.compareTo(a.modified));
+      gcodeFiles = files;
+    } catch (e) {
+      gcodeFilesError = e.toString();
+    } finally {
+      gcodeFilesLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> startPrintUploaded(String filenameOrPath) async {
+    final repo = _repo;
+    if (repo == null) {
+      lastError = 'Not connected to Moonraker';
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      await repo.startPrintUploaded(filenameOrPath);
+      return true;
+    } catch (e) {
+      lastError = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+    Future<String?> uploadGcode({
+    required String filename,
+    required String gcode,
+    bool startAfterUpload = false,
+  }) async {
+    final repo = _repo;
+    if (repo == null) {
+      lastError = 'Not connected to Moonraker';
+      notifyListeners();
+      return null;
+    }
+
+    try {
+      final remotePath = await repo.uploadGcodeString(filename: filename, gcode: gcode);
+      if (startAfterUpload) {
+        await repo.startPrintUploaded(remotePath);
+      }
+      return remotePath;
+    } catch (e) {
+      lastError = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+  Future<bool> deleteGcodeFile(String filename) async {
+    final repo = _repo;
+    if (repo == null) {
+      lastError = 'Not connected to Moonraker';
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      await repo.deleteGcodeFile(filename);
+      // 成功后刷本地列表
+      await refreshGcodeFiles();
+      return true;
+    } catch (e) {
+      lastError = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
   // ===== WS 事件处理 =====
   void _handleWsConnEvent(WsConnState ev) {
     if (!_shouldStayConnected) return;
@@ -231,12 +367,60 @@ class PrinterController extends ChangeNotifier {
 
     if (method == 'notify_klippy_ready' && serverInfo != null) {
       serverInfo = MoonrakerServerInfo(
-        klippyConnected: serverInfo!.klippyConnected,
+        klippyConnected: true,
         klippyState: 'ready',
         moonrakerVersion: serverInfo!.moonrakerVersion,
         apiVersionString: serverInfo!.apiVersionString,
       );
+      _log(LogLevel.info, 'WS', 'Klippy ready');
       notifyListeners();
+      // 刷新 printerInfo 以获取最新状态
+      _refreshServerAndPrinterInfo();
+    }
+
+    if (method == 'notify_klippy_disconnected' && serverInfo != null) {
+      serverInfo = MoonrakerServerInfo(
+        klippyConnected: false,
+        klippyState: 'disconnected',
+        moonrakerVersion: serverInfo!.moonrakerVersion,
+        apiVersionString: serverInfo!.apiVersionString,
+      );
+      printerInfo = null;
+      _log(LogLevel.warn, 'WS', 'Klippy disconnected');
+      notifyListeners();
+    }
+
+    if (method == 'notify_klippy_shutdown' && serverInfo != null) {
+      serverInfo = MoonrakerServerInfo(
+        klippyConnected: serverInfo!.klippyConnected,
+        klippyState: 'shutdown',
+        moonrakerVersion: serverInfo!.moonrakerVersion,
+        apiVersionString: serverInfo!.apiVersionString,
+      );
+      _log(LogLevel.warn, 'WS', 'Klippy shutdown');
+      notifyListeners();
+      // 刷新服务器信息以获取最新状态（包括 state_message）
+      _refreshServerAndPrinterInfo();
+    }
+  }
+
+  /// 刷新 serverInfo 和 printerInfo
+  Future<void> _refreshServerAndPrinterInfo() async {
+    final repo = _repo;
+    if (repo == null) return;
+    
+    try {
+      final si = await repo.fetchServerInfo();
+      serverInfo = MoonrakerServerInfo.fromServerInfoResponse(si);
+      
+      // 只有在 klippy 连接时才获取 printerInfo
+      if (serverInfo!.klippyConnected) {
+        final pi = await repo.fetchPrinterInfo();
+        printerInfo = MoonrakerPrinterInfo.fromPrinterInfoResponse(pi);
+      }
+      notifyListeners();
+    } catch (e) {
+      _log(LogLevel.error, 'CTRL', 'Failed to refresh info: $e');
     }
   }
 

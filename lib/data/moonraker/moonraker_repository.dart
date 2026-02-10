@@ -5,6 +5,7 @@
 import '../../core/moonraker_config.dart';
 import 'moonraker_http_service.dart';
 import 'moonraker_ws_service.dart';
+import 'moonraker_models.dart';
 
 enum StatusProfile { basic, full }
 
@@ -93,5 +94,50 @@ class MoonrakerRepository {
 
   Future<void> sendTestGcode() async {
     await http.gcodeScript('M115\n');
+  }
+
+    Future<String> uploadGcodeString({
+    required String filename,
+    required String gcode,
+    String root = 'gcodes',
+    String? path,
+  }) async {
+    final resp = await http.uploadGcodeBytes(
+      filename: filename,
+      bytes: gcode.codeUnits, // ASCII 基本够用；更严谨可用 utf8.encode(gcode)
+      root: root,
+      path: path,
+    );
+
+    // Moonraker 返回结构通常是 result.item.path / result.item.filename 等
+    final result = (resp['result'] as Map?)?.cast<String, dynamic>() ?? {};
+    final item = (result['item'] as Map?)?.cast<String, dynamic>() ?? {};
+    final uploadedPath = (item['path'] ?? item['filename'] ?? filename).toString();
+    return uploadedPath;
+  }
+
+  Future<void> startPrintUploaded(String filenameOrPath) async {
+    await http.startPrint(filenameOrPath);
+  }
+
+  Future<void> deleteGcodeFile(String filename) async {
+    await http.deleteFile(filename: filename);
+  }
+
+  Future<List<MoonrakerFileItem>> listGcodeFiles({String root = 'gcodes'}) async {
+    final resp = await http.filesList(root: root);
+    final result = resp['result'];
+    
+    List filesList = [];
+    if (result is List) {
+      filesList = result;
+    } else if (result is Map && result['files'] is List) {
+      filesList = result['files'];
+    }
+
+    return filesList
+        .whereType<Map>()
+        .map((e) => MoonrakerFileItem.fromJson(e.cast<String, dynamic>()))
+        .toList();
   }
 }
