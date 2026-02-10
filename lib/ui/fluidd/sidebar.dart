@@ -30,6 +30,12 @@ class FluiddSidebar extends StatelessWidget {
             onTap: () => nav.switchTo(SidebarTab.writing),
           ),
           _SideItem(
+            icon: Icons.description_outlined, // 纸张设置图标
+            tooltip: '纸张设置',
+            isActive: nav.currentTab == SidebarTab.paperSettings,
+            onTap: () => nav.switchTo(SidebarTab.paperSettings),
+          ),
+          _SideItem(
             icon: Icons.history,
             tooltip: '历史记录',
             isActive: nav.currentTab == SidebarTab.history,

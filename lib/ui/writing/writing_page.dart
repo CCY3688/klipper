@@ -10,14 +10,16 @@ import 'package:file_selector/file_selector.dart';
 import '../../core/download_helper.dart';
 import '../../writing/font/stroke_font.dart';
 import '../../writing/layout/grid_layout.dart';
-import '../../writing/layout/stroke_optimizer.dart';
 import '../../writing/model/essay_grid.dart';
 import '../../writing/model/page.dart';
+import '../../writing/model/paper_type.dart';
 import '../../writing/model/toolpath.dart';
 import '../../writing/model/toolpath_painter.dart';
 import '../../writing/render/viewport.dart' as kp;
+import '../../writing/render/paper_type_painter.dart';
 import '../../writing/export/gcode_exporter.dart';
 import '../../state/printer_controller.dart';
+import '../../state/paper_config_controller.dart';
 import '../fluidd/widgets/fluidd_card.dart';
 
 /// 文本编辑与预览页面
@@ -41,10 +43,7 @@ class _WritingPageState extends State<WritingPage> {
   ToolPath _toolPath = ToolPath.empty;
   bool _showPenUp = true;
   WritingMode _writingMode = WritingMode.standard;
-  
-  // 页面和网格配置
-  final PageMm _page = const PageMm(widthMm: 210, heightMm: 297);
-  final EssayGridSpec _grid = defaultA4EssayGrid();
+  PaperConfig? _lastPaperConfig; // 追踪纸张配置变化
   
   // Viewport 管理
   kp.Viewport? _viewport;
@@ -54,6 +53,20 @@ class _WritingPageState extends State<WritingPage> {
   static const double _fitPaddingPx = 10.0;
   static const double _minScalePxPerMm = 0.2;
   static const double _maxScalePxPerMm = 30.0;
+
+  // 从 PaperConfigController 获取当前纸张配置
+  PaperConfig get _paperConfig {
+    try {
+      return context.read<PaperConfigController>().activePaper;
+    } catch (_) {
+      return defaultGridPaper();
+    }
+  }
+
+  PageMm get _page => PageMm(
+    widthMm: _paperConfig.pageWidthMm,
+    heightMm: _paperConfig.pageHeightMm,
+  );
 
   @override
   void initState() {
@@ -110,8 +123,24 @@ class _WritingPageState extends State<WritingPage> {
     final font = _font;
     if (font == null) return;
     
-    final options = GridLayoutOptions(mode: _writingMode);
-    final layout = EssayGridLayout(grid: _grid, font: font, options: options);
+    final paperCtrl = context.read<PaperConfigController>();
+    final config = paperCtrl.activePaper;
+    final grid = EssayGridSpec(
+      cellMm: config.cellSizeMm,
+      marginLeftMm: config.marginLeftMm,
+      marginTopMm: config.marginTopMm,
+      cols: config.cols,
+      rows: config.rows,
+    );
+    
+    final options = GridLayoutOptions(
+      mode: _writingMode,
+      cellPaddingMm: config.cellPaddingMm,
+      cellHeightMm: config.effectiveCellHeight,
+      gridRowSpacingMm: config.gridRowSpacingMm,
+      verticalFirst: config.kind == PaperTypeKind.letter,
+    );
+    final layout = GridLayout(grid: grid, font: font, options: options);
     final newPath = layout.layoutText(_textController.text);
     
     setState(() {
@@ -228,6 +257,20 @@ class _WritingPageState extends State<WritingPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听纸张配置变化，自动重新生成路径
+    final paperCtrl = context.watch<PaperConfigController>();
+    final currentConfig = paperCtrl.activePaper;
+    
+    // 当纸张配置变化时重新生成路径
+    if (_lastPaperConfig != currentConfig) {
+      _lastPaperConfig = currentConfig;
+      if (_font != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _generateToolPath();
+        });
+      }
+    }
+    
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -458,8 +501,7 @@ class _WritingPageState extends State<WritingPage> {
               return CustomPaint(
                 size: size,
                 painter: _CombinedPainter(
-                  page: _page,
-                  grid: _grid,
+                  paperConfig: _paperConfig,
                   toolPath: _toolPath,
                   viewport: viewport,
                   showPenUp: _showPenUp,
@@ -473,17 +515,15 @@ class _WritingPageState extends State<WritingPage> {
   }
 }
 
-/// 组合绘制器：绘制页面、网格和工具路径
+/// 组合绘制器：绘制纸张网格和工具路径
 class _CombinedPainter extends CustomPainter {
-  final PageMm page;
-  final EssayGridSpec grid;
+  final PaperConfig paperConfig;
   final ToolPath toolPath;
   final kp.Viewport viewport;
   final bool showPenUp;
 
   _CombinedPainter({
-    required this.page,
-    required this.grid,
+    required this.paperConfig,
     required this.toolPath,
     required this.viewport,
     required this.showPenUp,
@@ -491,19 +531,14 @@ class _CombinedPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. 绘制白色纸张背景
-    final paperRect = viewport.mmRectToPx(
-      Rect.fromLTWH(0, 0, page.widthMm, page.heightMm),
+    // 1. 绘制纸张和网格（使用 PaperTypePainter）
+    final paperPainter = PaperTypePainter(
+      config: paperConfig,
+      viewport: viewport,
     );
-    canvas.drawRect(
-      paperRect,
-      Paint()..color = Colors.white,
-    );
+    paperPainter.paint(canvas, size);
 
-    // 2. 绘制作文格
-    _drawGrid(canvas);
-
-    // 3. 绘制工具路径
+    // 2. 绘制工具路径
     final pathPainter = ToolPathPainter(
       toolPath: toolPath,
       viewport: viewport,
@@ -512,27 +547,11 @@ class _CombinedPainter extends CustomPainter {
     pathPainter.paint(canvas, size);
   }
 
-  void _drawGrid(Canvas canvas) {
-    final gridPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5
-      ..color = Colors.pink.shade200;
-
-    for (int r = 0; r < grid.rows; r++) {
-      for (int c = 0; c < grid.cols; c++) {
-        final left = grid.marginLeftMm + c * grid.cellMm;
-        final top = grid.marginTopMm + r * grid.cellMm;
-        final rect = Rect.fromLTWH(left, top, grid.cellMm, grid.cellMm);
-        final pxRect = viewport.mmRectToPx(rect);
-        canvas.drawRect(pxRect, gridPaint);
-      }
-    }
-  }
-
   @override
   bool shouldRepaint(covariant _CombinedPainter oldDelegate) {
     return oldDelegate.toolPath != toolPath ||
         oldDelegate.viewport != viewport ||
-        oldDelegate.showPenUp != showPenUp;
+        oldDelegate.showPenUp != showPenUp ||
+        oldDelegate.paperConfig != paperConfig;
   }
 }

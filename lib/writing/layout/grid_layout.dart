@@ -29,38 +29,55 @@ class GridLayoutOptions {
   final double cellPaddingMm; // 字在格子内四周留白
   final WritingMode mode; // 书写模式
   final bool allowStrokeReverse; // 快速模式下是否允许反向笔画
+  final double? cellHeightMm; // 格子高度（与宽度不同时使用），null 则取 grid.cellMm
+  final double gridRowSpacingMm; // 格子行间距
   
+  final bool verticalFirst;
+
   const GridLayoutOptions({
     this.cellPaddingMm = 0.8,
     this.mode = WritingMode.standard,
     this.allowStrokeReverse = true,
+    this.cellHeightMm,
+    this.gridRowSpacingMm = 0,
+    this.verticalFirst = false,
   });
-  
+
   GridLayoutOptions copyWith({
     double? cellPaddingMm,
     WritingMode? mode,
     bool? allowStrokeReverse,
+    double? cellHeightMm,
+    double? gridRowSpacingMm,
+    bool? verticalFirst,
   }) {
     return GridLayoutOptions(
       cellPaddingMm: cellPaddingMm ?? this.cellPaddingMm,
       mode: mode ?? this.mode,
       allowStrokeReverse: allowStrokeReverse ?? this.allowStrokeReverse,
+      cellHeightMm: cellHeightMm ?? this.cellHeightMm,
+      gridRowSpacingMm: gridRowSpacingMm ?? this.gridRowSpacingMm,
+      verticalFirst: verticalFirst ?? this.verticalFirst,
     );
   }
 }
 
-class EssayGridLayout {
+class GridLayout {
   final EssayGridSpec grid;
   final StrokeFont font;
   final GridLayoutOptions options;
 
-  EssayGridLayout({
+  GridLayout({
     required this.grid,
     required this.font,
     this.options = const GridLayoutOptions(),
   });
 
   ToolPath layoutText(String text) {
+    if (options.verticalFirst) {
+      return _layoutVerticalFirst(text);
+    }
+
     // 1. 将文本拆分为行和列的布局矩阵
     final List<List<String>> lines = [];
     List<String> currentRow = [];
@@ -90,76 +107,133 @@ class EssayGridLayout {
     // 2. 遍历每一行执行布局
     for (int r = 0; r < lines.length; r++) {
       final lineChars = lines[r];
+      // 这里的 S 型书写逻辑
       final bool isReversed = r % 2 == 1; // 奇数行(第二、四...)反向书写
 
       // 根据方向决定列的处理顺序
-      final Iterable<int> columns = isReversed
+      final Iterable<int> columnsOrder = isReversed
           ? Iterable<int>.generate(lineChars.length, (i) => lineChars.length - 1 - i)
           : Iterable<int>.generate(lineChars.length, (i) => i);
 
-      for (final c in columns) {
+      for (final c in columnsOrder) {
         final ch = lineChars[c];
-
-        // 空格：占格但不画
-        if (ch.trim().isEmpty) {
-          continue;
-        }
-
-        final glyph = font.glyphOf(ch) ?? _placeholderGlyph();
-
-        // 计算当前格子位置 (mm)
-        final cellLeft = grid.marginLeftMm + c * grid.cellMm;
-        final cellTop = grid.marginTopMm + r * grid.cellMm;
-
-        final pad = options.cellPaddingMm;
-        final inner = (grid.cellMm - 2 * pad).clamp(0.1, grid.cellMm);
-
-        // 映射坐标
-        Vec2 mapPt(Vec2 p) {
-          final x = cellLeft + pad + p.x * inner;
-          final y = cellTop + pad + p.y * inner;
-          return Vec2(x, y);
-        }
-
-        // 处理笔画
-        // 快速模式：优化笔画顺序以减少抬笔移动
-        // 标准模式：保持原始笔顺
-        List<List<Vec2>> strokes = glyph.strokes;
-        
-        if (options.mode == WritingMode.fast && strokes.length > 1) {
-          // 传入当前光标位置（已映射到格子内坐标系）
-          final cursorInCell = cursor != null 
-              ? Vec2(
-                  (cursor.x - cellLeft - pad) / inner,
-                  (cursor.y - cellTop - pad) / inner,
-                )
-              : null;
-          strokes = StrokeOptimizer.optimizeGlyph(
-            strokes,
-            startFrom: cursorInCell,
-            allowReverse: options.allowStrokeReverse,
-          );
-        }
-        
-        for (final stroke in strokes) {
-          if (stroke.length < 2) continue;
-
-          final pts = stroke.map(mapPt).toList();
-          final start = pts.first;
-
-          // 生成 pen-up 移动
-          if (cursor != null && (cursor.x != start.x || cursor.y != start.y)) {
-            polylines.add(ToolPolyline(penDown: false, points: [cursor, start]));
-          }
-
-          // 生成 pen-down 笔迹
-          polylines.add(ToolPolyline(penDown: true, points: pts));
-          cursor = pts.last;
-        }
+        _processChar(ch, r, c, polylines, (newCursor) => cursor = newCursor, () => cursor);
       }
     }
 
     return ToolPath(polylines: polylines);
+  }
+
+  ToolPath _layoutVerticalFirst(String text) {
+    // 纵向书写：一列一列来，从左往右
+    final List<List<String>> cols = [];
+    List<String> currentCol = [];
+
+    for (final ch in text.characters) {
+      if (ch == '\n') {
+        cols.add(currentCol);
+        currentCol = [];
+        if (cols.length >= grid.cols) break;
+        continue;
+      }
+
+      currentCol.add(ch);
+      if (currentCol.length >= grid.rows) {
+        cols.add(currentCol);
+        currentCol = [];
+        if (cols.length >= grid.cols) break;
+      }
+    }
+    if (currentCol.isNotEmpty && cols.length < grid.cols) {
+      cols.add(currentCol);
+    }
+
+    final polylines = <ToolPolyline>[];
+    Vec2? cursor;
+
+    for (int c = 0; c < cols.length; c++) {
+      final colChars = cols[c];
+      
+      // S 型书写：如果是奇数列，则从下往上
+      final bool isReversed = c % 2 == 1;
+      final Iterable<int> rowsOrder = isReversed
+          ? Iterable<int>.generate(colChars.length, (i) => colChars.length - 1 - i)
+          : Iterable<int>.generate(colChars.length, (i) => i);
+
+      for (final r in rowsOrder) {
+        final ch = colChars[r];
+        _processChar(ch, r, c, polylines, (newCursor) => cursor = newCursor, () => cursor);
+      }
+    }
+
+    return ToolPath(polylines: polylines);
+  }
+
+  void _processChar(
+    String ch, 
+    int r, 
+    int c, 
+    List<ToolPolyline> polylines,
+    void Function(Vec2?) setCursor,
+    Vec2? Function() getCursor,
+  ) {
+    // 空格：占格但不画
+    if (ch.trim().isEmpty) {
+      return;
+    }
+
+    final glyph = font.glyphOf(ch) ?? _placeholderGlyph();
+
+    // 计算当前格子位置 (mm)
+    final cellW = grid.cellMm; // 格子宽度
+    final boxH = options.cellHeightMm ?? grid.cellMm; // 格子内容高度
+    final rowGap = options.gridRowSpacingMm;
+    
+    final cellLeft = grid.marginLeftMm + c * cellW;
+    final cellTop = grid.marginTopMm + r * (boxH + rowGap);
+
+    final pad = options.cellPaddingMm;
+    // 为了格中对齐，取宽高较小值作为正方形边长
+    final innerSquare = ([cellW - 2 * pad, boxH - 2 * pad].reduce((a, b) => a < b ? a : b)).clamp(0.1, double.infinity);
+    // 居中偏移
+    final offsetX = cellLeft + (cellW - innerSquare) / 2;
+    final offsetY = cellTop + (boxH - innerSquare) / 2;
+
+    // 映射坐标
+    Vec2 mapPt(Vec2 p) {
+      final x = offsetX + p.x * innerSquare;
+      final y = offsetY + p.y * innerSquare;
+      return Vec2(x, y);
+    }
+
+    List<List<Vec2>> strokes = glyph.strokes;
+    Vec2? cursor = getCursor();
+    
+    if (options.mode == WritingMode.fast && strokes.length > 1) {
+      final cursorInCell = cursor != null 
+          ? Vec2((cursor.x - offsetX) / innerSquare, (cursor.y - offsetY) / innerSquare)
+          : null;
+      strokes = StrokeOptimizer.optimizeGlyph(
+        strokes,
+        startFrom: cursorInCell,
+        allowReverse: options.allowStrokeReverse,
+      );
+    }
+    
+    for (final stroke in strokes) {
+      if (stroke.length < 2) continue;
+
+      final pts = stroke.map(mapPt).toList();
+      final start = pts.first;
+
+      if (cursor != null && (cursor.x != start.x || cursor.y != start.y)) {
+        polylines.add(ToolPolyline(penDown: false, points: [cursor, start]));
+      }
+
+      polylines.add(ToolPolyline(penDown: true, points: pts));
+      cursor = pts.last;
+    }
+    setCursor(cursor);
   }
 
   StrokeGlyph _placeholderGlyph() {

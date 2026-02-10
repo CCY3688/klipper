@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io' show File;
 import 'dart:convert';
 
-import '../../../writing/model/page.dart';
-import '../../../writing/model/essay_grid.dart';
+import '../../../writing/model/paper_type.dart';
 import '../../../writing/model/toolpath.dart';
 import '../../../writing/model/toolpath_painter.dart';
 import '../../../writing/model/animated_toolpath_painter.dart';
-import '../../../writing/render/page_painter.dart';
+import '../../../writing/render/paper_type_painter.dart';
 import '../../../writing/render/viewport.dart' as kp;
 import '../../../writing/model/gcode_parser.dart';
 import '../../../writing/model/toolpath_analyzer.dart';
+import '../../../state/paper_config_controller.dart';
 import '../widgets/fluidd_card.dart';
 
 class PaperPreviewPanel extends StatefulWidget {
@@ -25,10 +26,6 @@ class PaperPreviewPanel extends StatefulWidget {
 
 class _PaperPreviewPanelState extends State<PaperPreviewPanel>
     with SingleTickerProviderStateMixin {
-  // 默认 A4 纸张
-  final PageMm _page = const PageMm(widthMm: 210, heightMm: 297);
-  // 默认作文格
-  final EssayGridSpec _grid = defaultA4EssayGrid();
 
   bool _showPenUp = true;
 
@@ -78,21 +75,21 @@ class _PaperPreviewPanelState extends State<PaperPreviewPanel>
     super.dispose();
   }
 
-  kp.Viewport _fitViewport(Size size) {
+  kp.Viewport _fitViewport(Size size, PaperConfig config) {
     final availW = (size.width - _fitPaddingPx * 2).clamp(1.0, double.infinity);
     final availH = (size.height - _fitPaddingPx * 2).clamp(
       1.0,
       double.infinity,
     );
 
-    double scale = availW / _page.widthMm;
-    if (_page.heightMm * scale > availH) {
-      scale = availH / _page.heightMm;
+    double scale = availW / config.pageWidthMm;
+    if (config.pageHeightMm * scale > availH) {
+      scale = availH / config.pageHeightMm;
     }
     scale = scale.clamp(_minScalePxPerMm, _maxScalePxPerMm);
 
-    final contentW = _page.widthMm * scale;
-    final contentH = _page.heightMm * scale;
+    final contentW = config.pageWidthMm * scale;
+    final contentH = config.pageHeightMm * scale;
     final pan = Offset(
       (size.width - contentW) / 2,
       (size.height - contentH) / 2,
@@ -101,10 +98,10 @@ class _PaperPreviewPanelState extends State<PaperPreviewPanel>
     return kp.Viewport(scale: scale, pan: pan);
   }
 
-  kp.Viewport _ensureViewport(Size size) {
+  kp.Viewport _ensureViewport(Size size, PaperConfig config) {
     if (_viewport == null ||
         (!_hasUserTransform && _lastViewportSize != size)) {
-      _viewport = _fitViewport(size);
+      _viewport = _fitViewport(size, config);
     }
     _lastViewportSize = size;
     return _viewport!;
@@ -120,8 +117,9 @@ class _PaperPreviewPanelState extends State<PaperPreviewPanel>
   void _resetView() {
     final size = _lastViewportSize;
     if (size == null) return;
+    final config = context.read<PaperConfigController>().activePaper;
     setState(() {
-      _viewport = _fitViewport(size);
+      _viewport = _fitViewport(size, config);
       _hasUserTransform = false;
     });
   }
@@ -251,6 +249,7 @@ class _PaperPreviewPanelState extends State<PaperPreviewPanel>
   @override
   Widget build(BuildContext context) {
     final ToolPath toolPath = _uploadedToolPath;
+    final paperConfig = context.watch<PaperConfigController>().activePaper;
 
     return FluiddCard(
       title: 'Paper Preview',
@@ -326,7 +325,7 @@ class _PaperPreviewPanelState extends State<PaperPreviewPanel>
           ),
       ],
       child: AspectRatio(
-        aspectRatio: _page.widthMm / _page.heightMm, // 保持纸张比例
+        aspectRatio: paperConfig.pageWidthMm / paperConfig.pageHeightMm, // 保持纸张比例
         child: Container(
           decoration: BoxDecoration(
             color: const Color(0xFF333333), // 背景色，深色衬托白纸
@@ -336,7 +335,7 @@ class _PaperPreviewPanelState extends State<PaperPreviewPanel>
           child: LayoutBuilder(
             builder: (context, constraints) {
               final size = Size(constraints.maxWidth, constraints.maxHeight);
-              final viewport = _ensureViewport(size);
+              final viewport = _ensureViewport(size, paperConfig);
 
               return Stack(
                 fit: StackFit.expand,
@@ -425,9 +424,8 @@ class _PaperPreviewPanelState extends State<PaperPreviewPanel>
                         });
                       },
                       child: CustomPaint(
-                        painter: PagePainter(
-                          page: _page,
-                          grid: _grid,
+                        painter: PaperTypePainter(
+                          config: paperConfig,
                           viewport: _viewport ?? viewport,
                         ),
                         foregroundPainter: _isDynamicPreview
