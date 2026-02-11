@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:klipper/writing/font/makemeahanzi_converter.dart';
-import 'package:klipper/writing/model/glyph.dart';
 import 'package:klipper/writing/model/stroke_analyzer.dart';
 
 void main() async {

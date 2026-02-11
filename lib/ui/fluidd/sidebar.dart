@@ -12,44 +12,61 @@ class FluiddSidebar extends StatelessWidget {
     return Container(
       width: 64,
       color: const Color(0xFF212529), // Dark background for sidebar
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          const Icon(Icons.edit_note, color: Colors.blue, size: 32), // Logo: Writing focused
-          const SizedBox(height: 32),
-          _SideItem(
-            icon: Icons.dashboard,
-            tooltip: '控制面板',
-            isActive: nav.currentTab == SidebarTab.dashboard,
-            onTap: () => nav.switchTo(SidebarTab.dashboard),
-          ),
-          _SideItem(
-            icon: Icons.text_fields, // 文本编辑图标
-            tooltip: '文本编辑',
-            isActive: nav.currentTab == SidebarTab.writing,
-            onTap: () => nav.switchTo(SidebarTab.writing),
-          ),
-          _SideItem(
-            icon: Icons.description_outlined, // 纸张设置图标
-            tooltip: '纸张设置',
-            isActive: nav.currentTab == SidebarTab.paperSettings,
-            onTap: () => nav.switchTo(SidebarTab.paperSettings),
-          ),
-          _SideItem(
-            icon: Icons.history,
-            tooltip: '历史记录',
-            isActive: nav.currentTab == SidebarTab.history,
-            onTap: () => nav.switchTo(SidebarTab.history),
-          ),
-          const Spacer(),
-          _SideItem(
-            icon: Icons.settings,
-            tooltip: '设置',
-            isActive: nav.currentTab == SidebarTab.settings,
-            onTap: () => nav.switchTo(SidebarTab.settings),
-          ),
-          const SizedBox(height: 16),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    const Icon(Icons.edit_note, color: Colors.blue, size: 32), // Logo: Writing focused
+                    const SizedBox(height: 32),
+                    _SideItem(
+                      icon: Icons.dashboard,
+                      tooltip: '控制面板',
+                      isActive: nav.currentTab == SidebarTab.dashboard,
+                      onTap: () => nav.switchTo(SidebarTab.dashboard),
+                    ),
+                    _SideItem(
+                      icon: Icons.text_fields, // 文本编辑图标
+                      tooltip: '文本编辑',
+                      isActive: nav.currentTab == SidebarTab.writing,
+                      onTap: () => nav.switchTo(SidebarTab.writing),
+                    ),
+                    _SideItem(
+                      icon: Icons.description_outlined, // 纸张设置图标
+                      tooltip: '纸张设置',
+                      isActive: nav.currentTab == SidebarTab.paperSettings,
+                      onTap: () => nav.switchTo(SidebarTab.paperSettings),
+                    ),
+                    _SideItem(
+                      icon: Icons.brush, // 风格学习图标
+                      tooltip: '风格学习',
+                      isActive: nav.currentTab == SidebarTab.styleLearning,
+                      onTap: () => nav.switchTo(SidebarTab.styleLearning),
+                    ),
+                    _SideItem(
+                      icon: Icons.history,
+                      tooltip: '历史记录',
+                      isActive: nav.currentTab == SidebarTab.history,
+                      onTap: () => nav.switchTo(SidebarTab.history),
+                    ),
+                    const Spacer(),
+                    _SideItem(
+                      icon: Icons.settings,
+                      tooltip: '设置',
+                      isActive: nav.currentTab == SidebarTab.settings,
+                      onTap: () => nav.switchTo(SidebarTab.settings),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

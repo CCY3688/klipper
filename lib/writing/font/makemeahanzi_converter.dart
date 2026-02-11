@@ -1,4 +1,3 @@
-import 'dart:ui';
 import '../model/geometry.dart';
 import '../model/stroke.dart';
 import '../model/glyph.dart';

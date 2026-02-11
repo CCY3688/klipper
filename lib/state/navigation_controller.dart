@@ -5,6 +5,7 @@ enum SidebarTab {
   dashboard,      // 主控面板
   writing,        // 文本编辑/写作
   paperSettings,  // 纸张设置
+  styleLearning,  // 风格学习
   history,        // 历史记录
   settings,       // 设置
 }

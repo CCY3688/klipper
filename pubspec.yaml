@@ -42,6 +42,13 @@ dependencies:
   characters: ^1.4.0
   file_picker: ^8.0.7
   file_selector: ^1.1.0
+    # ===== 风格学习模块依赖 =====
+  # 图片选择
+  image_picker: ^1.0.7
+  # 图像处理
+  image: ^4.1.7
+  # 权限管理
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   flutter_test:

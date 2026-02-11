@@ -3,7 +3,6 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../model/geometry.dart';
 import '../model/glyph.dart';
-import '../model/stroke.dart';
 
 // ============================================================================
 // StrokeGlyph - 旧版数据结构（保留用于向后兼容）

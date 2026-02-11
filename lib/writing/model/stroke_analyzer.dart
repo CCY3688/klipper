@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'geometry.dart';
 import 'stroke.dart';
 import 'glyph.dart';
 
@@ -116,8 +115,12 @@ class StrokeAnalyzer {
   /// 根据角度分类直线型笔画
   StrokeType _classifyByAngle(double angle) {
     // 归一化角度到 -π ~ π
-    while (angle > math.pi) angle -= 2 * math.pi;
-    while (angle < -math.pi) angle += 2 * math.pi;
+    while (angle > math.pi) {
+      angle -= 2 * math.pi;
+    }
+    while (angle < -math.pi) {
+      angle += 2 * math.pi;
+    }
     
     final absAngle = angle.abs();
     

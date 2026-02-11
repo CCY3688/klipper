@@ -4,6 +4,7 @@
 /// 核心算法：贪心最近邻 (Greedy Nearest Neighbor)
 /// - 从当前笔尖位置出发，选择起点或终点距离最近的下一笔
 /// - 如果终点更近，则反向该笔画
+library;
 
 import '../model/geometry.dart';
 
