@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import '../models/character_data.dart';
-import '../models/stroke_trajectory.dart';
 
 /// 测试页面 - 验证基础数据结构
 class StyleLearningTestPage extends StatefulWidget {

@@ -45,10 +45,18 @@ dependencies:
     # ===== 风格学习模块依赖 =====
   # 图片选择
   image_picker: ^1.0.7
+  
   # 图像处理
   image: ^4.1.7
+  
+  # 图片裁剪
+  image_cropper: ^5.0.1
+  
   # 权限管理
   permission_handler: ^11.3.0
+  
+  # 集合工具
+  collection: ^1.18.0
 
 dev_dependencies:
   flutter_test:
