@@ -9,7 +9,7 @@ import '../services/image_editor_service.dart';
 class ImageEditPage extends StatefulWidget {
   final Uint8List imageBytes;
   
-  const ImageEditPage({Key? key, required this.imageBytes}) : super(key: key);
+  const ImageEditPage({super.key, required this.imageBytes});
 
   @override
   State<ImageEditPage> createState() => _ImageEditPageState();
@@ -26,22 +26,24 @@ class _ImageEditPageState extends State<ImageEditPage> {
   double _brightness = 0;
   double _contrast = 1.0;
   
+  // 工具管理
+  int _currentToolIndex = 0; // 0: 调节, 1: 裁剪, 2: 旋转
+  
   // 裁剪相关
-  bool _isCropping = false;
   Rect _cropRect = Rect.zero;
-  Size _imageSize = Size.zero;
+  Size _imageDisplaySize = Size.zero;
+  Offset _imageDisplayOffset = Offset.zero;
+  _CropDragMode _cropDragMode = _CropDragMode.none;
+  Offset _panStart = Offset.zero;
+  Rect _cropRectAtPanStart = Rect.zero;
+  static const double _cropMinSize = 40;
+  static const double _handleTouchRadius = 26;
   
   @override
   void initState() {
     super.initState();
     _currentImage = widget.imageBytes;
     _addToHistory(_currentImage);
-    _updateImageInfo();
-  }
-  
-  void _updateImageInfo() {
-    final info = _editorService.getImageInfo(_currentImage);
-    _imageSize = Size(info.width.toDouble(), info.height.toDouble());
   }
   
   void _addToHistory(Uint8List image) {
@@ -67,7 +69,6 @@ class _ImageEditPageState extends State<ImageEditPage> {
       setState(() {
         _historyIndex--;
         _currentImage = _history[_historyIndex];
-        _updateImageInfo();
       });
     }
   }
@@ -77,254 +78,420 @@ class _ImageEditPageState extends State<ImageEditPage> {
       setState(() {
         _historyIndex++;
         _currentImage = _history[_historyIndex];
-        _updateImageInfo();
       });
     }
   }
   
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('编辑图像'),
+        title: const Text('图像编辑'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.undo),
             onPressed: _canUndo ? _undo : null,
-            tooltip: '撤销',
           ),
           IconButton(
             icon: const Icon(Icons.redo),
             onPressed: _canRedo ? _redo : null,
-            tooltip: '重做',
           ),
-          IconButton(
-            icon: const Icon(Icons.check),
+          const SizedBox(width: 8),
+          TextButton(
             onPressed: _isProcessing ? null : _confirmEdit,
-            tooltip: '完成',
+            child: Text(
+              '保存',
+              style: TextStyle(
+                color: _isProcessing ? Colors.grey : theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
           // 图像预览区域
           Expanded(
-            child: _buildImagePreview(),
+            child: Container(
+              width: double.infinity,
+              color: Colors.black,
+              child: _buildImageArea(),
+            ),
           ),
           
-          // 工具栏
-          _buildToolbar(),
-          
-          // 调节滑块
-          if (!_isCropping) _buildAdjustmentSliders(),
+          // 控制面板
+          Container(
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 工具内容区
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: _buildToolContent(),
+                ),
+                
+                // 工具切换栏
+                Divider(height: 1, color: Colors.white12),
+                BottomNavigationBar(
+                  currentIndex: _currentToolIndex,
+                  onTap: (index) {
+                    setState(() {
+                      _currentToolIndex = index;
+                    });
+                  },
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  selectedItemColor: theme.colorScheme.primary,
+                  unselectedItemColor: Colors.grey,
+                  type: BottomNavigationBarType.fixed,
+                  items: const [
+                    BottomNavigationBarItem(icon: Icon(Icons.tune), label: '调节'),
+                    BottomNavigationBarItem(icon: Icon(Icons.crop), label: '裁剪'),
+                    BottomNavigationBarItem(icon: Icon(Icons.rotate_right), label: '旋转'),
+                    BottomNavigationBarItem(icon: Icon(Icons.auto_fix_high), label: '智能'),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
   
-  Widget _buildImagePreview() {
+  Widget _buildImageArea() {
     if (_isProcessing) {
       return const Center(child: CircularProgressIndicator());
     }
     
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: _isCropping 
-            ? _buildCropView()
-            : InteractiveViewer(
-                child: Image.memory(
-                  _currentImage,
-                  fit: BoxFit.contain,
-                ),
-              ),
-      ),
-    );
-  }
-  
-  Widget _buildCropView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return GestureDetector(
-          onPanStart: (details) {
-            setState(() {
-              _cropRect = Rect.fromLTWH(
-                details.localPosition.dx,
-                details.localPosition.dy,
-                0,
-                0,
-              );
-            });
-          },
-          onPanUpdate: (details) {
-            setState(() {
-              _cropRect = Rect.fromPoints(
-                _cropRect.topLeft,
-                details.localPosition,
-              );
-            });
-          },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.memory(
-                _currentImage,
-                fit: BoxFit.contain,
-              ),
-              // 半透明遮罩
-              CustomPaint(
-                painter: _CropOverlayPainter(_cropRect),
-              ),
-              // 裁剪区域边框
-              if (_cropRect.width > 10 && _cropRect.height > 10)
-                Positioned(
-                  left: _cropRect.left,
-                  top: _cropRect.top,
-                  child: Container(
-                    width: _cropRect.width,
-                    height: _cropRect.height,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
+        // 在这里我们不实际渲染 Image.memory 两次
+        // 而是计算一次布局信息供裁剪使用
+        return _currentToolIndex == 1 // 裁剪工具
+            ? _buildCropView(constraints)
+            : InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Center(
+                  child: Image.memory(
+                    _currentImage,
+                    fit: BoxFit.contain,
                   ),
                 ),
-            ],
-          ),
-        );
+              );
       },
     );
   }
   
-  Widget _buildToolbar() {
-    if (_isCropping) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+  Widget _buildToolContent() {
+    switch (_currentToolIndex) {
+      case 0: // 调节
+        return _buildAdjustmentSliders();
+      case 1: // 裁剪
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _cropRect = Rect.zero),
+                icon: const Icon(Icons.refresh),
+                label: const Text('重置区域'),
+              ),
+              ElevatedButton.icon(
+                onPressed: _cropRect.width > 20 ? _applyCrop : null,
+                icon: const Icon(Icons.check),
+                label: const Text('执行裁剪'),
+              ),
+            ],
+          ),
+        );
+      case 2: // 旋转
+        return Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            TextButton.icon(
-              icon: const Icon(Icons.close),
-              label: const Text('取消'),
-              onPressed: () {
-                setState(() {
-                  _isCropping = false;
-                  _cropRect = Rect.zero;
-                });
-              },
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.crop),
-              label: const Text('确认裁剪'),
-              onPressed: _cropRect.width > 10 && _cropRect.height > 10
-                  ? _applyCrop
-                  : null,
-            ),
-          ],
-        ),
-      );
-    }
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            _ToolButton(
-              icon: Icons.crop,
-              label: '裁剪',
-              onPressed: () {
-                setState(() {
-                  _isCropping = true;
-                });
-              },
-            ),
             _ToolButton(
               icon: Icons.rotate_left,
-              label: '左旋',
+              label: '左旋90°',
               onPressed: () => _rotate(-90),
             ),
             _ToolButton(
               icon: Icons.rotate_right,
-              label: '右旋',
+              label: '右旋90°',
               onPressed: () => _rotate(90),
             ),
             _ToolButton(
+              icon: Icons.flip,
+              label: '水平翻转',
+              onPressed: () {/* 简单旋转代替翻转示例 */ _rotate(180); },
+            ),
+          ],
+        );
+      case 3: // 智能
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _ActionChip(
               icon: Icons.auto_fix_high,
-              label: '自动',
+              label: '一键增强',
               onPressed: _autoEnhance,
             ),
-            _ToolButton(
+            _ActionChip(
               icon: Icons.refresh,
-              label: '重置',
+              label: '恢复原图',
               onPressed: _reset,
             ),
           ],
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+  
+  Widget _buildCropView(BoxConstraints constraints) {
+    // 异步获取图像尺寸并计算布局，这里简化为同步计算
+    // 实际生产中可能需要先把 Image 加载到内存获取 Size
+    final info = _editorService.getImageInfo(_currentImage);
+    final imageWidth = info.width.toDouble();
+    final imageHeight = info.height.toDouble();
+    
+    final double imageAspect = imageWidth / imageHeight;
+    final double containerAspect = constraints.maxWidth / constraints.maxHeight;
+    
+    double drawWidth, drawHeight;
+    if (containerAspect > imageAspect) {
+      drawHeight = constraints.maxHeight;
+      drawWidth = drawHeight * imageAspect;
+    } else {
+      drawWidth = constraints.maxWidth;
+      drawHeight = drawWidth / imageAspect;
+    }
+    
+    final double left = (constraints.maxWidth - drawWidth) / 2;
+    final double top = (constraints.maxHeight - drawHeight) / 2;
+    
+    _imageDisplaySize = Size(drawWidth, drawHeight);
+    _imageDisplayOffset = Offset(left, top);
+    
+    // 初始化裁剪框
+    if (_cropRect == Rect.zero) {
+      _cropRect = Rect.fromLTWH(left + 20, top + 20, drawWidth - 40, drawHeight - 40);
+    }
+
+    return GestureDetector(
+      onPanStart: (details) {
+        _cropDragMode = _resolveCropDragMode(details.localPosition);
+        _panStart = details.localPosition;
+        _cropRectAtPanStart = _cropRect;
+      },
+      onPanUpdate: (details) {
+        setState(() {
+          final dx = details.localPosition.dx - _panStart.dx;
+          final dy = details.localPosition.dy - _panStart.dy;
+          _cropRect = _computeDraggedCropRect(
+            startRect: _cropRectAtPanStart,
+            mode: _cropDragMode,
+            dx: dx,
+            dy: dy,
+          );
+          _cropRect = _constrainCropRect(_cropRect, left, top, drawWidth, drawHeight);
+        });
+      },
+      onPanEnd: (_) {
+        _cropDragMode = _CropDragMode.none;
+      },
+      child: Stack(
+        children: [
+          Center(
+            child: Image.memory(
+              _currentImage,
+              fit: BoxFit.contain,
+            ),
+          ),
+          // 遮罩
+          CustomPaint(
+            size: Size.infinite,
+            painter: _CropOverlayPainter(_cropRect),
+          ),
+          // 裁剪框
+          Positioned.fromRect(
+            rect: _cropRect,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue, width: 2),
+              ),
+              child: Stack(
+                children: [
+                  // 九宫格辅助线
+                  Column(
+                    children: [
+                      const Spacer(),
+                      Container(height: 1, color: Colors.white38),
+                      const Spacer(),
+                      Container(height: 1, color: Colors.white38),
+                      const Spacer(),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const Spacer(),
+                      Container(width: 1, color: Colors.white38),
+                      const Spacer(),
+                      Container(width: 1, color: Colors.white38),
+                      const Spacer(),
+                    ],
+                  ),
+                  // 四角手柄
+                  _buildHandle(Alignment.topLeft),
+                  _buildHandle(Alignment.topRight),
+                  _buildHandle(Alignment.bottomLeft),
+                  _buildHandle(Alignment.bottomRight),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHandle(Alignment alignment) {
+    return Align(
+      alignment: alignment,
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: const BoxDecoration(
+          color: Colors.blue,
+          shape: BoxShape.circle,
         ),
       ),
     );
   }
+
+  _CropDragMode _resolveCropDragMode(Offset pos) {
+    final corners = <_CropDragMode, Offset>{
+      _CropDragMode.resizeTopLeft: _cropRect.topLeft,
+      _CropDragMode.resizeTopRight: _cropRect.topRight,
+      _CropDragMode.resizeBottomLeft: _cropRect.bottomLeft,
+      _CropDragMode.resizeBottomRight: _cropRect.bottomRight,
+    };
+
+    for (final entry in corners.entries) {
+      if ((pos - entry.value).distance <= _handleTouchRadius) {
+        return entry.key;
+      }
+    }
+
+    if (_cropRect.contains(pos)) return _CropDragMode.move;
+    return _CropDragMode.none;
+  }
+
+  Rect _computeDraggedCropRect({
+    required Rect startRect,
+    required _CropDragMode mode,
+    required double dx,
+    required double dy,
+  }) {
+    switch (mode) {
+      case _CropDragMode.resizeTopLeft:
+        return Rect.fromLTRB(startRect.left + dx, startRect.top + dy, startRect.right, startRect.bottom);
+      case _CropDragMode.resizeTopRight:
+        return Rect.fromLTRB(startRect.left, startRect.top + dy, startRect.right + dx, startRect.bottom);
+      case _CropDragMode.resizeBottomLeft:
+        return Rect.fromLTRB(startRect.left + dx, startRect.top, startRect.right, startRect.bottom + dy);
+      case _CropDragMode.resizeBottomRight:
+        return Rect.fromLTRB(startRect.left, startRect.top, startRect.right + dx, startRect.bottom + dy);
+      case _CropDragMode.move:
+        return startRect.shift(Offset(dx, dy));
+      case _CropDragMode.none:
+        return startRect;
+    }
+  }
+
+  Rect _constrainCropRect(Rect rect, double left, double top, double drawWidth, double drawHeight) {
+    final rightBound = left + drawWidth;
+    final bottomBound = top + drawHeight;
+
+    double l = rect.left;
+    double t = rect.top;
+    double r = rect.right;
+    double b = rect.bottom;
+
+    if (r - l < _cropMinSize) {
+      if (_cropDragMode == _CropDragMode.resizeTopLeft || _cropDragMode == _CropDragMode.resizeBottomLeft) {
+        l = r - _cropMinSize;
+      } else {
+        r = l + _cropMinSize;
+      }
+    }
+    if (b - t < _cropMinSize) {
+      if (_cropDragMode == _CropDragMode.resizeTopLeft || _cropDragMode == _CropDragMode.resizeTopRight) {
+        t = b - _cropMinSize;
+      } else {
+        b = t + _cropMinSize;
+      }
+    }
+
+    if (_cropDragMode == _CropDragMode.move) {
+      final width = r - l;
+      final height = b - t;
+      l = l.clamp(left, rightBound - width);
+      t = t.clamp(top, bottomBound - height);
+      r = l + width;
+      b = t + height;
+    } else {
+      l = l.clamp(left, rightBound - _cropMinSize);
+      t = t.clamp(top, bottomBound - _cropMinSize);
+      r = r.clamp(left + _cropMinSize, rightBound);
+      b = b.clamp(top + _cropMinSize, bottomBound);
+    }
+
+    if (r - l < _cropMinSize) r = (l + _cropMinSize).clamp(left + _cropMinSize, rightBound);
+    if (b - t < _cropMinSize) b = (t + _cropMinSize).clamp(top + _cropMinSize, bottomBound);
+
+    return Rect.fromLTRB(l, t, r, b);
+  }
   
   Widget _buildAdjustmentSliders() {
-    return Container(
-      padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
         children: [
-          // 亮度
-          Row(
-            children: [
-              const SizedBox(width: 60, child: Text('亮度')),
-              Expanded(
-                child: Slider(
-                  value: _brightness,
-                  min: -100,
-                  max: 100,
-                  divisions: 200,
-                  label: _brightness.round().toString(),
-                  onChanged: (value) {
-                    setState(() {
-                      _brightness = value;
-                    });
-                  },
-                  onChangeEnd: (value) => _applyAdjustments(),
-                ),
-              ),
-              SizedBox(
-                width: 40,
-                child: Text(_brightness.round().toString()),
-              ),
-            ],
+          _SliderRow(
+            icon: Icons.brightness_6,
+            label: '亮度',
+            value: _brightness,
+            min: -100,
+            max: 100,
+            onChanged: (v) => setState(() => _brightness = v),
+            onChangeEnd: (v) => _applyAdjustments(),
           ),
-          // 对比度
-          Row(
-            children: [
-              const SizedBox(width: 60, child: Text('对比度')),
-              Expanded(
-                child: Slider(
-                  value: _contrast,
-                  min: 0.5,
-                  max: 2.0,
-                  divisions: 30,
-                  label: _contrast.toStringAsFixed(1),
-                  onChanged: (value) {
-                    setState(() {
-                      _contrast = value;
-                    });
-                  },
-                  onChangeEnd: (value) => _applyAdjustments(),
-                ),
-              ),
-              SizedBox(
-                width: 40,
-                child: Text(_contrast.toStringAsFixed(1)),
-              ),
-            ],
+          const SizedBox(height: 8),
+          _SliderRow(
+            icon: Icons.contrast,
+            label: '对比度',
+            value: _contrast,
+            min: 0.5,
+            max: 2.0,
+            onChanged: (v) => setState(() => _contrast = v),
+            onChangeEnd: (v) => _applyAdjustments(),
           ),
         ],
       ),
@@ -334,93 +501,74 @@ class _ImageEditPageState extends State<ImageEditPage> {
   // ==================== 操作方法 ====================
   
   Future<void> _applyCrop() async {
-    if (_cropRect.width < 10 || _cropRect.height < 10) return;
-    
-    setState(() {
-      _isProcessing = true;
-    });
+    setState(() => _isProcessing = true);
     
     try {
-      // 需要将屏幕坐标转换为图像坐标
-      // 这里简化处理，实际需要考虑图像在容器中的缩放和位置
+      // 计算归一化坐标
+      final double normLeft = (_cropRect.left - _imageDisplayOffset.dx) / _imageDisplaySize.width;
+      final double normTop = (_cropRect.top - _imageDisplayOffset.dy) / _imageDisplaySize.height;
+      final double normWidth = _cropRect.width / _imageDisplaySize.width;
+      final double normHeight = _cropRect.height / _imageDisplaySize.height;
+      
       final cropRectNormalized = CropRect(
-        left: (_cropRect.left / 300).clamp(0.0, 1.0),
-        top: (_cropRect.top / 300).clamp(0.0, 1.0),
-        width: (_cropRect.width / 300).clamp(0.0, 1.0),
-        height: (_cropRect.height / 300).clamp(0.0, 1.0),
+        left: normLeft.clamp(0.0, 1.0),
+        top: normTop.clamp(0.0, 1.0),
+        width: normWidth.clamp(0.0, 1.0),
+        height: normHeight.clamp(0.0, 1.0),
       );
       
       final result = await _editorService.crop(_currentImage, cropRectNormalized);
       
       setState(() {
         _currentImage = result;
-        _isCropping = false;
         _cropRect = Rect.zero;
-        _updateImageInfo();
         _addToHistory(_currentImage);
         _isProcessing = false;
+        _currentToolIndex = 0; // 切回调节工具
       });
     } catch (e) {
-      setState(() {
-        _isProcessing = false;
-      });
+      setState(() => _isProcessing = false);
       _showError('裁剪失败: $e');
     }
   }
   
   Future<void> _rotate(double angle) async {
-    setState(() {
-      _isProcessing = true;
-    });
-    
+    setState(() => _isProcessing = true);
     try {
       final result = await _editorService.rotate(_currentImage, angle);
-      
       setState(() {
         _currentImage = result;
-        _updateImageInfo();
         _addToHistory(_currentImage);
         _isProcessing = false;
       });
     } catch (e) {
-      setState(() {
-        _isProcessing = false;
-      });
+      setState(() => _isProcessing = false);
       _showError('旋转失败: $e');
     }
   }
   
   Future<void> _autoEnhance() async {
-    setState(() {
-      _isProcessing = true;
-    });
-    
+    setState(() => _isProcessing = true);
     try {
       final result = await _editorService.autoEnhance(_currentImage);
-      
       setState(() {
         _currentImage = result;
         _addToHistory(_currentImage);
         _isProcessing = false;
       });
     } catch (e) {
-      setState(() {
-        _isProcessing = false;
-      });
+      setState(() => _isProcessing = false);
       _showError('自动增强失败: $e');
     }
   }
   
   Future<void> _applyAdjustments() async {
-    if (_brightness == 0 && _contrast == 1.0) return;
-    
-    setState(() {
-      _isProcessing = true;
-    });
-    
+    setState(() => _isProcessing = true);
     try {
+      // 总是从最近的一次“确认”操作后的图像开始调整，或者简单点从历史中最后一张开始
+      // 为了性能，如果连续滑动，这里可以做 debounce
       final result = await _editorService.adjustBrightnessContrast(
-        _history[0], // 从原图开始调整
+        _history[_historyIndex], 
         brightness: _brightness.round(),
         contrast: _contrast,
       );
@@ -430,9 +578,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
         _isProcessing = false;
       });
     } catch (e) {
-      setState(() {
-        _isProcessing = false;
-      });
+      setState(() => _isProcessing = false);
     }
   }
   
@@ -444,7 +590,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
       _history.clear();
       _historyIndex = -1;
       _addToHistory(_currentImage);
-      _updateImageInfo();
+      _currentToolIndex = 0;
     });
   }
   
@@ -458,6 +604,73 @@ class _ImageEditPageState extends State<ImageEditPage> {
     );
   }
 }
+
+/// 内部小组件
+class _SliderRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double> onChangeEnd;
+
+  const _SliderRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    required this.onChangeEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey),
+        const SizedBox(width: 10),
+        SizedBox(width: 50, child: Text(label, style: const TextStyle(fontSize: 12))),
+        Expanded(
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            onChanged: onChanged,
+            onChangeEnd: onChangeEnd,
+          ),
+        ),
+        SizedBox(
+          width: 35,
+          child: Text(
+            min < 0 ? value.round().toString() : value.toStringAsFixed(1),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const _ActionChip({required this.icon, required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      avatar: Icon(icon, size: 16),
+      label: Text(label),
+      onPressed: onPressed,
+      backgroundColor: Colors.white10,
+    );
+  }
+}
+
 
 /// 工具按钮
 class _ToolButton extends StatelessWidget {
@@ -526,4 +739,13 @@ class _CropOverlayPainter extends CustomPainter {
   
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+enum _CropDragMode {
+  none,
+  move,
+  resizeTopLeft,
+  resizeTopRight,
+  resizeBottomLeft,
+  resizeBottomRight,
 }

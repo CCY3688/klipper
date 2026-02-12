@@ -1,9 +1,13 @@
 import 'dart:io' show Platform;
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/handwriting_sample.dart';
+import '../services/character_segmenter.dart';
 import '../services/image_capture_service.dart';
 import '../services/image_processor.dart';
+import '../services/skeleton_extractor.dart';
+import 'image_edit_page.dart';
 
 /// 图像采集页面 - 重构为 Fluidd 风格
 class ImageCapturePage extends StatefulWidget {
@@ -16,11 +20,16 @@ class ImageCapturePage extends StatefulWidget {
 class _ImageCapturePageState extends State<ImageCapturePage> {
   final ImageCaptureService _captureService = ImageCaptureService();
   final ImageProcessor _imageProcessor = ImageProcessor();
+  final CharacterSegmenter _segmenter = CharacterSegmenter();
+  final SkeletonExtractor _skeletonExtractor = SkeletonExtractor();
   
   HandwritingSample? _currentSample;
   ImageProcessResult? _processResult;
+  SegmentationResult? _segmentationResult;
+  List<SkeletonResult> _skeletonResults = [];
   bool _isProcessing = false;
   String? _errorMessage;
+  String _processingMessage = '正在执行二值化与噪声抑制';
   int _selectedStageIndex = 0;
 
   // 颜色定义
@@ -148,7 +157,7 @@ class _ImageCapturePageState extends State<ImageCapturePage> {
           const SizedBox(height: 24),
           Text('深度学习处理中...', style: TextStyle(color: _textColor, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          Text('正在执行二值化与噪声抑制', style: TextStyle(color: _subTextColor, fontSize: 12)),
+          Text(_processingMessage, style: TextStyle(color: _subTextColor, fontSize: 12)),
         ],
       ),
     );
@@ -291,7 +300,13 @@ class _ImageCapturePageState extends State<ImageCapturePage> {
                 padding: const EdgeInsets.only(right: 12, left: 6),
                 child: Column(
                   children: [
-                    _FluiddButton(label: '提取笔画骨架', icon: Icons.auto_awesome, onPressed: _goToNextStep, isPrimary: true),
+                    _FluiddButton(label: '提取笔画骨架', icon: Icons.auto_awesome, onPressed: _extractSkeletons, isPrimary: true),
+                    const SizedBox(height: 8),
+                    _FluiddButton(label: '重新编辑图片', icon: Icons.edit, onPressed: _editCurrentImage),
+                    if (_skeletonResults.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _FluiddButton(label: '查看骨架结果', icon: Icons.visibility, onPressed: _showSkeletonResultSheet),
+                    ],
                     const SizedBox(height: 8),
                     _FluiddButton(label: '重新选择样本', icon: Icons.arrow_back, onPressed: _clearSample),
                   ],
@@ -310,7 +325,9 @@ class _ImageCapturePageState extends State<ImageCapturePage> {
     try {
       setState(() => _errorMessage = null);
       final sample = await _captureService.pickFromGallery();
-      if (sample != null) setState(() { _currentSample = sample; _processResult = null; _selectedStageIndex = 0; });
+      if (sample != null) {
+        await _openImageEditor(sample);
+      }
     } catch (e) { setState(() => _errorMessage = e.toString()); }
   }
   
@@ -318,22 +335,220 @@ class _ImageCapturePageState extends State<ImageCapturePage> {
     try {
       setState(() => _errorMessage = null);
       final sample = await _captureService.captureFromCamera();
-      if (sample != null) setState(() { _currentSample = sample; _processResult = null; _selectedStageIndex = 0; });
+      if (sample != null) {
+        await _openImageEditor(sample);
+      }
     } catch (e) { setState(() => _errorMessage = e.toString()); }
+  }
+
+  Future<void> _openImageEditor(HandwritingSample sample) async {
+    if (!mounted) return;
+
+    final edited = await Navigator.push<Uint8List>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImageEditPage(imageBytes: sample.originalImage),
+      ),
+    );
+
+    if (!mounted) return;
+
+    final nextSample = edited == null
+        ? sample
+        : HandwritingSample(
+            id: sample.id,
+            character: sample.character,
+            originalImage: edited,
+            capturedAt: sample.capturedAt,
+            source: sample.source,
+          );
+
+    setState(() {
+      _currentSample = nextSample;
+      _processResult = null;
+      _segmentationResult = null;
+      _skeletonResults = [];
+      _selectedStageIndex = 0;
+    });
+  }
+
+  Future<void> _editCurrentImage() async {
+    final sample = _currentSample;
+    if (sample == null) return;
+    await _openImageEditor(sample);
   }
   
   Future<void> _processImage() async {
     if (_currentSample == null) return;
-    setState(() { _isProcessing = true; _errorMessage = null; });
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+      _processingMessage = '正在执行二值化与噪声抑制';
+    });
     try {
       final result = await _imageProcessor.process(_currentSample!.originalImage);
-      setState(() { _processResult = result; _isProcessing = false; });
-    } catch (e) { setState(() { _errorMessage = '处理失败: $e'; _isProcessing = false; }); }
+      setState(() {
+        _processResult = result;
+        _segmentationResult = null;
+        _skeletonResults = [];
+        _isProcessing = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = '处理失败: $e';
+        _isProcessing = false;
+      });
+    }
+  }
+
+  Future<void> _extractSkeletons() async {
+    if (_processResult == null) return;
+
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+      _processingMessage = '正在分割字符区域...';
+    });
+
+    try {
+      final segmentation = await _segmenter.segment(_processResult!.processedImage);
+      final skeletons = <SkeletonResult>[];
+
+      for (int i = 0; i < segmentation.characters.length; i++) {
+        if (!mounted) return;
+        setState(() {
+          _processingMessage = '正在提取第 ${i + 1}/${segmentation.characters.length} 个字符骨架...';
+        });
+        final result = await _skeletonExtractor.extract(segmentation.characters[i].imageData);
+        skeletons.add(result);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _segmentationResult = segmentation;
+        _skeletonResults = skeletons;
+        _isProcessing = false;
+      });
+
+      if (skeletons.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('未检测到有效字符，无法提取骨架')),
+        );
+        return;
+      }
+
+      _showSkeletonResultSheet();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = '骨架提取失败: $e';
+        _isProcessing = false;
+      });
+    }
+  }
+
+  void _showSkeletonResultSheet() {
+    if (_segmentationResult == null || _skeletonResults.isEmpty) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _panelBg,
+      builder: (context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.8,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Colors.white10)),
+                ),
+                child: Text(
+                  '骨架提取结果（${_skeletonResults.length} 个字符）',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _skeletonResults.length,
+                  itemBuilder: (context, index) {
+                    final skeleton = _skeletonResults[index];
+                    final segmented = _segmentationResult!.characters[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2C3136),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('字符 #${index + 1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 140,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      const Text('分割图', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                      const SizedBox(height: 6),
+                                      Expanded(child: Image.memory(segmented.imageData, fit: BoxFit.contain)),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      const Text('骨架图', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                      const SizedBox(height: 6),
+                                      Expanded(child: Image.memory(skeleton.skeletonImage, fit: BoxFit.contain)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 6,
+                            children: [
+                              _MetricChip(label: '笔画', value: '${skeleton.strokeCount}'),
+                              _MetricChip(label: '端点', value: '${skeleton.endpointCount}'),
+                              _MetricChip(label: '交叉点', value: '${skeleton.junctionCount}'),
+                              _MetricChip(label: '骨架点', value: '${skeleton.skeletonPoints.length}'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
   
-  void _clearSample() => setState(() { _currentSample = null; _processResult = null; _errorMessage = null; _selectedStageIndex = 0; });
+  void _clearSample() => setState(() {
+    _currentSample = null;
+    _processResult = null;
+    _segmentationResult = null;
+    _skeletonResults = [];
+    _errorMessage = null;
+    _selectedStageIndex = 0;
+  });
   void _clearError() => setState(() => _errorMessage = null);
-  void _goToNextStep() => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('下一步：骨架提取项目 - 研发中')));
 }
 
 /// Fluidd 风格按钮
@@ -391,6 +606,28 @@ class _InfoRow extends StatelessWidget {
           Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
           Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace')),
         ],
+      ),
+    );
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MetricChip({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(color: Colors.white, fontSize: 12),
       ),
     );
   }

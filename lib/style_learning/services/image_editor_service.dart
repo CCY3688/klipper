@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:math' as math;
 import 'package:image/image.dart' as img;
 
 /// 图像编辑服务

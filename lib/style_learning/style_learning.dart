@@ -24,6 +24,7 @@ export 'ui/style_learning_test_page.dart';
 export 'ui/image_capture_page.dart';
 export 'ui/image_edit_page.dart';
 export 'ui/sample_collection_page.dart';
+export 'ui/style_learning_workspace_page.dart';
 
 // TODO: 后续会添加更多导出
 // export 'services/image_processor.dart';
