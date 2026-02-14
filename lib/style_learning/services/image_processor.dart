@@ -13,6 +13,14 @@ class ImageProcessor {
   /// 
   /// 返回处理后的图像数据和各阶段结果
   Future<ImageProcessResult> process(Uint8List imageBytes) async {
+    return processWithOptions(imageBytes, options: const ImageProcessOptions());
+  }
+
+  /// 使用可配置参数执行预处理流程
+  Future<ImageProcessResult> processWithOptions(
+    Uint8List imageBytes, {
+    required ImageProcessOptions options,
+  }) async {
     final stopwatch = Stopwatch()..start();
     final stages = <ProcessingStage>[];
     
@@ -29,8 +37,9 @@ class ImageProcessor {
     
     // 2. 调整大小（如果图像太大）
     img.Image resized = original;
-    if (original.width > 1024 || original.height > 1024) {
-      final scale = 1024 / (original.width > original.height 
+    if (options.maxSide > 0 &&
+        (original.width > options.maxSide || original.height > options.maxSide)) {
+      final scale = options.maxSide / (original.width > original.height 
           ? original.width 
           : original.height);
       resized = img.copyResize(
@@ -59,7 +68,7 @@ class ImageProcessor {
     // 4. 对比度增强
     final enhanced = img.adjustColor(
       grayscale,
-      contrast: 1.3,
+      contrast: options.contrast,
     );
     stages.add(ProcessingStage(
       name: '对比度增强',
@@ -69,7 +78,11 @@ class ImageProcessor {
     ));
     
     // 5. 自适应二值化
-    final binary = _adaptiveThreshold(enhanced, blockSize: 15, c: 10);
+    final binary = _adaptiveThreshold(
+      enhanced,
+      blockSize: options.blockSize,
+      c: options.thresholdOffset,
+    );
     stages.add(ProcessingStage(
       name: '二值化',
       image: img.encodePng(binary),
@@ -77,13 +90,17 @@ class ImageProcessor {
       info: '提取手写骨架，转换为纯黑白像素',
     ));
     
-    // 6. 降噪（形态学开运算）
-    final denoised = _morphologicalOpen(binary, kernelSize: 2);
+    // 6. 降噪（连通域小噪点过滤）
+    // 说明：手写细笔画在开运算中容易被腐蚀掉，因此改为仅移除微小孤立连通域。
+    final denoised = _removeSmallConnectedComponents(
+      binary,
+      minArea: options.minComponentArea,
+    );
     stages.add(ProcessingStage(
       name: '降噪',
       image: img.encodePng(denoised),
       duration: stopwatch.elapsedMilliseconds,
-      info: '消除离散噪点，平滑笔画边缘',
+      info: '移除离散噪点并尽量保留细笔画',
     ));
     
     stopwatch.stop();
@@ -94,6 +111,7 @@ class ImageProcessor {
       binaryImage: denoised,
       stages: stages,
       totalDuration: stopwatch.elapsedMilliseconds,
+      options: options,
     );
   }
   
@@ -141,86 +159,83 @@ class ImageProcessor {
     return result;
   }
   
-  /// 形态学开运算（腐蚀后膨胀）
-  /// 
-  /// 用于去除小噪点
-  img.Image _morphologicalOpen(img.Image src, {int kernelSize = 2}) {
-    // 先腐蚀
-    final eroded = _erode(src, kernelSize);
-    // 再膨胀
-    final dilated = _dilate(eroded, kernelSize);
-    return dilated;
-  }
-  
-  /// 腐蚀操作
-  img.Image _erode(img.Image src, int kernelSize) {
-    final result = img.Image(width: src.width, height: src.height);
-    final half = kernelSize ~/ 2;
-    
-    // 初始化为白色
-    for (int y = 0; y < result.height; y++) {
-      for (int x = 0; x < result.width; x++) {
+  /// 连通域降噪：仅删除面积过小的黑色孤立区域，避免细笔画被整体腐蚀
+  img.Image _removeSmallConnectedComponents(
+    img.Image src, {
+    int minArea = 6,
+  }) {
+    final width = src.width;
+    final height = src.height;
+    final visited = Uint8List(width * height);
+    final result = img.Image(width: width, height: height);
+
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
         result.setPixel(x, y, img.ColorRgb8(255, 255, 255));
       }
     }
-    
-    for (int y = half; y < src.height - half; y++) {
-      for (int x = half; x < src.width - half; x++) {
-        bool allBlack = true;
-        
-        // 检查邻域是否全为黑色
-        outer:
-        for (int dy = -half; dy <= half; dy++) {
-          for (int dx = -half; dx <= half; dx++) {
-            final pixel = src.getPixel(x + dx, y + dy);
-            if (pixel.r > 128) {
-              allBlack = false;
-              break outer;
+
+    int index(int x, int y) => y * width + x;
+    bool isBlack(int x, int y) => src.getPixel(x, y).r < 128;
+
+    const neighborOffsets = <List<int>>[
+      [-1, -1], [0, -1], [1, -1],
+      [-1, 0],           [1, 0],
+      [-1, 1],  [0, 1],  [1, 1],
+    ];
+
+    final queueX = <int>[];
+    final queueY = <int>[];
+
+    for (int startY = 0; startY < height; startY++) {
+      for (int startX = 0; startX < width; startX++) {
+        final startIdx = index(startX, startY);
+        if (visited[startIdx] == 1 || !isBlack(startX, startY)) {
+          continue;
+        }
+
+        queueX.clear();
+        queueY.clear();
+        final componentX = <int>[];
+        final componentY = <int>[];
+
+        queueX.add(startX);
+        queueY.add(startY);
+        visited[startIdx] = 1;
+
+        int head = 0;
+        while (head < queueX.length) {
+          final x = queueX[head];
+          final y = queueY[head];
+          head++;
+
+          componentX.add(x);
+          componentY.add(y);
+
+          for (final offset in neighborOffsets) {
+            final nx = x + offset[0];
+            final ny = y + offset[1];
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+              continue;
             }
+            final nextIdx = index(nx, ny);
+            if (visited[nextIdx] == 1 || !isBlack(nx, ny)) {
+              continue;
+            }
+            visited[nextIdx] = 1;
+            queueX.add(nx);
+            queueY.add(ny);
           }
         }
-        
-        if (allBlack) {
-          result.setPixel(x, y, img.ColorRgb8(0, 0, 0));
-        }
-      }
-    }
-    
-    return result;
-  }
-  
-  /// 膨胀操作
-  img.Image _dilate(img.Image src, int kernelSize) {
-    final result = img.Image(width: src.width, height: src.height);
-    final half = kernelSize ~/ 2;
-    
-    // 初始化为白色
-    for (int y = 0; y < result.height; y++) {
-      for (int x = 0; x < result.width; x++) {
-        result.setPixel(x, y, img.ColorRgb8(255, 255, 255));
-      }
-    }
-    
-    for (int y = 0; y < src.height; y++) {
-      for (int x = 0; x < src.width; x++) {
-        final pixel = src.getPixel(x, y);
-        
-        // 如果当前像素是黑色，则扩展到邻域
-        if (pixel.r < 128) {
-          for (int dy = -half; dy <= half; dy++) {
-            for (int dx = -half; dx <= half; dx++) {
-              final nx = x + dx;
-              final ny = y + dy;
-              if (nx >= 0 && nx < result.width && 
-                  ny >= 0 && ny < result.height) {
-                result.setPixel(nx, ny, img.ColorRgb8(0, 0, 0));
-              }
-            }
+
+        if (componentX.length >= minArea) {
+          for (int i = 0; i < componentX.length; i++) {
+            result.setPixel(componentX[i], componentY[i], img.ColorRgb8(0, 0, 0));
           }
         }
       }
     }
-    
+
     return result;
   }
 }
@@ -247,6 +262,7 @@ class ImageProcessResult {
   final img.Image binaryImage;
   final List<ProcessingStage> stages;
   final int totalDuration;
+  final ImageProcessOptions options;
   
   ImageProcessResult({
     required this.originalImage,
@@ -254,5 +270,48 @@ class ImageProcessResult {
     required this.binaryImage,
     required this.stages,
     required this.totalDuration,
+    required this.options,
   });
+}
+
+/// 图像预处理高级参数
+class ImageProcessOptions {
+  /// 最大边长，<=0 表示不缩放
+  final int maxSide;
+
+  /// 对比度增强系数
+  final double contrast;
+
+  /// 自适应阈值窗口大小（奇数）
+  final int blockSize;
+
+  /// 自适应阈值偏移量（值越大越严格）
+  final int thresholdOffset;
+
+  /// 连通域去噪最小面积（像素）
+  final int minComponentArea;
+
+  const ImageProcessOptions({
+    this.maxSide = 1024,
+    this.contrast = 1.3,
+    this.blockSize = 15,
+    this.thresholdOffset = 4,
+    this.minComponentArea = 6,
+  });
+
+  ImageProcessOptions copyWith({
+    int? maxSide,
+    double? contrast,
+    int? blockSize,
+    int? thresholdOffset,
+    int? minComponentArea,
+  }) {
+    return ImageProcessOptions(
+      maxSide: maxSide ?? this.maxSide,
+      contrast: contrast ?? this.contrast,
+      blockSize: blockSize ?? this.blockSize,
+      thresholdOffset: thresholdOffset ?? this.thresholdOffset,
+      minComponentArea: minComponentArea ?? this.minComponentArea,
+    );
+  }
 }

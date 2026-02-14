@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:file_selector/file_selector.dart';
 
 import '../../core/download_helper.dart';
+import '../../style_learning/models/style_params.dart';
+import '../../style_learning/services/style_profile_store.dart';
 import '../../writing/font/stroke_font.dart';
 import '../../writing/layout/grid_layout.dart';
 import '../../writing/model/essay_grid.dart';
@@ -32,23 +34,28 @@ class WritingPage extends StatefulWidget {
 }
 
 class _WritingPageState extends State<WritingPage> {
-  final _textController = TextEditingController(text: '一二十口人中');
+  final _textController = TextEditingController(text: '你好世界\n欢迎使用手写路径生成器');
   final _leftScrollController = ScrollController();
   final _rightScrollController = ScrollController();
   
   StrokeFont? _font;
-  bool _fontLoading = true;
-  String? _fontError;
   
   ToolPath _toolPath = ToolPath.empty;
   bool _showPenUp = true;
   WritingMode _writingMode = WritingMode.standard;
+  final StyleProfileStore _styleProfileStore = StyleProfileStore();
+  SavedStyleProfile? _learnedStyleProfile;
+  bool _applyLearnedStyle = false;
+  double _fontSizeScale = 1.0;
   PaperConfig? _lastPaperConfig; // 追踪纸张配置变化
   
   // Viewport 管理
   kp.Viewport? _viewport;
   Size? _lastViewportSize;
   bool _hasUserTransform = false;
+  double _gestureStartScale = 1.0;
+  Offset _gestureStartPan = Offset.zero;
+  Offset _gestureStartFocal = Offset.zero;
   
   static const double _fitPaddingPx = 10.0;
   static const double _minScalePxPerMm = 0.2;
@@ -71,9 +78,20 @@ class _WritingPageState extends State<WritingPage> {
   @override
   void initState() {
     super.initState();
+    _loadLearnedStyle();
     _loadFont();
     _textController.addListener(_onTextChanged);
   }
+  Future<void> _loadLearnedStyle() async {
+    final profile = await _styleProfileStore.loadLatest();
+    if (!mounted) return;
+    setState(() {
+      _learnedStyleProfile = profile;
+      _applyLearnedStyle = profile != null;
+    });
+    _generateToolPath();
+  }
+
 
   @override
   void dispose() {
@@ -90,29 +108,53 @@ class _WritingPageState extends State<WritingPage> {
       if (!mounted) return;
       setState(() {
         _font = font;
-        _fontLoading = false;
       });
       _generateToolPath();
     } catch (e) {
       if (!mounted) return;
       // 如果完整字库加载失败（例如尚未生成），回退到 Demo 字库
-      print('加载完整字库失败: $e，尝试加载 Demo 字库');
       try {
         final demoFont = await StrokeFont.loadFromAsset('assets/fonts/demo_stroke_font_zh.json');
         if (!mounted) return;
         setState(() {
           _font = demoFont;
-          _fontLoading = false;
         });
         _generateToolPath();
       } catch (e2) {
         if (!mounted) return;
-        setState(() {
-          _fontError = e.toString();
-          _fontLoading = false;
-        });
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(
+          SnackBar(content: Text('字库加载失败: $e2')),
+        );
       }
     }
+  }
+
+  StyleParams? get _effectiveStyleParams {
+    final base = (_applyLearnedStyle ? _learnedStyleProfile?.params : null) ??
+        StyleParams.identity;
+
+    // 将用户字号缩放叠加到风格参数的 sizeRatio 上
+    final scaledSize = (base.sizeRatio * _fontSizeScale).clamp(0.5, 2.0);
+
+    if (!_applyLearnedStyle && (_fontSizeScale - 1.0).abs() < 0.001) {
+      return null;
+    }
+
+    return StyleParams(
+      sizeRatio: scaledSize,
+      xOffsetRatio: base.xOffsetRatio,
+      yOffsetRatio: base.yOffsetRatio,
+      xStretch: base.xStretch,
+      yStretch: base.yStretch,
+      slantAngle: base.slantAngle,
+      strokeWeight: base.strokeWeight,
+      strokeAngleOffsets: base.strokeAngleOffsets,
+      strokeLengthScales: base.strokeLengthScales,
+      positionJitter: base.positionJitter,
+      pointNoise: base.pointNoise,
+      sizeVariation: base.sizeVariation,
+    );
   }
 
   void _onTextChanged() {
@@ -139,6 +181,7 @@ class _WritingPageState extends State<WritingPage> {
       cellHeightMm: config.effectiveCellHeight,
       gridRowSpacingMm: config.gridRowSpacingMm,
       verticalFirst: config.kind == PaperTypeKind.letter,
+      styleParams: _effectiveStyleParams,
     );
     final layout = GridLayout(grid: grid, font: font, options: options);
     final newPath = layout.layoutText(_textController.text);
@@ -252,6 +295,33 @@ class _WritingPageState extends State<WritingPage> {
     setState(() {
       _viewport = _fitViewport(size);
       _hasUserTransform = false;
+    });
+  }
+
+  void _onScaleStart(ScaleStartDetails details) {
+    final viewport = _viewport;
+    if (viewport == null) return;
+    _gestureStartScale = viewport.scale;
+    _gestureStartPan = viewport.pan;
+    _gestureStartFocal = details.localFocalPoint;
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    final startScale = _gestureStartScale;
+    final newScale = (startScale * details.scale).clamp(_minScalePxPerMm, _maxScalePxPerMm);
+
+    final startWorldX = (_gestureStartFocal.dx - _gestureStartPan.dx) / startScale;
+    final startWorldY = (_gestureStartFocal.dy - _gestureStartPan.dy) / startScale;
+
+    final focal = details.localFocalPoint;
+    final newPan = Offset(
+      focal.dx - startWorldX * newScale,
+      focal.dy - startWorldY * newScale,
+    );
+
+    setState(() {
+      _viewport = kp.Viewport(scale: newScale, pan: newPan);
+      _hasUserTransform = true;
     });
   }
 
@@ -409,6 +479,64 @@ class _WritingPageState extends State<WritingPage> {
           const SizedBox(height: 8),
           Row(
             children: [
+              const Icon(Icons.auto_fix_high, size: 16, color: Colors.grey),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _learnedStyleProfile == null
+                      ? '未检测到已保存风格参数'
+                      : '应用学习风格（${_learnedStyleProfile!.templateName}，${_learnedStyleProfile!.sampleCount}样本）',
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                ),
+              ),
+              Switch(
+                value: _applyLearnedStyle && _learnedStyleProfile != null,
+                onChanged: _learnedStyleProfile == null
+                    ? null
+                    : (v) {
+                        setState(() => _applyLearnedStyle = v);
+                        _generateToolPath();
+                      },
+              ),
+            ],
+          ),
+          if (_learnedStyleProfile != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.text_fields, size: 16, color: Colors.grey),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 74,
+                  child: Text('字体大小',
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                ),
+                Expanded(
+                  child: Slider(
+                    value: _fontSizeScale,
+                    min: 0.6,
+                    max: 1.6,
+                    divisions: 20,
+                    onChanged: (v) {
+                      setState(() => _fontSizeScale = v);
+                      _generateToolPath();
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: 44,
+                  child: Text(
+                    _fontSizeScale.toStringAsFixed(2),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 4),
+          Row(
+            children: [
               const Icon(Icons.info_outline, size: 16, color: Colors.grey),
               const SizedBox(width: 8),
               Expanded(
@@ -444,6 +572,7 @@ class _WritingPageState extends State<WritingPage> {
   Widget _buildPreviewCard() {
     return FluiddCard(
       title: '路径预览',
+      subtitle: '(提示: 使用触摸板进行缩放)',
       actions: [
         // 笔画统计
         Container(
@@ -498,13 +627,18 @@ class _WritingPageState extends State<WritingPage> {
               final size = Size(constraints.maxWidth, constraints.maxHeight);
               final viewport = _ensureViewport(size);
 
-              return CustomPaint(
-                size: size,
-                painter: _CombinedPainter(
-                  paperConfig: _paperConfig,
-                  toolPath: _toolPath,
-                  viewport: viewport,
-                  showPenUp: _showPenUp,
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onScaleStart: _onScaleStart,
+                onScaleUpdate: _onScaleUpdate,
+                child: CustomPaint(
+                  size: size,
+                  painter: _CombinedPainter(
+                    paperConfig: _paperConfig,
+                    toolPath: _toolPath,
+                    viewport: viewport,
+                    showPenUp: _showPenUp,
+                  ),
                 ),
               );
             },

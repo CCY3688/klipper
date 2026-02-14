@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class FluiddCard extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final Widget child;
   final List<Widget>? actions;
 
   const FluiddCard({
     super.key,
     required this.title,
+    this.subtitle,
     required this.child,
     this.actions,
   });
@@ -33,12 +35,27 @@ class FluiddCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          subtitle!,
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 11,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 if (actions != null) ...actions!,

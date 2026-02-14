@@ -1,11 +1,18 @@
 //完整的工作流程页面
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../models/sample_template.dart';
+import '../models/style_vector.dart';
 import '../services/image_capture_service.dart';
 import '../services/image_processor.dart';
-import '../services/character_segmenter.dart';
+import '../services/grid_segmenter.dart';
 import '../services/skeleton_extractor.dart';
+import '../services/style_analyzer.dart';
+import '../services/style_model_manager.dart';
+import 'grid_outer_border_select_page.dart';
 import 'image_edit_page.dart';
+import 'style_analysis_page.dart';
 
 /// 样本采集主页面
 /// 
@@ -13,8 +20,9 @@ import 'image_edit_page.dart';
 /// 1. 拍照/选择图片
 /// 2. 编辑图片（裁剪、旋转等）
 /// 3. 预处理（二值化）
-/// 4. 字符分割
+/// 4. 框选外边框 → 网格分割
 /// 5. 骨架提取
+/// 6. 风格分析（基于骨架提取结果）
 class SampleCollectionPage extends StatefulWidget {
   final bool embedded;
 
@@ -27,8 +35,10 @@ class SampleCollectionPage extends StatefulWidget {
 class _SampleCollectionPageState extends State<SampleCollectionPage> {
   final ImageCaptureService _captureService = ImageCaptureService();
   final ImageProcessor _imageProcessor = ImageProcessor();
-  final CharacterSegmenter _segmenter = CharacterSegmenter();
+  final GridSegmenter _gridSegmenter = GridSegmenter();
   final SkeletonExtractor _skeletonExtractor = SkeletonExtractor();
+  final StyleAnalyzer _styleAnalyzer = StyleAnalyzer();
+  final StyleModelManager _styleModelManager = StyleModelManager();
   
   // 处理状态
   ProcessingState _state = ProcessingState.idle;
@@ -38,8 +48,10 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
   Uint8List? _originalImage;
   Uint8List? _editedImage;
   ImageProcessResult? _processResult;
-  SegmentationResult? _segmentationResult;
+  GridSegmentResult? _gridSegmentResult;
+  GridOuterBorder? _outerBorder;
   List<CharacterWithSkeleton> _charactersWithSkeleton = [];
+  StyleVector? _styleVector;
   
   // UI 状态
   int _selectedCharacterIndex = -1;
@@ -76,13 +88,13 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          if (_charactersWithSkeleton.isNotEmpty)
+          if (_styleVector != null)
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: IconButton(
                 icon: const Icon(Icons.save_alt),
-                onPressed: _saveResults,
-                tooltip: '导出结果',
+                onPressed: _showSaveDialog,
+                tooltip: '保存风格模型',
               ),
             ),
         ],
@@ -125,10 +137,12 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
           _buildStep(2, '校准', _editedImage != null, isActive: _originalImage != null),
           _buildStepLine(_processResult != null),
           _buildStep(3, '处理', _processResult != null, isActive: _editedImage != null),
-          _buildStepLine(_segmentationResult != null),
-          _buildStep(4, '分割', _segmentationResult != null, isActive: _processResult != null),
+          _buildStepLine(_gridSegmentResult != null),
+          _buildStep(4, '分割', _gridSegmentResult != null, isActive: _processResult != null),
           _buildStepLine(_charactersWithSkeleton.isNotEmpty),
-          _buildStep(5, '骨架', _charactersWithSkeleton.isNotEmpty, isActive: _segmentationResult != null),
+          _buildStep(5, '骨架', _charactersWithSkeleton.isNotEmpty, isActive: _gridSegmentResult != null),
+          _buildStepLine(_styleVector != null),
+          _buildStep(6, '风格', _styleVector != null, isActive: _charactersWithSkeleton.isNotEmpty),
         ],
       ),
     );
@@ -177,13 +191,15 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
       case 1:
         return _originalImage != null;
       case 2:
-        return _editedImage != null || _processResult != null || _segmentationResult != null || _charactersWithSkeleton.isNotEmpty;
+        return _editedImage != null || _processResult != null || _gridSegmentResult != null || _charactersWithSkeleton.isNotEmpty;
       case 3:
-        return _processResult != null || _segmentationResult != null || _charactersWithSkeleton.isNotEmpty;
+        return _processResult != null || _gridSegmentResult != null || _charactersWithSkeleton.isNotEmpty;
       case 4:
-        return _segmentationResult != null || _charactersWithSkeleton.isNotEmpty;
+        return _gridSegmentResult != null || _charactersWithSkeleton.isNotEmpty;
       case 5:
         return _charactersWithSkeleton.isNotEmpty;
+      case 6:
+        return _styleVector != null;
       default:
         return false;
     }
@@ -197,28 +213,38 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
         _editedImage = null;
         _processResult = null;
         _selectedProcessStageIndex = 0;
-        _segmentationResult = null;
+        _gridSegmentResult = null;
+        _outerBorder = null;
         _charactersWithSkeleton.clear();
         _selectedCharacterIndex = -1;
+        _styleVector = null;
         _statusMessage = '已返回采集阶段';
       } else if (step == 2) {
         _processResult = null;
         _selectedProcessStageIndex = 0;
-        _segmentationResult = null;
+        _gridSegmentResult = null;
+        _outerBorder = null;
         _charactersWithSkeleton.clear();
         _selectedCharacterIndex = -1;
+        _styleVector = null;
         _statusMessage = '已返回校准阶段';
       } else if (step == 3) {
-        _segmentationResult = null;
+        _gridSegmentResult = null;
+        _outerBorder = null;
         _charactersWithSkeleton.clear();
         _selectedCharacterIndex = -1;
+        _styleVector = null;
         _statusMessage = '已返回预处理阶段';
       } else if (step == 4) {
         _charactersWithSkeleton.clear();
         _selectedCharacterIndex = -1;
+        _styleVector = null;
         _statusMessage = '已返回分割阶段';
       } else if (step == 5) {
+        _styleVector = null;
         _statusMessage = '当前为骨架分析阶段';
+      } else if (step == 6) {
+        _statusMessage = '当前为风格分析阶段';
       }
       _state = ProcessingState.idle;
     });
@@ -296,11 +322,11 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
       );
     }
     
-    if (_segmentationResult == null) {
+    if (_gridSegmentResult == null) {
       return ElevatedButton.icon(
         icon: const Icon(Icons.grid_view),
-        label: const Text('识别并分割'),
-        onPressed: _segmentCharacters,
+        label: const Text('框选外边框并分割'),
+        onPressed: _selectBorderAndSegment,
       );
     }
     
@@ -311,12 +337,40 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
         onPressed: _extractSkeletons,
       );
     }
+
+    if (_styleVector == null) {
+      return Row(
+        children: [
+          OutlinedButton.icon(
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('重新提取'),
+            onPressed: _extractSkeletons,
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.style),
+            label: const Text('分析风格'),
+            onPressed: _analyzeStyle,
+          ),
+        ],
+      );
+    }
     
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-      icon: const Icon(Icons.done_all),
-      label: const Text('保存所有结果'),
-      onPressed: _saveResults,
+    return Row(
+      children: [
+        OutlinedButton.icon(
+          icon: const Icon(Icons.visibility, size: 18),
+          label: const Text('详细分析'),
+          onPressed: _viewDetailedAnalysis,
+        ),
+        const SizedBox(width: 12),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          icon: const Icon(Icons.save),
+          label: const Text('保存风格模型'),
+          onPressed: _showSaveDialog,
+        ),
+      ],
     );
   }
   
@@ -339,9 +393,11 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
       );
     }
     
+    // 如果有风格分析结果，显示风格结果
+    if (_styleVector != null) return _buildStyleResultView();
     // 如果有骨架结果，显示字符网格
     if (_charactersWithSkeleton.isNotEmpty) return _buildCharacterGrid();
-    if (_segmentationResult != null) return _buildSegmentationPreview();
+    if (_gridSegmentResult != null) return _buildSegmentationPreview();
     if (_processResult != null) return _buildProcessPreview();
     if (_editedImage != null) return _buildEditedPreview();
     if (_originalImage != null) return _buildOriginalPreview();
@@ -350,44 +406,58 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
   }
   
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              shape: BoxShape.circle,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.draw, size: 64, color: Colors.blue.withValues(alpha: 0.5)),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('尚未加载任何样本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    const Text('请按照模板书写后拍照上传，系统将自动识别并分析', 
+                      textAlign: TextAlign.center, 
+                      style: TextStyle(color: Colors.grey)
+                    ),
+                    const SizedBox(height: 24),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        _HeroButton(
+                          icon: Icons.photo_library,
+                          label: '相册选择',
+                          onPressed: _pickFromGallery,
+                        ),
+                        _HeroButton(
+                          icon: Icons.camera_alt,
+                          label: '现场拍照',
+                          onPressed: _captureFromCamera,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: Icon(Icons.draw, size: 80, color: Colors.blue.withOpacity(0.5)),
           ),
-          const SizedBox(height: 32),
-          const Text('尚未加载任何样本', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          const Text('请从相册选择或拍照，系统将自动识别并分析骨架', 
-            textAlign: TextAlign.center, 
-            style: TextStyle(color: Colors.grey)
-          ),
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _HeroButton(
-                icon: Icons.photo_library,
-                label: '相册选择',
-                onPressed: _pickFromGallery,
-              ),
-              const SizedBox(width: 20),
-              _HeroButton(
-                icon: Icons.camera_alt,
-                label: '现场拍照',
-                onPressed: _captureFromCamera,
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
   
@@ -500,27 +570,60 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
   }
   
   Widget _buildSegmentationPreview() {
+    final result = _gridSegmentResult!;
+    final validCount = result.validCells.length;
     return Column(
       children: [
         const SizedBox(height: 16),
-        _SectionHeader(title: '字符分割结果', subtitle: '识别到 ${_segmentationResult!.totalFound} 个潜在手写区域'),
+        _SectionHeader(
+          title: '网格分割结果',
+          subtitle: '模板「${result.template.name}」共 ${result.cells.length} 格，检测到 $validCount 个有效字符',
+        ),
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: result.columns,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
             ),
-            itemCount: _segmentationResult!.characters.length,
-            itemBuilder: (context, index) => Card(
-              margin: EdgeInsets.zero,
-              color: Colors.black26,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Image.memory(_segmentationResult!.characters[index].imageData, fit: BoxFit.contain),
-              ),
-            ),
+            itemCount: result.cells.length,
+            itemBuilder: (context, index) {
+              final cell = result.cells[index];
+              return Card(
+                margin: EdgeInsets.zero,
+                color: cell.hasInk ? Colors.black26 : Colors.grey[900],
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Opacity(
+                        opacity: cell.hasInk ? 1.0 : 0.3,
+                        child: Image.memory(cell.imageData, fit: BoxFit.contain),
+                      ),
+                    ),
+                    Positioned(
+                      left: 4,
+                      top: 2,
+                      child: Text(
+                        cell.character,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: cell.hasInk ? Colors.blue : Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (!cell.hasInk)
+                      Positioned(
+                        right: 4,
+                        bottom: 2,
+                        child: Icon(Icons.warning_amber, size: 12, color: Colors.orange[700]),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -567,7 +670,12 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('字符 #$index', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(
+                                    _charactersWithSkeleton[index].character.isNotEmpty
+                                      ? '「${_charactersWithSkeleton[index].character}」'
+                                      : '字符 #$index',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
                                   Text('${_charactersWithSkeleton[index].skeleton.strokeCount} 笔画', 
                                     style: const TextStyle(fontSize: 12, color: Colors.grey)),
                                 ],
@@ -673,9 +781,11 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
           _editedImage = null;
           _processResult = null;
           _selectedProcessStageIndex = 0;
-          _segmentationResult = null;
+          _gridSegmentResult = null;
+          _outerBorder = null;
           _charactersWithSkeleton.clear();
           _selectedCharacterIndex = -1;
+          _styleVector = null;
           _statusMessage = '已选择图片';
         });
         await _editImage();
@@ -694,9 +804,11 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
           _editedImage = null;
           _processResult = null;
           _selectedProcessStageIndex = 0;
-          _segmentationResult = null;
+          _gridSegmentResult = null;
+          _outerBorder = null;
           _charactersWithSkeleton.clear();
           _selectedCharacterIndex = -1;
+          _styleVector = null;
           _statusMessage = '已拍摄图片';
         });
         await _editImage();
@@ -723,8 +835,10 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
         _editedImage = result;
         _processResult = null;
         _selectedProcessStageIndex = 0;
-        _segmentationResult = null;
+        _gridSegmentResult = null;
+        _outerBorder = null;
         _charactersWithSkeleton.clear();
+        _styleVector = null;
         _statusMessage = '图片编辑完成';
       });
     }
@@ -753,50 +867,112 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
     }
   }
   
-  Future<void> _segmentCharacters() async {
-    if (_processResult == null) return;
-    
+  Future<void> _selectBorderAndSegment() async {
+    final processResult = _processResult;
+    if (processResult == null) return;
+    final processedImage = processResult.processedImage;
+
+    // 先让用户选择模板
+    final template = await _showTemplateSelector();
+    if (template == null || !mounted) return;
+    final selectedTemplate = template;
+
+    // 进入外边框选择页面
+    final border = await Navigator.push<GridOuterBorder>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GridOuterBorderSelectPage(
+          imageBytes: processedImage,
+          initialBorder: _outerBorder,
+        ),
+      ),
+    );
+
+    if (border == null || !mounted) return;
+
     setState(() {
+      _outerBorder = border;
       _state = ProcessingState.processing;
-      _statusMessage = '正在分割手写区域...';
+      _statusMessage = '正在按模板网格分割...';
     });
-    
+
     try {
-      final result = await _segmenter.segment(_processResult!.processedImage);
-      
+      final result = await _gridSegmenter.segment(
+        processedImage,
+        template: selectedTemplate,
+        outerBorder: border,
+      );
+
       setState(() {
-        _segmentationResult = result;
+        _gridSegmentResult = result;
         _state = ProcessingState.idle;
-        _statusMessage = '检测到 ${result.totalFound} 个字符';
+        _statusMessage = '分割完成，共 ${result.cells.length} 格，${result.validCells.length} 个有效字符';
       });
     } catch (e) {
-      _setError('分割失败: $e');
+      _setError('网格分割失败: $e');
     }
+  }
+
+  Future<SampleTemplate?> _showTemplateSelector() async {
+    return showDialog<SampleTemplate>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('选择书写模板'),
+          children: SampleTemplate.presets.map((t) {
+            return SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, t),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(t.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 4),
+                    Text(t.description, style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                    const SizedBox(height: 4),
+                    Text('${t.characterCount} 字 · ${t.columns} 列 × ${t.rows} 行',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
   }
   
   Future<void> _extractSkeletons() async {
-    if (_segmentationResult == null) return;
+    if (_gridSegmentResult == null) return;
+
+    final validCells = _gridSegmentResult!.validCells;
+    if (validCells.isEmpty) {
+      _setError('没有检测到有效的手写字符');
+      return;
+    }
     
     setState(() {
       _state = ProcessingState.processing;
-      _statusMessage = '正在提取骨架特种...';
+      _statusMessage = '正在提取骨架特征...';
     });
     
     try {
       final results = <CharacterWithSkeleton>[];
       
-      for (int i = 0; i < _segmentationResult!.characters.length; i++) {
+      for (int i = 0; i < validCells.length; i++) {
         setState(() {
-          _statusMessage = '正在分析第 ${i + 1}/${_segmentationResult!.characters.length} 个字符...';
+          _statusMessage = '正在分析第 ${i + 1}/${validCells.length} 个字符 (${validCells[i].character})...';
         });
         
-        final char = _segmentationResult!.characters[i];
-        final skeleton = await _skeletonExtractor.extract(char.imageData);
+        final cell = validCells[i];
+        final skeleton = await _skeletonExtractor.extract(cell.imageData);
         
         results.add(CharacterWithSkeleton(
           index: i,
-          binaryImage: char.imageData,
+          binaryImage: cell.imageData,
           skeleton: skeleton,
+          character: cell.character,
         ));
       }
       
@@ -811,11 +987,275 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
     }
   }
   
-  void _saveResults() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('分析结果已保存至本地数据库'),
-        backgroundColor: Colors.green,
+  Future<void> _analyzeStyle() async {
+    if (_charactersWithSkeleton.isEmpty) return;
+
+    setState(() {
+      _state = ProcessingState.processing;
+      _statusMessage = '正在基于骨架分析书写风格...';
+    });
+
+    try {
+      // 构建分析输入
+      final inputs = <CharacterAnalysisInput>[];
+      for (final char in _charactersWithSkeleton) {
+        inputs.add(CharacterAnalysisInput(
+          skeleton: char.skeleton,
+        ));
+      }
+
+      // 执行风格分析
+      final style = await _styleAnalyzer.analyze(inputs);
+
+      setState(() {
+        _styleVector = style;
+        _state = ProcessingState.idle;
+        _statusMessage = '风格分析完成，已提取 ${style.strokeTypes.length} 种笔画类型特征';
+      });
+    } catch (e) {
+      _setError('风格分析失败: $e');
+    }
+  }
+
+  void _viewDetailedAnalysis() {
+    if (_styleVector == null || _charactersWithSkeleton.isEmpty) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StyleAnalysisPage(
+          skeletons: _charactersWithSkeleton.map((c) => c.skeleton).toList(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSaveDialog() async {
+    if (_styleVector == null) return;
+
+    final controller = TextEditingController(
+      text: '我的书写风格_${DateTime.now().millisecondsSinceEpoch}',
+    );
+
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('保存风格模型'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: '风格名称',
+              hintText: '请输入风格名称',
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (name != null && name.isNotEmpty && _styleVector != null) {
+      try {
+        await _styleModelManager.saveStyle(_styleVector!, name);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('风格模型 "$name" 已保存'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('保存失败: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // ---------- 风格分析结果视图 ----------
+
+  Widget _buildStyleResultView() {
+    final style = _styleVector!;
+    final global = style.global;
+    final slantDegrees = global.avgSlantAngle * 180 / math.pi;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(
+            title: '风格分析完成',
+            subtitle: '基于 ${style.sampleCount} 个字符的骨架提取结果',
+          ),
+
+          // 概览卡片
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.analytics, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text('风格概览', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                  const Divider(),
+                  _buildStyleInfoRow(Icons.format_list_numbered, '样本数量', '${style.sampleCount} 个字符'),
+                  _buildStyleInfoRow(
+                    Icons.rotate_right, '整体倾斜',
+                    '${slantDegrees.toStringAsFixed(1)}°',
+                    valueColor: slantDegrees.abs() > 5 ? Colors.orange : Colors.green,
+                  ),
+                  _buildStyleInfoRow(Icons.aspect_ratio, '平均高宽比', global.avgAspectRatio.toStringAsFixed(2)),
+                  _buildStyleInfoRow(Icons.density_small, '笔画密度', global.avgStrokeDensity.toStringAsFixed(4)),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 全局特征
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.public, color: Colors.green),
+                      const SizedBox(width: 8),
+                      const Text('全局特征', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                  const Divider(),
+                  _buildFeatureBar('重心位置 X', global.centerOfGravityX, 0, 1),
+                  _buildFeatureBar('重心位置 Y', global.centerOfGravityY, 0, 1),
+                  _buildFeatureBar('笔画间距一致性', 1 - global.strokeSpacingStd.clamp(0.0, 1.0), 0, 1, color: Colors.purple),
+                  _buildFeatureBar('倾斜一致性', 1 - global.slantAngleStd.clamp(0.0, 1.0), 0, 1, color: Colors.orange),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 笔画类型特征
+          if (style.strokeTypes.isNotEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.edit, color: Colors.indigo),
+                        const SizedBox(width: 8),
+                        const Text('笔画类型特征', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ],
+                    ),
+                    const Divider(),
+                    ...style.strokeTypes.entries.map((entry) {
+                      final features = entry.value;
+                      return ExpansionTile(
+                        title: Text(entry.key),
+                        subtitle: Text('${features.sampleCount} 个样本'),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                _buildStyleDetailRow('平均长度', features.avgLength.toStringAsFixed(1)),
+                                _buildStyleDetailRow('平均曲率', features.avgCurvature.toStringAsFixed(4)),
+                                _buildStyleDetailRow('起笔角度', '${(features.avgStartAngle * 180 / math.pi).toStringAsFixed(1)}°'),
+                                _buildStyleDetailRow('收笔角度', '${(features.avgEndAngle * 180 / math.pi).toStringAsFixed(1)}°'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStyleInfoRow(IconData icon, String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Text(label),
+          const Spacer(),
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: valueColor)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureBar(String label, double value, double min, double max, {Color? color}) {
+    final percentage = ((value - min) / (max - min)).clamp(0.0, 1.0);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label),
+              Text(value.toStringAsFixed(2)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          LinearProgressIndicator(
+            value: percentage,
+            backgroundColor: Colors.grey[800],
+            valueColor: AlwaysStoppedAnimation(color ?? Colors.blue),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStyleDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
       ),
     );
   }
@@ -826,9 +1266,11 @@ class _SampleCollectionPageState extends State<SampleCollectionPage> {
       _editedImage = null;
       _processResult = null;
       _selectedProcessStageIndex = 0;
-      _segmentationResult = null;
+      _gridSegmentResult = null;
+      _outerBorder = null;
       _charactersWithSkeleton.clear();
       _selectedCharacterIndex = -1;
+      _styleVector = null;
       _state = ProcessingState.idle;
       _statusMessage = '';
     });
@@ -854,11 +1296,13 @@ class CharacterWithSkeleton {
   final int index;
   final Uint8List binaryImage;
   final SkeletonResult skeleton;
+  final String character;
   
   CharacterWithSkeleton({
     required this.index,
     required this.binaryImage,
     required this.skeleton,
+    this.character = '',
   });
 }
 
