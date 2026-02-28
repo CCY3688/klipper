@@ -96,5 +96,54 @@ class MoonrakerHttpService {
     final encoded = Uri.encodeComponent(filename);
     return deleteJson('/server/files/$root/$encoded');
   }
+
+  /// 读取文件原始文本内容
+  /// GET /server/files/{root}/{path}
+  Future<String> readFileRaw({
+    required String root,
+    required String path,
+  }) async {
+    // 对每个路径段单独编码（保留 / 分隔符）
+    final encodedPath = path.split('/').map(Uri.encodeComponent).join('/');
+    final resp = await _dio.get<String>(
+      '/server/files/$root/$encodedPath',
+      options: Options(responseType: ResponseType.plain),
+    );
+    return resp.data ?? '';
+  }
+
+  /// 上传/覆盖文本类文件（printer.cfg 等）
+  /// POST /server/files/upload  (multipart)
+  Future<Map<String, dynamic>> uploadTextFile({
+    required String root,
+    required String path,   // 含文件名的完整相对路径，如 "printer.cfg" 或 "subdir/extra.cfg"
+    required String content,
+  }) async {
+    // path 可能含子目录，分离目录和文件名
+    final lastSlash = path.lastIndexOf('/');
+    final filename  = lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
+    final dir       = lastSlash >= 0 ? path.substring(0, lastSlash) : null;
+
+    final form = FormData.fromMap({
+      'root': root,
+      if (dir != null && dir.isNotEmpty) 'path': dir,
+      'file': MultipartFile.fromString(content, filename: filename),
+    });
+
+    final resp = await _dio.post(
+      '/server/files/upload',
+      data: form,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    return (resp.data as Map).cast<String, dynamic>();
+  }
+
+  /// 创建目录
+  Future<Map<String, dynamic>> createDirectory({
+    required String root,
+    required String path,
+  }) {
+    return postJson('/server/files/directory', {'path': '$root/$path'});
+  }
 }
 

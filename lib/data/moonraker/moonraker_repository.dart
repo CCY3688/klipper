@@ -140,4 +140,43 @@ class MoonrakerRepository {
         .map((e) => MoonrakerFileItem.fromJson(e.cast<String, dynamic>()))
         .toList();
   }
+
+  // ── 配置文件 API ────────────────────────────────────────────────────────
+
+  /// 列出某个 root 下的所有文件（扁平列表）
+  Future<List<MoonrakerFileItem>> listFiles({required String root}) async {
+    final resp = await http.filesList(root: root);
+    final result = resp['result'];
+
+    List raw = [];
+    if (result is List) {
+      raw = result;
+    } else if (result is Map && result['files'] is List) {
+      raw = result['files'] as List;
+    }
+
+    return raw
+        .whereType<Map>()
+        .map((e) => MoonrakerFileItem.fromJson(e.cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// 读取文件文本内容
+  Future<String> readFileText({required String root, required String path}) {
+    return http.readFileRaw(root: root, path: path);
+  }
+
+  /// 写入/保存文件文本内容
+  Future<void> writeFileText({
+    required String root,
+    required String path,
+    required String content,
+  }) async {
+    await http.uploadTextFile(root: root, path: path, content: content);
+  }
+
+  /// 删除配置文件
+  Future<void> deleteConfigFile({required String root, required String path}) async {
+    await http.deleteFile(filename: path, root: root);
+  }
 }

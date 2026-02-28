@@ -12,6 +12,9 @@ enum AppConnPhase { idle, connecting, connected, reconnecting, disconnected, err
 class PrinterController extends ChangeNotifier {
   MoonrakerRepository? _repo;
 
+  /// 暴露给 UI 层直接调用文件 API（只读引用）
+  MoonrakerRepository? get repo => _repo;
+
   StreamSubscription? _wsMsgSub;
   StreamSubscription? _wsConnSub;
 

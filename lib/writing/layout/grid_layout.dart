@@ -8,10 +8,7 @@
 // 坐标变换：
 // - glyph 点 (0..1) 映射到 cell 内部：cellLeft + padding + x*(cellSize-2padding)
 
-import 'dart:math' as math;
-
 import 'package:characters/characters.dart';
-import '../../style_learning/models/style_params.dart';
 
 import '../font/stroke_font.dart';
 import '../model/essay_grid.dart';
@@ -29,6 +26,12 @@ enum WritingMode {
   fast,
 }
 
+typedef GridStrokeTransformer = List<List<Vec2>> Function(
+  String character,
+  List<List<Vec2>> strokes,
+  List<StrokeType?> strokeTypes,
+);
+
 class GridLayoutOptions {
   final double cellPaddingMm; // 字在格子内四周留白
   final WritingMode mode; // 书写模式
@@ -37,7 +40,7 @@ class GridLayoutOptions {
   final double gridRowSpacingMm; // 格子行间距
   
   final bool verticalFirst;
-  final StyleParams? styleParams;
+  final GridStrokeTransformer? strokeTransformer;
 
   const GridLayoutOptions({
     this.cellPaddingMm = 0.8,
@@ -46,7 +49,7 @@ class GridLayoutOptions {
     this.cellHeightMm,
     this.gridRowSpacingMm = 0,
     this.verticalFirst = false,
-    this.styleParams,
+    this.strokeTransformer,
   });
 
   GridLayoutOptions copyWith({
@@ -56,7 +59,7 @@ class GridLayoutOptions {
     double? cellHeightMm,
     double? gridRowSpacingMm,
     bool? verticalFirst,
-    StyleParams? styleParams,
+    GridStrokeTransformer? strokeTransformer,
   }) {
     return GridLayoutOptions(
       cellPaddingMm: cellPaddingMm ?? this.cellPaddingMm,
@@ -65,7 +68,7 @@ class GridLayoutOptions {
       cellHeightMm: cellHeightMm ?? this.cellHeightMm,
       gridRowSpacingMm: gridRowSpacingMm ?? this.gridRowSpacingMm,
       verticalFirst: verticalFirst ?? this.verticalFirst,
-      styleParams: styleParams ?? this.styleParams,
+      strokeTransformer: strokeTransformer ?? this.strokeTransformer,
     );
   }
 }
@@ -206,65 +209,25 @@ class GridLayout {
     final offsetX = cellLeft + (cellW - innerSquare) / 2;
     final offsetY = cellTop + (boxH - innerSquare) / 2;
 
-    final sp = options.styleParams;
-
-    // ---------- 确定性随机种子（基于字符和位置） ----------
-    final charSeed = ch.hashCode ^ (r * 997 + c * 31);
-    final charRng = math.Random(charSeed);
-
-    // 每个字符的随机偏移和大小浮动
-    double charJitterX = 0, charJitterY = 0;
-    double charSizeMultiplier = 1.0;
-    if (sp != null) {
-      if (sp.positionJitter > 0) {
-        charJitterX = (charRng.nextDouble() - 0.5) * 2 * sp.positionJitter;
-        charJitterY = (charRng.nextDouble() - 0.5) * 2 * sp.positionJitter;
-      }
-      if (sp.sizeVariation > 0) {
-        charSizeMultiplier = 1.0 + (charRng.nextDouble() - 0.5) * 2 * sp.sizeVariation;
-      }
-    }
-
-    // ---------- 坐标映射（全局仿射 + 字符级抖动） ----------
-    Vec2 mapPt(Vec2 p, {int strokeIndex = 0, int pointIndex = 0}) {
-      double tx, ty;
-      if (sp != null) {
-        (tx, ty) = sp.transformPoint(p.x, p.y);
-
-        // 字符级大小变化
-        if (charSizeMultiplier != 1.0) {
-          tx = 0.5 + (tx - 0.5) * charSizeMultiplier;
-          ty = 0.5 + (ty - 0.5) * charSizeMultiplier;
-        }
-
-        // 字符级位置抖动
-        tx += charJitterX;
-        ty += charJitterY;
-
-        // 笔画点级噪声（平滑正弦波动，避免锯齿）
-        if (sp.pointNoise > 0) {
-          final t = pointIndex.toDouble();
-          final s = strokeIndex.toDouble();
-          final seed = charSeed.toDouble();
-          tx += (math.sin(t * 0.5 + s * 2.1 + seed * 0.013) * 0.7 +
-                 math.sin(t * 1.3 + s * 0.7 + seed * 0.031) * 0.3) *
-              sp.pointNoise;
-          ty += (math.sin(t * 0.4 + s * 1.7 + seed * 0.023 + 1.5) * 0.7 +
-                 math.sin(t * 1.1 + s * 0.9 + seed * 0.041 + 0.8) * 0.3) *
-              sp.pointNoise;
-        }
-      } else {
-        tx = p.x;
-        ty = p.y;
-      }
-      return Vec2(offsetX + tx * innerSquare, offsetY + ty * innerSquare);
+    // ---------- 坐标映射 ----------
+    Vec2 mapPt(Vec2 p) {
+      return Vec2(offsetX + p.x * innerSquare, offsetY + p.y * innerSquare);
     }
 
     List<List<Vec2>> strokes = legacyGlyph.strokes;
+    final strokeTypes = richGlyph?.strokes.map((s) => s.type).toList() ??
+        List<StrokeType?>.filled(strokes.length, null);
+
+    final transformer = options.strokeTransformer;
+    if (transformer != null) {
+      final transformed = transformer(ch, strokes, strokeTypes);
+      if (transformed.isNotEmpty && transformed.length == strokes.length) {
+        strokes = transformed;
+      }
+    }
     Vec2? cursor = getCursor();
 
     // 优化笔画顺序（快速模式下会打乱原始顺序）
-    bool isOptimized = false;
     if (options.mode == WritingMode.fast && strokes.length > 1) {
       final cursorInCell = cursor != null 
           ? Vec2((cursor.x - offsetX) / innerSquare, (cursor.y - offsetY) / innerSquare)
@@ -274,61 +237,14 @@ class GridLayout {
         startFrom: cursorInCell,
         allowReverse: options.allowStrokeReverse,
       );
-      isOptimized = true;
     }
     
     for (int si = 0; si < strokes.length; si++) {
       final stroke = strokes[si];
       if (stroke.length < 2) continue;
 
-      // 获取笔画类型（仅在标准模式下可用，快速模式打乱了顺序）
-      StrokeType? strokeType;
-      if (!isOptimized && richGlyph != null && si < richGlyph.strokes.length) {
-        strokeType = richGlyph.strokes[si].type;
-      }
-
-      // ---------- 按笔画类型变换（旋转 + 缩放） ----------
-      List<Vec2> transformedPts;
-      if (sp != null && strokeType != null) {
-        final typeName = strokeType.name;
-        final angleOffset = sp.strokeAngleOffsets[typeName] ?? 0.0;
-        final lengthScale = sp.strokeLengthScales[typeName] ?? 1.0;
-
-        if (angleOffset.abs() > 0.001 || (lengthScale - 1.0).abs() > 0.001) {
-          // 计算笔画中心（归一化空间）
-          double scx = 0, scy = 0;
-          for (final p in stroke) {
-            scx += p.x;
-            scy += p.y;
-          }
-          scx /= stroke.length;
-          scy /= stroke.length;
-
-          final cosA = math.cos(angleOffset);
-          final sinA = math.sin(angleOffset);
-
-          transformedPts = [];
-          for (int pi = 0; pi < stroke.length; pi++) {
-            final p = stroke[pi];
-            final dx = (p.x - scx) * lengthScale;
-            final dy = (p.y - scy) * lengthScale;
-            final rx = scx + dx * cosA - dy * sinA;
-            final ry = scy + dx * sinA + dy * cosA;
-            transformedPts.add(
-                mapPt(Vec2(rx, ry), strokeIndex: si, pointIndex: pi));
-          }
-        } else {
-          transformedPts = [
-            for (int pi = 0; pi < stroke.length; pi++)
-              mapPt(stroke[pi], strokeIndex: si, pointIndex: pi)
-          ];
-        }
-      } else {
-        transformedPts = [
-          for (int pi = 0; pi < stroke.length; pi++)
-            mapPt(stroke[pi], strokeIndex: si, pointIndex: pi)
-        ];
-      }
+      // ---------- 坐标映射 ----------
+      final transformedPts = [for (final p in stroke) mapPt(p)];
 
       final start = transformedPts.first;
       if (cursor != null && (cursor.x != start.x || cursor.y != start.y)) {

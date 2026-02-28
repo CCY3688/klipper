@@ -4,7 +4,8 @@ import '../../state/printer_controller.dart';
 import '../../state/navigation_controller.dart';
 import '../writing/writing_page.dart';
 import '../paper/paper_settings_page.dart';
-import '../../style_learning/ui/style_learning_workspace_page.dart';
+import 'settings_page.dart';
+import 'configure_page.dart';
 import 'panels/console_panel.dart';
 import 'panels/move_panel.dart';
 import 'panels/status_panel.dart';
@@ -87,8 +88,8 @@ class DashboardPage extends StatelessWidget {
         return 'Delta Writer - 文本编辑';
       case SidebarTab.paperSettings:
         return 'Delta Writer - 纸张设置';
-      case SidebarTab.styleLearning:
-        return 'Delta Writer - 风格学习';
+      case SidebarTab.configure:
+        return 'Delta Writer - 配置';
       case SidebarTab.history:
         return 'Delta Writer - 历史记录';
       case SidebarTab.settings:
@@ -104,12 +105,12 @@ class DashboardPage extends StatelessWidget {
         return const WritingPage();
       case SidebarTab.paperSettings:
         return const PaperSettingsPage();
-      case SidebarTab.styleLearning:
-        return const StyleLearningWorkspacePage();
+      case SidebarTab.configure:
+        return const ConfigurePage();
       case SidebarTab.history:
         return _buildPlaceholderPage('历史记录', Icons.history);
       case SidebarTab.settings:
-        return _buildPlaceholderPage('设置', Icons.settings);
+        return const SettingsPage();
     }
   }
   

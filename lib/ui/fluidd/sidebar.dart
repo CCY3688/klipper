@@ -42,10 +42,10 @@ class FluiddSidebar extends StatelessWidget {
                       onTap: () => nav.switchTo(SidebarTab.paperSettings),
                     ),
                     _SideItem(
-                      icon: Icons.brush, // 风格学习图标
-                      tooltip: '风格学习',
-                      isActive: nav.currentTab == SidebarTab.styleLearning,
-                      onTap: () => nav.switchTo(SidebarTab.styleLearning),
+                      icon: Icons.tune, // 配置图标
+                      tooltip: '配置',
+                      isActive: nav.currentTab == SidebarTab.configure,
+                      onTap: () => nav.switchTo(SidebarTab.configure),
                     ),
                     _SideItem(
                       icon: Icons.history,

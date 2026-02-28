@@ -8,8 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:file_selector/file_selector.dart';
 
 import '../../core/download_helper.dart';
-import '../../style_learning/models/style_params.dart';
-import '../../style_learning/services/style_profile_store.dart';
 import '../../writing/font/stroke_font.dart';
 import '../../writing/layout/grid_layout.dart';
 import '../../writing/model/essay_grid.dart';
@@ -43,10 +41,6 @@ class _WritingPageState extends State<WritingPage> {
   ToolPath _toolPath = ToolPath.empty;
   bool _showPenUp = true;
   WritingMode _writingMode = WritingMode.standard;
-  final StyleProfileStore _styleProfileStore = StyleProfileStore();
-  SavedStyleProfile? _learnedStyleProfile;
-  bool _applyLearnedStyle = false;
-  double _fontSizeScale = 1.0;
   PaperConfig? _lastPaperConfig; // 追踪纸张配置变化
   
   // Viewport 管理
@@ -78,18 +72,8 @@ class _WritingPageState extends State<WritingPage> {
   @override
   void initState() {
     super.initState();
-    _loadLearnedStyle();
     _loadFont();
     _textController.addListener(_onTextChanged);
-  }
-  Future<void> _loadLearnedStyle() async {
-    final profile = await _styleProfileStore.loadLatest();
-    if (!mounted) return;
-    setState(() {
-      _learnedStyleProfile = profile;
-      _applyLearnedStyle = profile != null;
-    });
-    _generateToolPath();
   }
 
 
@@ -130,33 +114,6 @@ class _WritingPageState extends State<WritingPage> {
     }
   }
 
-  StyleParams? get _effectiveStyleParams {
-    final base = (_applyLearnedStyle ? _learnedStyleProfile?.params : null) ??
-        StyleParams.identity;
-
-    // 将用户字号缩放叠加到风格参数的 sizeRatio 上
-    final scaledSize = (base.sizeRatio * _fontSizeScale).clamp(0.5, 2.0);
-
-    if (!_applyLearnedStyle && (_fontSizeScale - 1.0).abs() < 0.001) {
-      return null;
-    }
-
-    return StyleParams(
-      sizeRatio: scaledSize,
-      xOffsetRatio: base.xOffsetRatio,
-      yOffsetRatio: base.yOffsetRatio,
-      xStretch: base.xStretch,
-      yStretch: base.yStretch,
-      slantAngle: base.slantAngle,
-      strokeWeight: base.strokeWeight,
-      strokeAngleOffsets: base.strokeAngleOffsets,
-      strokeLengthScales: base.strokeLengthScales,
-      positionJitter: base.positionJitter,
-      pointNoise: base.pointNoise,
-      sizeVariation: base.sizeVariation,
-    );
-  }
-
   void _onTextChanged() {
     _generateToolPath();
   }
@@ -164,7 +121,7 @@ class _WritingPageState extends State<WritingPage> {
   void _generateToolPath() {
     final font = _font;
     if (font == null) return;
-    
+
     final paperCtrl = context.read<PaperConfigController>();
     final config = paperCtrl.activePaper;
     final grid = EssayGridSpec(
@@ -181,7 +138,6 @@ class _WritingPageState extends State<WritingPage> {
       cellHeightMm: config.effectiveCellHeight,
       gridRowSpacingMm: config.gridRowSpacingMm,
       verticalFirst: config.kind == PaperTypeKind.letter,
-      styleParams: _effectiveStyleParams,
     );
     final layout = GridLayout(grid: grid, font: font, options: options);
     final newPath = layout.layoutText(_textController.text);
@@ -422,7 +378,7 @@ class _WritingPageState extends State<WritingPage> {
               fillColor: Colors.black26,
             ),
           ),
-          const SizedBox(height: 12),
+
           // 书写模式选择
           Row(
             children: [
@@ -476,64 +432,6 @@ class _WritingPageState extends State<WritingPage> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.auto_fix_high, size: 16, color: Colors.grey),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _learnedStyleProfile == null
-                      ? '未检测到已保存风格参数'
-                      : '应用学习风格（${_learnedStyleProfile!.templateName}，${_learnedStyleProfile!.sampleCount}样本）',
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                ),
-              ),
-              Switch(
-                value: _applyLearnedStyle && _learnedStyleProfile != null,
-                onChanged: _learnedStyleProfile == null
-                    ? null
-                    : (v) {
-                        setState(() => _applyLearnedStyle = v);
-                        _generateToolPath();
-                      },
-              ),
-            ],
-          ),
-          if (_learnedStyleProfile != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.text_fields, size: 16, color: Colors.grey),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 74,
-                  child: Text('字体大小',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-                ),
-                Expanded(
-                  child: Slider(
-                    value: _fontSizeScale,
-                    min: 0.6,
-                    max: 1.6,
-                    divisions: 20,
-                    onChanged: (v) {
-                      setState(() => _fontSizeScale = v);
-                      _generateToolPath();
-                    },
-                  ),
-                ),
-                SizedBox(
-                  width: 44,
-                  child: Text(
-                    _fontSizeScale.toStringAsFixed(2),
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                  ),
-                ),
-              ],
-            ),
-          ],
           const SizedBox(height: 4),
           Row(
             children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../state/printer_controller.dart';
+import '../../../state/settings_controller.dart';
 import '../widgets/fluidd_card.dart';
 
 class MovePanel extends StatefulWidget {
@@ -13,9 +14,26 @@ class MovePanel extends StatefulWidget {
 class _MovePanelState extends State<MovePanel> {
   double _stepInfo = 10.0; // Default 10mm
 
+  // 应用轴反转：若反转则取反距离值
+  String _xDelta(double step, SettingsController s) {
+    final v = s.invertX ? -step : step;
+    return v >= 0 ? '$v' : '$v';
+  }
+
+  String _yDelta(double step, SettingsController s) {
+    final v = s.invertY ? -step : step;
+    return v >= 0 ? '$v' : '$v';
+  }
+
+  String _zDelta(double step, SettingsController s) {
+    final v = s.invertZ ? -step : step;
+    return v >= 0 ? '$v' : '$v';
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.read<PrinterController>();
+    final s = context.watch<SettingsController>();
 
     return FluiddCard(
       title: 'Toolhead',
@@ -46,18 +64,18 @@ class _MovePanelState extends State<MovePanel> {
                 flex: 2,
                 child: Column(
                   children: [
-                    _ArrowBtn(icon: Icons.arrow_upward, label: 'Y+', onPressed: () => c.sendGcode('G91\nG1 Y$_stepInfo F3000\nG90')),
+                    _ArrowBtn(icon: Icons.arrow_upward, label: 'Y+', onPressed: () => c.sendGcode('G91\nG1 Y${_yDelta(_stepInfo, s)} F${s.xySpeed.toInt()}\nG90')),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _ArrowBtn(icon: Icons.arrow_back, label: 'X-', onPressed: () => c.sendGcode('G91\nG1 X-$_stepInfo F3000\nG90')),
+                        _ArrowBtn(icon: Icons.arrow_back, label: 'X-', onPressed: () => c.sendGcode('G91\nG1 X${_xDelta(-_stepInfo, s)} F${s.xySpeed.toInt()}\nG90')),
                         const SizedBox(width: 8),
-                         const Icon(Icons.api, color: Colors.grey), // Center icon placeholder
+                        const Icon(Icons.api, color: Colors.grey),
                         const SizedBox(width: 8),
-                        _ArrowBtn(icon: Icons.arrow_forward, label: 'X+', onPressed: () => c.sendGcode('G91\nG1 X$_stepInfo F3000\nG90')),
+                        _ArrowBtn(icon: Icons.arrow_forward, label: 'X+', onPressed: () => c.sendGcode('G91\nG1 X${_xDelta(_stepInfo, s)} F${s.xySpeed.toInt()}\nG90')),
                       ],
                     ),
-                    _ArrowBtn(icon: Icons.arrow_downward, label: 'Y-', onPressed: () => c.sendGcode('G91\nG1 Y-$_stepInfo F3000\nG90')),
+                    _ArrowBtn(icon: Icons.arrow_downward, label: 'Y-', onPressed: () => c.sendGcode('G91\nG1 Y${_yDelta(-_stepInfo, s)} F${s.xySpeed.toInt()}\nG90')),
                   ],
                 ),
               ),
@@ -66,11 +84,11 @@ class _MovePanelState extends State<MovePanel> {
                 flex: 1,
                 child: Column(
                   children: [
-                    _ArrowBtn(icon: Icons.arrow_upward, label: 'Z+', color: Colors.blueAccent, onPressed: () => c.sendGcode('G91\nG1 Z$_stepInfo F600\nG90')),
+                    _ArrowBtn(icon: Icons.arrow_upward, label: 'Z+', color: Colors.blueAccent, onPressed: () => c.sendGcode('G91\nG1 Z${_zDelta(_stepInfo, s)} F${s.zSpeed.toInt()}\nG90')),
                     const SizedBox(height: 12),
                     const Icon(Icons.height, color: Colors.grey, size: 16),
                     const SizedBox(height: 12),
-                    _ArrowBtn(icon: Icons.arrow_downward, label: 'Z-', color: Colors.blueAccent, onPressed: () => c.sendGcode('G91\nG1 Z-$_stepInfo F600\nG90')),
+                    _ArrowBtn(icon: Icons.arrow_downward, label: 'Z-', color: Colors.blueAccent, onPressed: () => c.sendGcode('G91\nG1 Z${_zDelta(-_stepInfo, s)} F${s.zSpeed.toInt()}\nG90')),
                   ],
                 ),
               ),

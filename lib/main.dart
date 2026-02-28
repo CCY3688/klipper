@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'state/printer_controller.dart';
 import 'state/navigation_controller.dart';
 import 'state/paper_config_controller.dart';
+import 'state/settings_controller.dart';
 import 'ui/connection_page.dart';
 
 void main() {
@@ -14,6 +15,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => PrinterController()),
         ChangeNotifierProvider(create: (_) => NavigationController()),
         ChangeNotifierProvider(create: (_) => PaperConfigController()),
+        ChangeNotifierProvider(create: (_) => SettingsController()),
       ],
       //将控制器 PrinterController 和 NavigationController "挂"在了整个 App 的顶层，任何页面都可以通过 Provider 访问它们。
       child: const MyApp(),
