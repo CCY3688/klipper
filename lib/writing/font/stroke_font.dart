@@ -41,7 +41,10 @@ class StrokeFont {
   final Map<String, StrokeGlyph> _legacyCache = {};
   
   StrokeFont._(this._glyphs);
-  
+
+  /// 从 Glyph Map 直接构造（供子类使用）
+  StrokeFont.fromGlyphs(Map<String, Glyph> glyphs) : _glyphs = glyphs;
+
   /// 旧版构造函数（兼容现有代码）
   factory StrokeFont(Map<String, StrokeGlyph> legacyGlyphs) {
     final map = <String, Glyph>{};

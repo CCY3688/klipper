@@ -53,6 +53,12 @@ class FluiddSidebar extends StatelessWidget {
                       isActive: nav.currentTab == SidebarTab.history,
                       onTap: () => nav.switchTo(SidebarTab.history),
                     ),
+                    _SideItem(
+                      icon: Icons.font_download_outlined,
+                      tooltip: '用户字体',
+                      isActive: nav.currentTab == SidebarTab.userFont,
+                      onTap: () => nav.switchTo(SidebarTab.userFont),
+                    ),
                     const Spacer(),
                     _SideItem(
                       icon: Icons.settings,

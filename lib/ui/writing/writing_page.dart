@@ -11,6 +11,7 @@ import '../../core/download_helper.dart';
 import '../../writing/font/stroke_font.dart';
 import '../../writing/layout/grid_layout.dart';
 import '../../writing/model/essay_grid.dart';
+import '../../writing/model/glyph.dart';
 import '../../writing/model/page.dart';
 import '../../writing/model/paper_type.dart';
 import '../../writing/model/toolpath.dart';
@@ -20,7 +21,9 @@ import '../../writing/render/paper_type_painter.dart';
 import '../../writing/export/gcode_exporter.dart';
 import '../../state/printer_controller.dart';
 import '../../state/paper_config_controller.dart';
+import '../../state/user_font_controller.dart';
 import '../fluidd/widgets/fluidd_card.dart';
+import 'widgets/glyph_widgets.dart';
 
 /// 文本编辑与预览页面
 /// 用户输入文本 -> 生成 ToolPath -> 预览
@@ -69,6 +72,8 @@ class _WritingPageState extends State<WritingPage> {
     heightMm: _paperConfig.pageHeightMm,
   );
 
+  UserFontController? _userFontCtrl;
+
   @override
   void initState() {
     super.initState();
@@ -76,9 +81,23 @@ class _WritingPageState extends State<WritingPage> {
     _textController.addListener(_onTextChanged);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 监听用户字体切换，自动重新渲染
+    final newCtrl = context.read<UserFontController>();
+    if (!identical(newCtrl, _userFontCtrl)) {
+      _userFontCtrl?.removeListener(_onFontChanged);
+      _userFontCtrl = newCtrl;
+      _userFontCtrl!.addListener(_onFontChanged);
+    }
+  }
+
+  void _onFontChanged() => _generateToolPath();
 
   @override
   void dispose() {
+    _userFontCtrl?.removeListener(_onFontChanged);
     _textController.dispose();
     _leftScrollController.dispose();
     _rightScrollController.dispose();
@@ -93,6 +112,8 @@ class _WritingPageState extends State<WritingPage> {
       setState(() {
         _font = font;
       });
+      // 注入标准字库到 UserFontController，供用户字体回退使用
+      if (mounted) context.read<UserFontController>().setStandardFont(font);
       _generateToolPath();
     } catch (e) {
       if (!mounted) return;
@@ -103,6 +124,7 @@ class _WritingPageState extends State<WritingPage> {
         setState(() {
           _font = demoFont;
         });
+        if (mounted) context.read<UserFontController>().setStandardFont(demoFont);
         _generateToolPath();
       } catch (e2) {
         if (!mounted) return;
@@ -119,7 +141,9 @@ class _WritingPageState extends State<WritingPage> {
   }
 
   void _generateToolPath() {
-    final font = _font;
+    // 优先使用用户字体（若已激活），否则使用标准字库
+    final userFont = context.read<UserFontController>().activeUserFont;
+    final font = userFont ?? _font;
     if (font == null) return;
 
     final paperCtrl = context.read<PaperConfigController>();
@@ -338,9 +362,18 @@ class _WritingPageState extends State<WritingPage> {
   }
 
   Widget _buildInputCard() {
+    final userCtrl = context.watch<UserFontController>();
+    final activeUserFont = userCtrl.activeUserFont;
+
     return FluiddCard(
       title: '文本输入',
       actions: [
+        if (activeUserFont != null)
+          IconButton(
+            icon: const Icon(Icons.grid_view_rounded, color: Colors.grey, size: 20),
+            onPressed: () => _openGlyphPicker(userCtrl),
+            tooltip: '字形选择库',
+          ),
         IconButton(
           icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
           onPressed: () {
@@ -467,6 +500,41 @@ class _WritingPageState extends State<WritingPage> {
 
 // 以前的 _buildFontInfoCard 相关代码已移除
 
+  // ────────────────────────────────────────────────────────────────────────
+  // 字形辅助方法
+  // ────────────────────────────────────────────────────────────────────────
+
+  /// 在光标处插入字符
+  void _insertChar(String ch) {
+    final text = _textController.text;
+    final sel = _textController.selection;
+    final pos = sel.isValid ? sel.extentOffset.clamp(0, text.length) : text.length;
+    final newText = text.substring(0, pos) + ch + text.substring(pos);
+    _textController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: pos + ch.length),
+    );
+  }
+
+  /// 打开字形选择底部面板
+  void _openGlyphPicker(UserFontController ctrl) {
+    final profile = ctrl.activeProfile;
+    if (profile == null || profile.learnedGlyphs.isEmpty) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _GlyphPickerSheet(
+        glyphs: Map.unmodifiable(profile.learnedGlyphs),
+        fontName: profile.name,
+        onInsert: _insertChar,
+      ),
+    );
+  }
+
   Widget _buildPreviewCard() {
     return FluiddCard(
       title: '路径预览',
@@ -542,6 +610,150 @@ class _WritingPageState extends State<WritingPage> {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 字形选择底部面板
+class _GlyphPickerSheet extends StatefulWidget {
+  final Map<String, Glyph> glyphs;
+  final String fontName;
+  final void Function(String) onInsert;
+
+  const _GlyphPickerSheet({
+    required this.glyphs,
+    required this.fontName,
+    required this.onInsert,
+  });
+
+  @override
+  State<_GlyphPickerSheet> createState() => _GlyphPickerSheetState();
+}
+
+class _GlyphPickerSheetState extends State<_GlyphPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final allChars = widget.glyphs.keys
+        .where((c) => _query.isEmpty || c.contains(_query))
+        .toList()
+      ..sort();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.45,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (ctx, scrollCtrl) => Column(
+        children: [
+          // ▶ 拖拽把手
+          const SizedBox(height: 8),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          // ▶ 标题
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '从「${widget.fontName}」选择字形',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Chip(
+                  label: Text('${allChars.length} 字'),
+                  labelStyle: theme.textTheme.labelSmall,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ),
+          const Divider(height: 16),
+          // ▶ 搜索框
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search, size: 20),
+                hintText: '搜索字符…',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _query = ''),
+                      )
+                    : null,
+              ),
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Row(
+              children: [
+                Icon(Icons.touch_app_outlined,
+                    size: 13, color: theme.colorScheme.outline),
+                const SizedBox(width: 4),
+                Text(
+                  '点击字形即可插入到文本',
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: theme.colorScheme.outline),
+                ),
+              ],
+            ),
+          ),
+          // ▶ 字形网格
+          Expanded(
+            child: allChars.isEmpty
+                ? Center(
+                    child: Text(
+                      '无匹配字形',
+                      style: TextStyle(color: theme.colorScheme.outline),
+                    ),
+                  )
+                : GridView.builder(
+                    controller: scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 32),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 72,
+                      mainAxisExtent: 84,
+                      crossAxisSpacing: 6,
+                      mainAxisSpacing: 6,
+                    ),
+                    itemCount: allChars.length,
+                    itemBuilder: (ctx, i) {
+                      final ch = allChars[i];
+                      return GlyphTile(
+                        character: ch,
+                        glyph: widget.glyphs[ch],
+                        isUserFont: true,
+                        onTap: () {
+                          widget.onInsert(ch);
+                          Navigator.pop(ctx);
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }

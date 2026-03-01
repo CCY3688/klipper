@@ -7,6 +7,7 @@ enum SidebarTab {
   paperSettings,  // 纸张设置
   configure,      // 配置文件
   history,        // 历史记录
+  userFont,       // 用户字体风格
   settings,       // 设置
 }
 

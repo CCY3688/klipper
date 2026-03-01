@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../state/printer_controller.dart';
 import '../../state/navigation_controller.dart';
 import '../writing/writing_page.dart';
+import '../writing/user_font_page.dart';
 import '../paper/paper_settings_page.dart';
 import 'settings_page.dart';
 import 'configure_page.dart';
@@ -92,6 +93,8 @@ class DashboardPage extends StatelessWidget {
         return 'Delta Writer - 配置';
       case SidebarTab.history:
         return 'Delta Writer - 历史记录';
+      case SidebarTab.userFont:
+        return 'Delta Writer - 用户字体';
       case SidebarTab.settings:
         return 'Delta Writer - 设置';
     }
@@ -109,6 +112,8 @@ class DashboardPage extends StatelessWidget {
         return const ConfigurePage();
       case SidebarTab.history:
         return _buildPlaceholderPage('历史记录', Icons.history);
+      case SidebarTab.userFont:
+        return const UserFontPage();
       case SidebarTab.settings:
         return const SettingsPage();
     }
