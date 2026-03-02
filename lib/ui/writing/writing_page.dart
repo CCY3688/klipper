@@ -3,6 +3,7 @@ import 'dart:io' show File;
 import 'dart:typed_data' show Uint8List;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_selector/file_selector.dart';
@@ -14,6 +15,7 @@ import '../../writing/model/essay_grid.dart';
 import '../../writing/model/glyph.dart';
 import '../../writing/model/page.dart';
 import '../../writing/model/paper_type.dart';
+import '../../writing/model/animated_toolpath_painter.dart';
 import '../../writing/model/toolpath.dart';
 import '../../writing/model/toolpath_painter.dart';
 import '../../writing/render/viewport.dart' as kp;
@@ -34,18 +36,23 @@ class WritingPage extends StatefulWidget {
   State<WritingPage> createState() => _WritingPageState();
 }
 
-class _WritingPageState extends State<WritingPage> {
+class _WritingPageState extends State<WritingPage>
+    with SingleTickerProviderStateMixin {
   final _textController = TextEditingController(text: '你好世界\n欢迎使用手写路径生成器');
   final _leftScrollController = ScrollController();
   final _rightScrollController = ScrollController();
-  
+  final GlobalKey _gestureKey = GlobalKey();
+  late final AnimationController _animationController;
+  bool _isDynamicPreview = false;
+  double _playbackSpeed = 1.0;
+
   StrokeFont? _font;
-  
+
   ToolPath _toolPath = ToolPath.empty;
   bool _showPenUp = true;
   WritingMode _writingMode = WritingMode.standard;
   PaperConfig? _lastPaperConfig; // 追踪纸张配置变化
-  
+
   // Viewport 管理
   kp.Viewport? _viewport;
   Size? _lastViewportSize;
@@ -53,7 +60,7 @@ class _WritingPageState extends State<WritingPage> {
   double _gestureStartScale = 1.0;
   Offset _gestureStartPan = Offset.zero;
   Offset _gestureStartFocal = Offset.zero;
-  
+
   static const double _fitPaddingPx = 10.0;
   static const double _minScalePxPerMm = 0.2;
   static const double _maxScalePxPerMm = 30.0;
@@ -77,6 +84,20 @@ class _WritingPageState extends State<WritingPage> {
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    );
+    _animationController.addListener(() {
+      setState(() {});
+    });
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _isDynamicPreview = false;
+        });
+      }
+    });
     _loadFont();
     _textController.addListener(_onTextChanged);
   }
@@ -101,13 +122,16 @@ class _WritingPageState extends State<WritingPage> {
     _textController.dispose();
     _leftScrollController.dispose();
     _rightScrollController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _loadFont() async {
     try {
       // 优先尝试加载完整字库，如果文件太大或加载慢，可以考虑切分或异步流式加载
-      final font = await StrokeFont.loadFromAsset('assets/fonts/makemeahanzi_standard.json');
+      final font = await StrokeFont.loadFromAsset(
+        'assets/fonts/makemeahanzi_standard.json',
+      );
       if (!mounted) return;
       setState(() {
         _font = font;
@@ -119,19 +143,20 @@ class _WritingPageState extends State<WritingPage> {
       if (!mounted) return;
       // 如果完整字库加载失败（例如尚未生成），回退到 Demo 字库
       try {
-        final demoFont = await StrokeFont.loadFromAsset('assets/fonts/demo_stroke_font_zh.json');
+        final demoFont = await StrokeFont.loadFromAsset(
+          'assets/fonts/demo_stroke_font_zh.json',
+        );
         if (!mounted) return;
         setState(() {
           _font = demoFont;
         });
-        if (mounted) context.read<UserFontController>().setStandardFont(demoFont);
+        if (mounted)
+          context.read<UserFontController>().setStandardFont(demoFont);
         _generateToolPath();
       } catch (e2) {
         if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
-        messenger.showSnackBar(
-          SnackBar(content: Text('字库加载失败: $e2')),
-        );
+        messenger.showSnackBar(SnackBar(content: Text('字库加载失败: $e2')));
       }
     }
   }
@@ -155,7 +180,7 @@ class _WritingPageState extends State<WritingPage> {
       cols: config.cols,
       rows: config.rows,
     );
-    
+
     final options = GridLayoutOptions(
       mode: _writingMode,
       cellPaddingMm: config.cellPaddingMm,
@@ -165,15 +190,66 @@ class _WritingPageState extends State<WritingPage> {
     );
     final layout = GridLayout(grid: grid, font: font, options: options);
     final newPath = layout.layoutText(_textController.text);
-    
+
     setState(() {
       _toolPath = newPath;
+      if (_isDynamicPreview) {
+        _animationController.stop();
+        _animationController.reset();
+      }
+      _isDynamicPreview = false;
+    });
+  }
+
+  void _toggleDynamicPreview() {
+    if (_toolPath.polylines.isEmpty) return;
+
+    setState(() {
+      _isDynamicPreview = !_isDynamicPreview;
+      if (_isDynamicPreview) {
+        final totalPoints = _toolPath.polylines.fold(
+          0,
+          (sum, pl) => sum + pl.points.length,
+        );
+        final baseSeconds = (totalPoints / 100).clamp(5, 120).toDouble();
+        _animationController.duration = Duration(
+          milliseconds: (baseSeconds * 1000 / _playbackSpeed).toInt(),
+        );
+        _animationController.forward(from: 0.0);
+      } else {
+        _animationController.stop();
+        _animationController.reset();
+      }
+    });
+  }
+
+  void _updatePlaybackSpeed(double speed) {
+    if (_playbackSpeed == speed) return;
+
+    setState(() {
+      _playbackSpeed = speed;
+
+      if (_isDynamicPreview && _animationController.isAnimating) {
+        final currentProgress = _animationController.value;
+        final totalPoints = _toolPath.polylines.fold(
+          0,
+          (sum, pl) => sum + pl.points.length,
+        );
+        final baseSeconds = (totalPoints / 100).clamp(5, 120).toDouble();
+        _animationController.duration = Duration(
+          milliseconds: (baseSeconds * 1000 / _playbackSpeed).toInt(),
+        );
+        _animationController.forward(from: currentProgress);
+      }
     });
   }
 
   kp.Viewport _fitViewport(Size size) {
     final availW = (size.width - _fitPaddingPx * 2).clamp(1.0, double.infinity);
-    final availH = (size.height - _fitPaddingPx * 2).clamp(1.0, double.infinity);
+    final availH = (size.height - _fitPaddingPx * 2).clamp(
+      1.0,
+      double.infinity,
+    );
 
     double scale = availW / _page.widthMm;
     if (_page.heightMm * scale > availH) {
@@ -226,9 +302,7 @@ class _WritingPageState extends State<WritingPage> {
         }
       }
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('保存失败: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('保存失败: $e')));
     }
   }
 
@@ -238,7 +312,7 @@ class _WritingPageState extends State<WritingPage> {
       final exporter = GcodeExporter();
       final gcode = exporter.export(_toolPath);
       final filename = "writing_${DateTime.now().millisecondsSinceEpoch}.gcode";
-      
+
       final printer = context.read<PrinterController>();
       final remotePath = await printer.uploadGcode(
         filename: filename,
@@ -246,23 +320,20 @@ class _WritingPageState extends State<WritingPage> {
       );
 
       if (remotePath != null) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('已上传到: $remotePath')),
-        );
+        messenger.showSnackBar(SnackBar(content: Text('已上传到: $remotePath')));
       } else {
         messenger.showSnackBar(
           SnackBar(content: Text('上传失败: ${printer.lastError}')),
         );
       }
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('错误: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('错误: $e')));
     }
   }
 
   kp.Viewport _ensureViewport(Size size) {
-    if (_viewport == null || (!_hasUserTransform && _lastViewportSize != size)) {
+    if (_viewport == null ||
+        (!_hasUserTransform && _lastViewportSize != size)) {
       _viewport = _fitViewport(size);
     }
     _lastViewportSize = size;
@@ -278,6 +349,13 @@ class _WritingPageState extends State<WritingPage> {
     });
   }
 
+  RenderBox? _gestureBox() {
+    final ctx = _gestureKey.currentContext;
+    final obj = ctx?.findRenderObject();
+    if (obj is RenderBox) return obj;
+    return null;
+  }
+
   void _onScaleStart(ScaleStartDetails details) {
     final viewport = _viewport;
     if (viewport == null) return;
@@ -288,10 +366,15 @@ class _WritingPageState extends State<WritingPage> {
 
   void _onScaleUpdate(ScaleUpdateDetails details) {
     final startScale = _gestureStartScale;
-    final newScale = (startScale * details.scale).clamp(_minScalePxPerMm, _maxScalePxPerMm);
+    final newScale = (startScale * details.scale).clamp(
+      _minScalePxPerMm,
+      _maxScalePxPerMm,
+    );
 
-    final startWorldX = (_gestureStartFocal.dx - _gestureStartPan.dx) / startScale;
-    final startWorldY = (_gestureStartFocal.dy - _gestureStartPan.dy) / startScale;
+    final startWorldX =
+        (_gestureStartFocal.dx - _gestureStartPan.dx) / startScale;
+    final startWorldY =
+        (_gestureStartFocal.dy - _gestureStartPan.dy) / startScale;
 
     final focal = details.localFocalPoint;
     final newPan = Offset(
@@ -310,7 +393,7 @@ class _WritingPageState extends State<WritingPage> {
     // 监听纸张配置变化，自动重新生成路径
     final paperCtrl = context.watch<PaperConfigController>();
     final currentConfig = paperCtrl.activePaper;
-    
+
     // 当纸张配置变化时重新生成路径
     if (_lastPaperConfig != currentConfig) {
       _lastPaperConfig = currentConfig;
@@ -320,7 +403,7 @@ class _WritingPageState extends State<WritingPage> {
         });
       }
     }
-    
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -334,11 +417,7 @@ class _WritingPageState extends State<WritingPage> {
               thumbVisibility: true,
               child: SingleChildScrollView(
                 controller: _leftScrollController,
-                child: Column(
-                  children: [
-                    _buildInputCard(),
-                  ],
-                ),
+                child: Column(children: [_buildInputCard()]),
               ),
             ),
           ),
@@ -370,7 +449,11 @@ class _WritingPageState extends State<WritingPage> {
       actions: [
         if (activeUserFont != null)
           IconButton(
-            icon: const Icon(Icons.grid_view_rounded, color: Colors.grey, size: 20),
+            icon: const Icon(
+              Icons.grid_view_rounded,
+              color: Colors.grey,
+              size: 20,
+            ),
             onPressed: () => _openGlyphPicker(userCtrl),
             tooltip: '字形选择库',
           ),
@@ -388,10 +471,7 @@ class _WritingPageState extends State<WritingPage> {
           TextField(
             controller: _textController,
             maxLines: 8,
-            style: const TextStyle(
-              fontSize: 16,
-              height: 1.5,
-            ),
+            style: const TextStyle(fontSize: 16, height: 1.5),
             decoration: InputDecoration(
               hintText: '请输入要写的文字...\n支持中文字符',
               hintStyle: TextStyle(color: Colors.grey.shade600),
@@ -434,8 +514,8 @@ class _WritingPageState extends State<WritingPage> {
                 selectedColor: Colors.blue.shade700,
                 backgroundColor: Colors.grey.shade800,
                 labelStyle: TextStyle(
-                  color: _writingMode == WritingMode.standard 
-                      ? Colors.white 
+                  color: _writingMode == WritingMode.standard
+                      ? Colors.white
                       : Colors.grey.shade400,
                   fontSize: 11,
                 ),
@@ -455,8 +535,8 @@ class _WritingPageState extends State<WritingPage> {
                 selectedColor: Colors.orange.shade700,
                 backgroundColor: Colors.grey.shade800,
                 labelStyle: TextStyle(
-                  color: _writingMode == WritingMode.fast 
-                      ? Colors.white 
+                  color: _writingMode == WritingMode.fast
+                      ? Colors.white
                       : Colors.grey.shade400,
                   fontSize: 11,
                 ),
@@ -498,7 +578,7 @@ class _WritingPageState extends State<WritingPage> {
     );
   }
 
-// 以前的 _buildFontInfoCard 相关代码已移除
+  // 以前的 _buildFontInfoCard 相关代码已移除
 
   // ────────────────────────────────────────────────────────────────────────
   // 字形辅助方法
@@ -508,7 +588,9 @@ class _WritingPageState extends State<WritingPage> {
   void _insertChar(String ch) {
     final text = _textController.text;
     final sel = _textController.selection;
-    final pos = sel.isValid ? sel.extentOffset.clamp(0, text.length) : text.length;
+    final pos = sel.isValid
+        ? sel.extentOffset.clamp(0, text.length)
+        : text.length;
     final newText = text.substring(0, pos) + ch + text.substring(pos);
     _textController.value = TextEditingValue(
       text: newText,
@@ -560,13 +642,58 @@ class _WritingPageState extends State<WritingPage> {
         ),
         IconButton(
           tooltip: '上传 GCode 到打印机',
-          icon: const Icon(Icons.cloud_upload_outlined, color: Colors.grey, size: 20),
+          icon: const Icon(
+            Icons.cloud_upload_outlined,
+            color: Colors.grey,
+            size: 20,
+          ),
           onPressed: _toolPath.polylines.isEmpty ? null : _handleUpload,
         ),
         IconButton(
+          tooltip: _isDynamicPreview ? '停止动态预览' : '动态预览',
+          icon: Icon(
+            _isDynamicPreview
+                ? Icons.stop_circle_outlined
+                : Icons.play_circle_outlined,
+            color: _isDynamicPreview
+                ? Colors.orange
+                : (_toolPath.polylines.isEmpty
+                      ? Colors.grey.shade600
+                      : Colors.grey),
+            size: 20,
+          ),
+          onPressed: _toolPath.polylines.isEmpty ? null : _toggleDynamicPreview,
+        ),
+        if (_isDynamicPreview)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<double>(
+                value: _playbackSpeed,
+                dropdownColor: const Color(0xFF2C3034),
+                icon: const SizedBox.shrink(),
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                items: [0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
+                    .map(
+                      (s) => DropdownMenuItem(value: s, child: Text('${s}x')),
+                    )
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) _updatePlaybackSpeed(v);
+                },
+              ),
+            ),
+          ),
+        IconButton(
           tooltip: _showPenUp ? '隐藏抬笔轨迹' : '显示抬笔轨迹',
           icon: Icon(
-            _showPenUp ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            _showPenUp
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
             color: Colors.grey,
             size: 20,
           ),
@@ -592,18 +719,65 @@ class _WritingPageState extends State<WritingPage> {
             builder: (context, constraints) {
               final size = Size(constraints.maxWidth, constraints.maxHeight);
               final viewport = _ensureViewport(size);
+              final currentViewport = _viewport ?? viewport;
 
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onScaleStart: _onScaleStart,
-                onScaleUpdate: _onScaleUpdate,
-                child: CustomPaint(
-                  size: size,
-                  painter: _CombinedPainter(
-                    paperConfig: _paperConfig,
-                    toolPath: _toolPath,
-                    viewport: viewport,
-                    showPenUp: _showPenUp,
+              return Listener(
+                key: _gestureKey,
+                onPointerSignal: (event) {
+                  if (event is! PointerScrollEvent) return;
+                  GestureBinding.instance.pointerSignalResolver.register(
+                    event,
+                    (event) {
+                      if (event is! PointerScrollEvent) return;
+                      final box = _gestureBox();
+                      if (box == null) return;
+                      final local = box.globalToLocal(event.position);
+                      final current = _viewport ?? viewport;
+                      final worldMm = Offset(
+                        (local.dx - current.pan.dx) / current.scale,
+                        (local.dy - current.pan.dy) / current.scale,
+                      );
+                      final rawFactor = 1.0 - (event.scrollDelta.dy * 0.001);
+                      final zoomFactor = rawFactor.clamp(0.8, 1.25).toDouble();
+                      final newScale = (current.scale * zoomFactor).clamp(
+                        _minScalePxPerMm,
+                        _maxScalePxPerMm,
+                      );
+                      final newPan = Offset(
+                        local.dx - worldMm.dx * newScale,
+                        local.dy - worldMm.dy * newScale,
+                      );
+                      setState(() {
+                        _viewport = kp.Viewport(scale: newScale, pan: newPan);
+                        _hasUserTransform = true;
+                      });
+                    },
+                  );
+                },
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onScaleStart: _onScaleStart,
+                  onScaleUpdate: _onScaleUpdate,
+                  child: CustomPaint(
+                    size: size,
+                    painter: PaperTypePainter(
+                      config: _paperConfig,
+                      viewport: currentViewport,
+                    ),
+                    foregroundPainter: _isDynamicPreview
+                        ? AnimatedToolPathPainter(
+                            toolPath: _toolPath,
+                            viewport: currentViewport,
+                            progress: _animationController.value,
+                            penWidthMm: 0.6,
+                            showPenUp: _showPenUp,
+                          )
+                        : ToolPathPainter(
+                            toolPath: _toolPath,
+                            viewport: currentViewport,
+                            penWidthMm: 0.6,
+                            showPenUp: _showPenUp,
+                          ),
                   ),
                 ),
               );
@@ -637,10 +811,11 @@ class _GlyphPickerSheetState extends State<_GlyphPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final allChars = widget.glyphs.keys
-        .where((c) => _query.isEmpty || c.contains(_query))
-        .toList()
-      ..sort();
+    final allChars =
+        widget.glyphs.keys
+            .where((c) => _query.isEmpty || c.contains(_query))
+            .toList()
+          ..sort();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -669,8 +844,9 @@ class _GlyphPickerSheetState extends State<_GlyphPickerSheet> {
                 Expanded(
                   child: Text(
                     '从「${widget.fontName}」选择字形',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 Chip(
@@ -708,13 +884,17 @@ class _GlyphPickerSheetState extends State<_GlyphPickerSheet> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Row(
               children: [
-                Icon(Icons.touch_app_outlined,
-                    size: 13, color: theme.colorScheme.outline),
+                Icon(
+                  Icons.touch_app_outlined,
+                  size: 13,
+                  color: theme.colorScheme.outline,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '点击字形即可插入到文本',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.colorScheme.outline),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
                 ),
               ],
             ),
@@ -733,11 +913,11 @@ class _GlyphPickerSheetState extends State<_GlyphPickerSheet> {
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 32),
                     gridDelegate:
                         const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 72,
-                      mainAxisExtent: 84,
-                      crossAxisSpacing: 6,
-                      mainAxisSpacing: 6,
-                    ),
+                          maxCrossAxisExtent: 72,
+                          mainAxisExtent: 84,
+                          crossAxisSpacing: 6,
+                          mainAxisSpacing: 6,
+                        ),
                     itemCount: allChars.length,
                     itemBuilder: (ctx, i) {
                       final ch = allChars[i];
@@ -756,46 +936,5 @@ class _GlyphPickerSheetState extends State<_GlyphPickerSheet> {
         ],
       ),
     );
-  }
-}
-
-/// 组合绘制器：绘制纸张网格和工具路径
-class _CombinedPainter extends CustomPainter {
-  final PaperConfig paperConfig;
-  final ToolPath toolPath;
-  final kp.Viewport viewport;
-  final bool showPenUp;
-
-  _CombinedPainter({
-    required this.paperConfig,
-    required this.toolPath,
-    required this.viewport,
-    required this.showPenUp,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 1. 绘制纸张和网格（使用 PaperTypePainter）
-    final paperPainter = PaperTypePainter(
-      config: paperConfig,
-      viewport: viewport,
-    );
-    paperPainter.paint(canvas, size);
-
-    // 2. 绘制工具路径
-    final pathPainter = ToolPathPainter(
-      toolPath: toolPath,
-      viewport: viewport,
-      showPenUp: showPenUp,
-    );
-    pathPainter.paint(canvas, size);
-  }
-
-  @override
-  bool shouldRepaint(covariant _CombinedPainter oldDelegate) {
-    return oldDelegate.toolPath != toolPath ||
-        oldDelegate.viewport != viewport ||
-        oldDelegate.showPenUp != showPenUp ||
-        oldDelegate.paperConfig != paperConfig;
   }
 }
