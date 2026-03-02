@@ -28,11 +28,23 @@ class GlyphDebugProcessor {
   static Future<GlyphDebugData> processChar({
     required File ttfFile,
     required String character,
+    int preSpurPruneLen = 0,
+    int tinyComponentSize = 0,
+    int bridgeGap = 6,
+    int postSpurPruneLen = 7,
   }) async {
     final bytes = await ttfFile.readAsBytes();
     final ttf = TtfParser.parse(bytes);
     final templates = await _loadTemplates();
-    return _processCharDebug(character, ttf, templates);
+    return _processCharDebug(
+      character,
+      ttf,
+      templates,
+      preSpurPruneLen: preSpurPruneLen,
+      tinyComponentSize: tinyComponentSize,
+      bridgeGap: bridgeGap,
+      postSpurPruneLen: postSpurPruneLen,
+    );
   }
 
   /// 直接从已解析的数据处理（避免重复解析）
@@ -40,14 +52,32 @@ class GlyphDebugProcessor {
     required TtfParser ttf,
     required String character,
     required Map<String, List<List<({double x, double y})>>> templates,
+    int preSpurPruneLen = 0,
+    int tinyComponentSize = 0,
+    int bridgeGap = 6,
+    int postSpurPruneLen = 7,
   }) async {
-    return _processCharDebug(character, ttf, templates);
+    return _processCharDebug(
+      character,
+      ttf,
+      templates,
+      preSpurPruneLen: preSpurPruneLen,
+      tinyComponentSize: tinyComponentSize,
+      bridgeGap: bridgeGap,
+      postSpurPruneLen: postSpurPruneLen,
+    );
   }
 
   static GlyphDebugData _processCharDebug(
     String ch,
     TtfParser ttf,
     Map<String, List<List<({double x, double y})>>> templates,
+    {
+    int preSpurPruneLen = 0,
+    int tinyComponentSize = 0,
+    int bridgeGap = 6,
+    int postSpurPruneLen = 7,
+    }
   ) {
     try {
       // ── 阶段 0: 获取 TTF 轮廓 ──
@@ -85,10 +115,16 @@ class GlyphDebugProcessor {
       final bitmap = OutlineRasterizer.rasterize(outline, resolution: 256, padding: 8);
 
       // ── 阶段 2: 骨架化 ──
-      final skeleton = Skeletonizer.skeletonize(bitmap);
+      final skeleton = Skeletonizer.skeletonize(
+        bitmap,
+        preSpurPruneLen: preSpurPruneLen,
+        tinyComponentSize: tinyComponentSize,
+        bridgeGap: bridgeGap,
+        postSpurPruneLen: postSpurPruneLen,
+      );
 
       // ── 阶段 3: 向量化 ──
-      final rawStrokes = SkeletonVectorizer.vectorize(skeleton, minStrokePixels: 3);
+      final rawStrokes = SkeletonVectorizer.vectorize(skeleton, minStrokePixels: 4);
 
       // ── 阶段 4: 获取模板 ──
       final templateStrokePts = templates[ch] ?? [];

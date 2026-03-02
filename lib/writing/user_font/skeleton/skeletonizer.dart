@@ -13,11 +13,22 @@ class Skeletonizer {
   /// 对填充位图执行 Zhang-Suen 细化，原地修改 pixels
   ///
   /// 返回细化后的新 GlyphBitmap（不修改原始数据）
-  static GlyphBitmap skeletonize(GlyphBitmap input) {
+  static GlyphBitmap skeletonize(
+    GlyphBitmap input, {
+    int preSpurPruneLen = 0,
+    int tinyComponentSize = 0,
+    int bridgeGap = 6,
+    int postSpurPruneLen = 7,
+  }) {
     final w = input.width;
     final h = input.height;
     // 工作副本
     final pixels = Uint8List.fromList(input.pixels);
+
+    // 写字机场景下优先中心线连续性：
+    // 先做轻量去噪/闭运算近似，减少后续细化产生的毛刺与错位。
+    _preThinDenoiseAndClose(pixels, w, h);
+
     final marker = Uint8List(w * h); // 标记待删除像素
 
     bool changed = true;
@@ -77,11 +88,74 @@ class Skeletonizer {
       }
     }
 
+    if (preSpurPruneLen > 0) {
+      _pruneShortSpurs(pixels, w, h, maxSpurLength: preSpurPruneLen);
+    }
+
+    if (tinyComponentSize > 1) {
+      _removeTinyComponents(pixels, w, h, minComponentSize: tinyComponentSize);
+    }
+
     // 细化后桥接微小断点（常见于斜线/小圆点边缘的像素裂缝）
     // 手写字体笔画较粗时，细化可能产生 4~6 像素的断裂
-    _bridgeSmallEndpointGaps(pixels, w, h, maxGap: 6);
+    if (bridgeGap > 0) {
+      _bridgeSmallEndpointGaps(pixels, w, h, maxGap: bridgeGap);
+    }
+
+    // 去除细化后的短毛刺支路，避免向量化出现大量零碎小段。
+    if (postSpurPruneLen > 0) {
+      _pruneShortSpurs(pixels, w, h, maxSpurLength: postSpurPruneLen);
+    }
 
     return GlyphBitmap(pixels: pixels, width: w, height: h);
+  }
+
+  /// 细化前的轻量去噪与闭合：
+  /// - 填补 1px 级小孔/小裂缝
+  /// - 去掉孤立噪点
+  static void _preThinDenoiseAndClose(Uint8List pixels, int w, int h) {
+    int idx(int x, int y) => y * w + x;
+
+    int neighborCount(Uint8List src, int x, int y) {
+      int cnt = 0;
+      for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+          if (dx == 0 && dy == 0) continue;
+          final nx = x + dx;
+          final ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+          if (src[idx(nx, ny)] != 0) cnt++;
+        }
+      }
+      return cnt;
+    }
+
+    // pass1: 填小孔 + 连微缝
+    final pass1 = Uint8List.fromList(pixels);
+    for (int y = 1; y < h - 1; y++) {
+      for (int x = 1; x < w - 1; x++) {
+        final k = idx(x, y);
+        final n = neighborCount(pixels, x, y);
+
+        if (pixels[k] == 0) {
+          // 周围前景密度很高时补洞
+          if (n >= 6) pass1[k] = 1;
+        }
+      }
+    }
+
+    // pass2: 删孤立点
+    final pass2 = Uint8List.fromList(pass1);
+    for (int y = 1; y < h - 1; y++) {
+      for (int x = 1; x < w - 1; x++) {
+        final k = idx(x, y);
+        if (pass1[k] == 0) continue;
+        final n = neighborCount(pass1, x, y);
+        if (n == 0) pass2[k] = 0;
+      }
+    }
+
+    pixels.setAll(0, pass2);
   }
 
   /// 连接靠近且方向连续的端点，修复细化造成的微小断裂。
@@ -222,6 +296,160 @@ class Skeletonizer {
         drawLine(ax, ay, bx, by);
         used.add(aKey);
         used.add(bestB);
+      }
+    }
+  }
+
+  /// 删除连接在主干上的短毛刺支路（endpoint→junction 的短路径）。
+  /// 这类毛刺通常来自粗细不均和像素错位，会被向量化成大量小碎段。
+  static void _pruneShortSpurs(
+    Uint8List pixels,
+    int w,
+    int h, {
+    int maxSpurLength = 5,
+  }) {
+    int idx(int x, int y) => y * w + x;
+
+    int neighborCount(int key) {
+      final x = key % w;
+      final y = key ~/ w;
+      int cnt = 0;
+      for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+          if (dx == 0 && dy == 0) continue;
+          final nx = x + dx;
+          final ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+          if (pixels[idx(nx, ny)] != 0) cnt++;
+        }
+      }
+      return cnt;
+    }
+
+    List<int> neighborsOf(int key) {
+      final x = key % w;
+      final y = key ~/ w;
+      final out = <int>[];
+      for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+          if (dx == 0 && dy == 0) continue;
+          final nx = x + dx;
+          final ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+          final nKey = idx(nx, ny);
+          if (pixels[nKey] != 0) out.add(nKey);
+        }
+      }
+      return out;
+    }
+
+    for (int round = 0; round < 2; round++) {
+      final endpoints = <int>[];
+      for (int y = 1; y < h - 1; y++) {
+        for (int x = 1; x < w - 1; x++) {
+          final key = idx(x, y);
+          if (pixels[key] == 0) continue;
+          if (neighborCount(key) == 1) endpoints.add(key);
+        }
+      }
+
+      if (endpoints.isEmpty) break;
+
+      final toClear = <int>{};
+      for (final start in endpoints) {
+        if (toClear.contains(start)) continue;
+
+        final path = <int>[start];
+        int prev = -1;
+        int cur = start;
+        bool reachedJunction = false;
+
+        while (path.length <= maxSpurLength + 1) {
+          final neighbors = neighborsOf(cur)
+              .where((n) => n != prev)
+              .toList(growable: false);
+
+          final deg = neighborCount(cur);
+          if (cur != start && deg >= 3) {
+            reachedJunction = true;
+            break;
+          }
+          if (neighbors.isEmpty) {
+            reachedJunction = false;
+            break;
+          }
+          if (neighbors.length > 1) {
+            reachedJunction = true;
+            break;
+          }
+
+          final next = neighbors.first;
+          path.add(next);
+          prev = cur;
+          cur = next;
+        }
+
+        // 仅删除“短且连接到主干”的毛刺，保留正常独立短笔画。
+        if (reachedJunction && path.length - 1 <= maxSpurLength) {
+          for (int i = 0; i < path.length - 1; i++) {
+            toClear.add(path[i]);
+          }
+        }
+      }
+
+      if (toClear.isEmpty) break;
+      for (final key in toClear) {
+        pixels[key] = 0;
+      }
+    }
+  }
+
+  /// 移除小型连通域噪声（通常是细化后残留的点团）。
+  static void _removeTinyComponents(
+    Uint8List pixels,
+    int w,
+    int h, {
+    required int minComponentSize,
+  }) {
+    int idx(int x, int y) => y * w + x;
+    final visited = Uint8List(w * h);
+
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        final start = idx(x, y);
+        if (pixels[start] == 0 || visited[start] != 0) continue;
+
+        final queue = <int>[start];
+        final comp = <int>[];
+        visited[start] = 1;
+
+        while (queue.isNotEmpty) {
+          final cur = queue.removeLast();
+          comp.add(cur);
+
+          final cx = cur % w;
+          final cy = cur ~/ w;
+          for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+              if (dx == 0 && dy == 0) continue;
+              final nx = cx + dx;
+              final ny = cy + dy;
+              if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+
+              final nKey = idx(nx, ny);
+              if (pixels[nKey] == 0 || visited[nKey] != 0) continue;
+
+              visited[nKey] = 1;
+              queue.add(nKey);
+            }
+          }
+        }
+
+        if (comp.length < minComponentSize) {
+          for (final key in comp) {
+            pixels[key] = 0;
+          }
+        }
       }
     }
   }

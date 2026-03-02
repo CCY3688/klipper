@@ -38,6 +38,10 @@ class _GlyphDebugPageState extends State<GlyphDebugPage> {
   GlyphDebugData? _debugData;
   bool _loading = false;
   int _selectedStage = 0;
+  int _preSpurPruneLen = 6;
+  int _tinyComponentSize = 4;
+  int _bridgeGap = 6;
+  int _postSpurPruneLen = 4;
 
   @override
   void initState() {
@@ -62,6 +66,10 @@ class _GlyphDebugPageState extends State<GlyphDebugPage> {
     final data = await GlyphDebugProcessor.processChar(
       ttfFile: widget.ttfFile,
       character: ch,
+      preSpurPruneLen: _preSpurPruneLen,
+      tinyComponentSize: _tinyComponentSize,
+      bridgeGap: _bridgeGap,
+      postSpurPruneLen: _postSpurPruneLen,
     );
 
     if (mounted) {
@@ -111,9 +119,15 @@ class _GlyphDebugPageState extends State<GlyphDebugPage> {
                   },
                   child: const Text('调试'),
                 ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: _openSkeletonParamsSheet,
+                  icon: const Icon(Icons.tune, size: 16),
+                  label: const Text('骨架参数'),
+                ),
                 const SizedBox(width: 16),
                 // 快捷按钮
-                for (final ch in ['大', '人', '木', '水', '永', '国'])
+                for (final ch in ['大', '人', '木', '水', '永', '我'])
                   Padding(
                     padding: const EdgeInsets.only(right: 4),
                     child: ActionChip(
@@ -249,6 +263,9 @@ class _GlyphDebugPageState extends State<GlyphDebugPage> {
           final bone = sk.pixels.where((p) => p != 0).length;
           infoParts.add('骨架像素: $bone px');
         }
+        infoParts.add(
+          '参数 pre=$_preSpurPruneLen tiny=$_tinyComponentSize bridge=$_bridgeGap post=$_postSpurPruneLen',
+        );
       case 3:
         final n = data.rawVectorStrokes?.length ?? 0;
         infoParts.add('原始段数: $n');
@@ -287,6 +304,128 @@ class _GlyphDebugPageState extends State<GlyphDebugPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _openSkeletonParamsSheet() async {
+    int preSpurPruneLen = _preSpurPruneLen;
+    int tinyComponentSize = _tinyComponentSize;
+    int bridgeGap = _bridgeGap;
+    int postSpurPruneLen = _postSpurPruneLen;
+
+    final applied = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Widget sliderRow({
+              required String label,
+              required int value,
+              required int min,
+              required int max,
+              required ValueChanged<int> onChanged,
+            }) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$label: $value'),
+                  Slider(
+                    value: value.toDouble(),
+                    min: min.toDouble(),
+                    max: max.toDouble(),
+                    divisions: max - min,
+                    label: '$value',
+                    onChanged: (v) => onChanged(v.round()),
+                  ),
+                ],
+              );
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  16 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('骨架化参数', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    sliderRow(
+                      label: '预清刺长度(pre)',
+                      value: preSpurPruneLen,
+                      min: 0,
+                      max: 12,
+                      onChanged: (v) => setSheetState(() => preSpurPruneLen = v),
+                    ),
+                    sliderRow(
+                      label: '微小连通域阈值(tiny)',
+                      value: tinyComponentSize,
+                      min: 0,
+                      max: 12,
+                      onChanged: (v) => setSheetState(() => tinyComponentSize = v),
+                    ),
+                    sliderRow(
+                      label: '端点桥接距离(bridge)',
+                      value: bridgeGap,
+                      min: 0,
+                      max: 12,
+                      onChanged: (v) => setSheetState(() => bridgeGap = v),
+                    ),
+                    sliderRow(
+                      label: '后清刺长度(post)',
+                      value: postSpurPruneLen,
+                      min: 0,
+                      max: 12,
+                      onChanged: (v) => setSheetState(() => postSpurPruneLen = v),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setSheetState(() {
+                              preSpurPruneLen = 6;
+                              tinyComponentSize = 4;
+                              bridgeGap = 6;
+                              postSpurPruneLen = 4;
+                            });
+                          },
+                          child: const Text('恢复默认'),
+                        ),
+                        const Spacer(),
+                        FilledButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text('应用并重跑'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (applied == true && mounted) {
+      setState(() {
+        _preSpurPruneLen = preSpurPruneLen;
+        _tinyComponentSize = tinyComponentSize;
+        _bridgeGap = bridgeGap;
+        _postSpurPruneLen = postSpurPruneLen;
+      });
+
+      final t = _charController.text;
+      if (t.isNotEmpty) {
+        _runDebug(t.characters.first);
+      }
+    }
   }
 
   Widget _buildLegend(ThemeData theme) {

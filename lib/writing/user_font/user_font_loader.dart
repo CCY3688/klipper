@@ -212,7 +212,7 @@ class UserFontLoader {
       // 向量化
       final vectorStrokes = SkeletonVectorizer.vectorize(
         skeleton,
-        minStrokePixels: 3,
+        minStrokePixels: 4,
       );
 
       // 获取模板（直接使用 Dict 中的采样点）
