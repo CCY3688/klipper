@@ -1,0 +1,122 @@
+=== Backup Timestamp ===
+2026-07-08T19:54:38+08:00
+
+=== Remote uname -a ===
+Linux umeko-device 6.7.5-rv2-umeko-msm8953+ #7 SMP PREEMPT Fri Feb 23 19:56:25 CST 2024 aarch64 aarch64 aarch64 GNU/Linux
+
+=== OS Release ===
+PRETTY_NAME="Ubuntu 24.04 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+
+=== Klipper Git Log (last 10) ===
+12cd1d9e spi_flash: Add stm32g0b0xx to board_defs.py (#6646)
+68488432 docs:  add initial temperature_probe documentation
+bd1dbc8a probe_eddy_current: support thermal compensation
+7603953e temperature_probe: probe temperature sensor
+0087f04c gcode: Minor change to suppress python warning on '\s'
+c84d78f3 extruder: Allow dynamic adjustment of pressure advance (#6635)
+248d3dbf sht3x: use periodic report mode (#6634)
+00cb683d serialhdl: Catch IOError in connect_canbus()
+34732f85 smart_effector: Define get_position_endstop() wrapper
+9318901f mkdocs: Update id
+
+ M klippy/kinematics/polar.py
+ M klippy/klippy.py
+ M klippy/serialhdl.py
+ M src/Makefile
+ M src/stm32/Makefile
+?? klippy/extras/emm_uart.py
+?? klippy/extras/emm_uart.py.bak_20260701_112939
+?? klippy/extras/emm_uart.py.bak_20260701_114253
+?? klippy/extras/emm_uart.py.bak_20260701_144447
+?? klippy/extras/emm_uart.py.bak_20260701_215610
+?? klippy/extras/emm_uart.py.bak_20260707_212809
+?? klippy/extras/emm_uart.py.bak_progress_20260701_102521
+?? src/Makefile.bak_emm_usart_20260630
+?? src/stm32/emm_usart.c
+
+=== Home Directory Tree ===
+total 27604
+drwxr-x--x 26 umeko umeko     4096 Jul  5 12:00 .
+drwxr-xr-x  3 root  root      4096 Jul 19  2024 ..
+-rw-------  1 umeko umeko     4176 Jul  7 18:21 .bash_history
+-rw-r--r--  1 umeko umeko      220 Apr 24  2024 .bash_logout
+-rw-r--r--  1 umeko umeko     3771 Apr 24  2024 .bashrc
+drwx------  5 umeko umeko     4096 Jun 12 13:35 .cache
+drwxrwxr-x  5 umeko umeko     4096 Jun 12 22:29 .config
+drwx------  3 umeko umeko     4096 Jun 12 14:32 .copilot
+drwxrwxr-x 10 umeko umeko     4096 Oct 12  2024 crowsnest
+drwxrwxr-x  5 umeko umeko     4096 Jul 17  2024 fluidd
+-rw-rw-r--  1 umeko umeko        0 Jul 17  2024 .gitconfig
+drwxrwxr-x  8 umeko umeko     4096 Mar 10  2025 kiauh
+drwxrwxr-x  4 umeko umeko     4096 Jul 17  2024 kiauh-backups
+-rw-rw-r--  1 umeko umeko      581 Mar 10  2025 .kiauh.ini
+drwxrwxr-x 12 umeko umeko     4096 Jul  1 18:19 klipper
+drwxrwxr-x 11 umeko umeko     4096 Jun 30 12:25 klipper_6349d4fb_src
+-rw-rw-r--  1 umeko umeko 28120159 Jun 30 10:38 klipper_6349d4fb.tar.gz
+drwxrwxr-x  3 umeko umeko     4096 Jun 30 10:32 klipper_pre_update_backup_20260630_103251
+drwxr-xr-x 10 umeko umeko     4096 Mar 10  2025 KlipperScreen
+drwxrwxr-x  4 umeko umeko     4096 Jul  1 15:33 KlipperScreen_backup_paste_extruder_20260701_153326
+drwxrwxr-x  4 umeko umeko     4096 Jul  5 11:46 KlipperScreen_backup_paste_ui_cn_20260705_114635
+drwxrwxr-x  4 umeko umeko     4096 Jul  5 11:49 KlipperScreen_backup_paste_ui_cn_final_20260705_114907
+drwxrwxr-x  4 umeko umeko     4096 Jul  5 12:00 KlipperScreen_backup_paste_ui_title_20260705_120004
+drwxr-xr-x  5 umeko umeko     4096 Mar 10  2025 .KlipperScreen-env
+drwxrwxr-x  3 umeko umeko     4096 Jun 30 10:29 klipper_wrong_base_build_do_not_flash_20260630_102950
+drwxrwxr-x  5 umeko umeko     4096 Jul 19  2024 klippy-env
+-rw-------  1 umeko umeko       20 Jul 17  2024 .lesshst
+drwxrwxr-x  3 umeko umeko     4096 Jul 17  2024 .local
+drwxrwxr-x  8 umeko umeko     4096 Jul 17  2024 moonraker
+drwxrwxr-x  4 umeko umeko     4096 Jul 17  2024 moonraker-env
+drwxrwxr-x 11 umeko umeko     4096 Jul 17  2024 printer_data
+-rw-r--r--  1 umeko umeko      807 Apr 24  2024 .profile
+-rw-------  1 umeko umeko       12 May 17  2024 .python_history
+drwxrwxr-x  3 umeko umeko     4096 Apr 24  2024 umeko-env-init
+drwxr-x---  5 umeko umeko     4096 Jun 13 22:35 .vscode-server
+-rw-rw-r--  1 umeko umeko      267 Jun 12 22:37 .wget-hsts
+
+=== Printer Data Tree ===
+/home/umeko/printer_data/config/:
+total 148
+drwxrwxr-x  3 umeko umeko  4096 Jul  7 23:02 .
+drwxrwxr-x 11 umeko umeko  4096 Jul 17  2024 ..
+-rw-rw-r--  1 umeko umeko  2845 Oct 12  2024 crowsnest.conf
+-rw-r--r--  1 umeko umeko  3152 Jul  7 21:57 emm_points.json
+-rw-rw-r--  1 umeko umeko   435 Jun 30 17:21 emm_uart.cfg
+drwxrwxr-x  2 umeko umeko  4096 Jul  1 18:35 firmware_backups
+-rw-r--r--  1 umeko umeko 14688 Jul 17  2024 fluidd.cfg
+-rw-r--r--  1 umeko umeko   165 Jul  8 18:59 KlipperScreen.conf
+-rw-rw-r--  1 umeko umeko   750 Oct 12  2024 moonraker.conf
+-rw-rw-r--  1 umeko umeko   540 Oct 12  2024 moonraker.conf.backup
+-rw-r--r--  1 umeko umeko   697 Jun 10 12:07 .moonraker.conf.bkp
+-rw-r--r--  1 umeko umeko  9160 Jul  5 11:20 paste_dispenser.cfg
+-rw-r--r--  1 umeko umeko  1238 Jul  1 16:36 paste_dispenser.cfg.bak_dir_debug_20260701_163648
+-rw-r--r--  1 umeko umeko  2826 Jul  4 10:31 paste_dispenser.cfg.bak_motor_tube_params_20260704_103156
+-rw-r--r--  1 umeko umeko  3437 Jul  5 11:20 paste_dispenser.cfg.bak_solder_paste_stop_20260705_112007
+-rw-r--r--  1 umeko umeko  1514 Jul  4 10:25 paste_dispenser.cfg.bak_syringe_params_20260704_102520
+-rw-r--r--  1 umeko umeko  6475 Jul  7 23:02 printer.cfg
+-rw-r--r--  1 umeko umeko  6142 Jul  1 11:29 printer.cfg.bak_20260701_112939
+-rw-r--r--  1 umeko umeko  6142 Jul  1 14:45 printer.cfg.bak_20260701_144447
+-rw-r--r--  1 umeko umeko  6001 Jun 30 09:37 printer.cfg.bak_emm_uart_20260630_093706
+-rw-r--r--  1 umeko umeko  6221 Jun 30 10:17 printer.cfg.bak_emm_usart_20260630_101701
+-rw-r--r--  1 umeko umeko  6005 Jun 30 10:21 printer.cfg.bak_emm_usart_disabled_20260630_102158
+-rw-r--r--  1 umeko umeko  6020 Jun 30 12:29 printer.cfg.bak_enable_emm_usart_20260630_122938
+-rw-r--r--  1 umeko umeko  6112 Jun 30 21:03 printer.cfg.bak_paste_dispenser_20260630_210341
+-rw-r--r--  1 root  root      0 Jul 22  2024 不要覆盖moonraker.confls!
+
+/home/umeko/printer_data/config/firmware_backups:
+total 1032
+drwxrwxr-x 2 umeko umeko   4096 Jul  1 18:35 .
+drwxrwxr-x 3 umeko umeko   4096 Jul  7 23:02 ..
+-rwx------ 1 umeko umeko 524288 Jul  1 18:20 stm32f407_flash_before_klipper_emm_20260701_182004.bin
+-rwx------ 1 umeko umeko 524288 Jul  1 18:35 stm32f407_flash_before_reflash_20260701_183512.bin

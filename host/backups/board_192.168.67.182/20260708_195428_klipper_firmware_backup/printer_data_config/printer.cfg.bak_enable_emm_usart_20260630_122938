@@ -1,0 +1,221 @@
+[include fluidd.cfg]
+[mcu]
+# 填入你之前在 WSL 里获取到的 ID
+serial: /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
+restart_method: command
+
+[printer]
+kinematics: rotary_delta
+max_velocity: 1200
+max_accel: 500
+max_z_velocity: 50
+shoulder_radius:30.36
+#   三个肩部关节形成的水平圆的半径（以毫米为单位），减去效应器：65-34.64
+#   必须提供此参数。
+shoulder_height:230
+#   肩部关节与床之间的距离 （以毫米为单位），减去效应器工具头高度。
+#   必须提供此参数。
+# 板载 LED 测试配置
+[output_pin board_led]
+pin: PC0
+value: 1
+
+[stepper_a]
+    step_pin: PC1
+    dir_pin: PC3
+    enable_pin: !PC2
+    microsteps: 16
+    gear_ratio: 50:20
+    endstop_pin: ^PA8
+    # position_endstop 和 arm_length 通常与 A 轴保持一致
+    homing_speed: 50
+    position_endstop: 126
+    upper_arm_length: 125
+    lower_arm_length: 217
+    angle:0
+
+[stepper_b]
+    step_pin: PE7
+    dir_pin: PE9
+    enable_pin: !PB1
+    microsteps: 16
+    gear_ratio: 50:20
+    endstop_pin: ^PB5
+    angle:120
+
+[stepper_c]
+    step_pin: PD11          # 需更换为你主板对应的 C 轴脉冲引脚
+    dir_pin: PD13          # 需更换为你主板对应的 C 轴方向引脚（! 表示反向）
+    enable_pin: !PD9
+    microsteps: 16
+    gear_ratio: 50:20
+    endstop_pin: ^PD7      # C 轴限位开关引脚
+    angle:240
+
+[output_pin laser]
+pin: PE6
+pwm: True                 # 启用 PWM 调光
+cycle_time: 0.0001        # PWM 频率为 10kHz，确保激光功率平滑
+value: 0.0                # 开机默认关闭
+shutdown_value: 0.0       # 极其重要：主板报错或断开连接时，强制关闭激光
+
+# [extruder]
+# # --- 步进电机引脚配置 ---
+# step_pin: PD2        # 对应你的 step: D2 (请根据主板实际前缀修改)
+# dir_pin: PD5         # 对应你的 dir: D5  (如果反向，请在引脚名前加 !)
+# enable_pin: !PD0     # 对应你的 en: D0   (大多数驱动需要加 ! 取反才能使能)
+
+# # --- 挤出量核心参数 ---
+# microsteps: 16       
+# rotation_distance: 10.0 
+
+# # --- 解除冷挤出保护 ---
+# min_extrude_temp: 0  # 将最低挤出温度设为 0 度，彻底解除冷挤出限制
+
+# # --- 虚拟传感器配置 ---
+# sensor_type: None    # 设为 None 即可完美绕过硬件报错
+# sensor_pin: PA0      # 占用一个闲置引脚即可
+
+# min_temp: 0
+# max_temp: 150
+
+# # --- 物理限制参数 ---
+# nozzle_diameter: 1.000        
+# filament_diameter: 1.750      
+# max_extrude_only_distance: 500.0
+
+# 探针引脚配置（根据您的硬件连接修改）
+# [probe]
+# pin: ^PB9                    # 探针信号引脚
+# x_offset: 0                  # 探针X偏移（相对于喷嘴）
+# y_offset: 0                  # 探针Y偏移（相对于喷嘴）
+# z_offset: 10                # 探针Z偏移（需要实际测量校准）
+# speed: 8
+# lift_speed: 10
+# samples: 3
+# sample_retract_dist: 2
+# samples_tolerance: 0.8
+
+# [delta_calibrate]
+# radius: 100
+# horizontal_move_z: 50 
+
+# [vl53l0x front]
+# i2c_mcu: mcu
+# i2c_bus: i2c1
+# i2c_address: 41
+# report_time: 0.05
+# distance_offset_mm: -56.000
+# xshut_pin: PB9
+# sample_timeout: 1.0
+# measurement_retries: 2
+# reset_on_timeout: True
+# #xshut_pin: PA1
+# #timing_budget_us: 33000
+# #long_range: False
+# [surface_scan]
+# sensor: front
+# x_offset: 0
+# y_offset: 0
+# z_offset: 0
+# default_spacing: 3
+# default_samples: 5
+# default_scan_z: 100
+# speed: 80
+# lift_speed: 30
+# sample_delay: 0.03
+# max_valid_status: 31
+# output_dir: ~/printer_data/config/surface_scans
+
+# [surface_model]
+# output_dir: ~/printer_data/config/surface_models
+# scan_dir: ~/printer_data/config/surface_scans
+# index_cell_size: 5
+# segment_length: 1
+# max_z_adjust: 30
+# max_z_delta_per_mm: 5
+# outside_policy: error
+# align_xy_range: 20
+# align_angle_range: 15
+# align_xy_step: 5
+# align_angle_step: 5
+# align_passes: 4
+# min_alignment_points: 6
+# max_alignment_rms: 10
+# #####################################################################
+# # PA15 引脚定义
+# #####################################################################
+# [output_pin pen_control]
+# pin: PA15
+# value: 0        # 打印机开机时默认状态：0 代表低电平（PEN_UP）
+# shutdown_value: 0 # 打印机发生报错（MCU shutdown）时，强制置低电平，保证安全
+
+# #####################################################################
+# # 笔/舵机 控制宏定义
+# #####################################################################
+# [gcode_macro PEN_DOWN]
+# description: 将 PA15 置为高电平 (落笔)
+# gcode:
+#     SET_PIN PIN=pen_control VALUE=1
+
+# [gcode_macro PEN_UP]
+# description: 将 PA15 置为低电平 (抬笔)
+# gcode:
+#     SET_PIN PIN=pen_control VALUE=0
+
+# [jy901s imu1]
+# i2c_mcu: mcu
+# i2c_bus: i2c1
+# i2c_address: 80
+# report_time: 0
+
+# [jy901s imu2]
+# i2c_mcu: mcu
+# i2c_bus: i2c1
+# i2c_address: 81
+# report_time: 0
+
+# [jy901s imu3]
+# i2c_mcu: mcu
+# i2c_bus: i2c1
+# i2c_address: 82
+# report_time: 0
+
+# [force_move]
+# enable_force_move: True
+
+# [virtual_sdcard]
+# path: ~/printer_data/gcodes
+
+# [display_status]
+
+# [pause_resume]
+
+# [gcode_macro ROTATE_ARM]  
+# gcode:  
+#     {% set stepper = params.STEPPER|default('stepper_a') %}  
+#     {% set angle = params.ANGLE|float %}  
+#     {% set speed = params.SPEED|float|default(10) %}  
+#     {% set radians = angle * 3.14159 / 180.0 %}  
+#     FORCE_MOVE STEPPER={stepper} DISTANCE={radians} VELOCITY={speed}
+
+# [gcode_macro COMPARE_ANGLES]
+# description: Compare software-calculated arm angles with IMU measurements
+# gcode:
+#     RESPOND_MSG TYPE=command "=== Software-calculated angles ==="
+#     QUERY_DELTA_ANGLES
+#     RESPOND_MSG TYPE=command "=== IMU measured angles ==="
+#     QUERY_JY SENSOR=imu1
+#     QUERY_JY SENSOR=imu2
+#     QUERY_JY SENSOR=imu3
+
+# EMM/ZDT closed-loop stepper driver UART test on STM32F407 PA2.
+# A arm ID=1, B arm ID=2, C arm ID=3.
+[emm_uart]
+enabled: false
+baud: 115200
+ids: 1, 2, 3
+checksum: 0x6B
+inter_packet_delay: 0.050
+read_bytes: 0
+timeout_us: 20000

@@ -1,0 +1,50 @@
+{
+  "method": "stage2_error_grid_summary",
+  "sample_count": 100,
+  "valid_sample_count": 100,
+  "z_levels_mm": [
+    30.0,
+    40.0
+  ],
+  "rms_xy_error_mm": 0.926471061514433,
+  "mean_abs_error_mm": [
+    0.6393154350544001,
+    0.4570871416660509,
+    2.0380734515301104
+  ],
+  "max_abs_error_mm": [
+    1.6671228894662562,
+    1.227103239070118,
+    5.075645856618394
+  ],
+  "max_xy_error_mm": 1.8834071130405408,
+  "mean_z_error_mm": -1.839270253035979,
+  "layer_stats": [
+    {
+      "z_mm": 30.0,
+      "valid_sample_count": 50,
+      "rms_xy_error_mm": 1.0093586563790249,
+      "mean_abs_xy_error_mm": [
+        0.695104370423915,
+        0.5133313929126053
+      ],
+      "max_xy_error_mm": 1.8834071130405408,
+      "mean_z_error_mm": -2.118955452204822
+    },
+    {
+      "z_mm": 40.0,
+      "valid_sample_count": 50,
+      "rms_xy_error_mm": 0.8353995202536871,
+      "mean_abs_xy_error_mm": [
+        0.5835264996848855,
+        0.4008428904194967
+      ],
+      "max_xy_error_mm": 1.54389093556745,
+      "mean_z_error_mm": -1.5595850538671356
+    }
+  ],
+  "created_at": 1783151825.0421047,
+  "samples_csv": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage4_coordinate_fit_holdout_validation\\stage2_error_grid_samples.csv",
+  "summary_image": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage4_coordinate_fit_holdout_validation\\stage2_error_grid_summary.png",
+  "capture_contact_sheet": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage4_coordinate_fit_holdout_validation\\stage2_error_grid_contact_sheet.jpg"
+}

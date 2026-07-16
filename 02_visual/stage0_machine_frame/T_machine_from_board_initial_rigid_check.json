@@ -1,0 +1,195 @@
+{
+  "method": "commanded_points_2d_orthogonal_plus_z_offset",
+  "source": "P_machine ~= Axy * P_board_up + [tx, ty, tz]",
+  "xy_transform": "rigid",
+  "xy_handedness": "preserved",
+  "xy_determinant": 0.9999999999999997,
+  "board_to_machine_axis_mapping": [
+    "Board X -> -Machine X",
+    "Board Y -> -Machine Y"
+  ],
+  "machine_to_board_axis_mapping": [
+    "Machine X -> -Board X",
+    "Machine Y -> -Board Y"
+  ],
+  "board_origin": "center",
+  "valid_sample_count": 5,
+  "yaw_rad": -2.982237175127946,
+  "yaw_deg": -170.86960364184827,
+  "tx_mm": -3.2853418117011857,
+  "ty_mm": 4.37174713072295,
+  "tz_mm": -69.04628641524653,
+  "T_machine_from_board_up": [
+    [
+      -0.9873297623330451,
+      0.1586818843200834,
+      0.0,
+      -3.2853418117011857
+    ],
+    [
+      -0.15868188432008307,
+      -0.9873297623330451,
+      0.0,
+      4.37174713072295
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -69.04628641524653
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "rms_error_mm": 47.97547761912301,
+  "mean_abs_error_mm": [
+    29.179375949242672,
+    31.301486136496948,
+    1.556551176904503
+  ],
+  "max_abs_error_mm": [
+    37.561762076420976,
+    42.82788198029533,
+    2.9709475489104307
+  ],
+  "residuals": [
+    {
+      "sample_id": "0",
+      "name": "center",
+      "cmd_machine_mm": [
+        0.0,
+        0.0,
+        75.0
+      ],
+      "board_up_mm": [
+        -2.5140252171399737,
+        4.798077170951033,
+        147.01723396415696
+      ],
+      "estimated_machine_mm": [
+        -0.04180196496340827,
+        0.03339299655623407,
+        77.97094754891043
+      ],
+      "residual_mm": [
+        -0.04180196496340827,
+        0.03339299655623407,
+        2.9709475489104307
+      ],
+      "residual_norm_mm": 2.9714292579280266
+    },
+    {
+      "sample_id": "1",
+      "name": "x_plus",
+      "cmd_machine_mm": [
+        40.0,
+        0.0,
+        75.0
+      ],
+      "board_up_mm": [
+        0.6640944440699439,
+        40.20156410572129,
+        144.19077369601058
+      ],
+      "estimated_machine_mm": [
+        2.4382379235790235,
+        -35.425833360947045,
+        75.14448728076405
+      ],
+      "residual_mm": [
+        -37.561762076420976,
+        -35.425833360947045,
+        0.1444872807640536
+      ],
+      "residual_norm_mm": 51.63232046090461
+    },
+    {
+      "sample_id": "2",
+      "name": "y_plus",
+      "cmd_machine_mm": [
+        0.0,
+        40.0,
+        75.0
+      ],
+      "board_up_mm": [
+        32.795782818237726,
+        2.0211408303469938,
+        144.82222952783331
+      ],
+      "estimated_machine_mm": [
+        -35.344875831722284,
+        -2.8278819802953272,
+        75.77594311258679
+      ],
+      "residual_mm": [
+        -35.344875831722284,
+        -42.82788198029533,
+        0.7759431125867877
+      ],
+      "residual_norm_mm": 55.5345821105367
+    },
+    {
+      "sample_id": "3",
+      "name": "x_minus",
+      "cmd_machine_mm": [
+        -40.0,
+        0.0,
+        75.0
+      ],
+      "board_up_mm": [
+        -5.296735435329936,
+        -31.027601963314922,
+        142.11977979264734
+      ],
+      "estimated_machine_mm": [
+        -2.9792356186681923,
+        35.84671796255011,
+        73.07349337740081
+      ],
+      "residual_mm": [
+        37.02076438133181,
+        35.84671796255011,
+        -1.9265066225991916
+      ],
+      "residual_norm_mm": 51.56777687501776
+    },
+    {
+      "sample_id": "4",
+      "name": "y_minus",
+      "cmd_machine_mm": [
+        0.0,
+        -40.0,
+        75.0
+      ],
+      "board_up_mm": [
+        -38.39910999811632,
+        8.195221280661428,
+        142.08141509558448
+      ],
+      "estimated_machine_mm": [
+        35.92767549177486,
+        2.3736043821360275,
+        73.03512868033795
+      ],
+      "residual_mm": [
+        35.92767549177486,
+        42.37360438213603,
+        -1.964871319662052
+      ],
+      "residual_norm_mm": 55.589395876182074
+    }
+  ],
+  "created_at": 1782890890.0385263,
+  "board_origin_note": "ChArUco center; legacy corner-origin CSV samples are shifted before fitting",
+  "charuco_center_offset_from_corner_mm": [
+    56.0,
+    56.0,
+    0.0
+  ],
+  "summary_image": "02_visual\\stage0_machine_frame\\stage0_coordinate_summary.png",
+  "photo_overlay_image": "02_visual\\stage0_machine_frame\\stage0_photo_overlay.png"
+}

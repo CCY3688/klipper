@@ -1,0 +1,5299 @@
+{
+  "created_at": "2026-07-04T19:14:23.472611",
+  "status": "ready",
+  "summary": "Detected platform tag in 30/30 verification images.",
+  "pattern": "矩形",
+  "expected_verification_point_count": 30,
+  "captured_verification_point_count": 30,
+  "expected_key_point_count": 30,
+  "captured_key_point_count": 30,
+  "verification_spacing_mm": 10.0,
+  "verification_max_captures": 30,
+  "mesh_name": "机翼部分曲面-100.stl",
+  "mesh_path": "d:\\ccy\\Desktop\\机翼部分曲面-100.stl",
+  "localization_result_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_workpiece_photos\\workpiece_localization_latest.json",
+  "trajectory_csv_path": null,
+  "trajectory_gcode_path": null,
+  "surface_command_correction_enabled": false,
+  "surface_command_correction": {
+    "command_precompensation_mm": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "settle_seconds": 1.0,
+  "note": "actual/observed/detected coordinates are measured from platform tag image detection after all verification moves finished.",
+  "checks": {
+    "expected_verification_points_found": true,
+    "expected_key_points_found": true,
+    "all_targets_match_generated_trajectory": true
+  },
+  "captures": [
+    {
+      "index": 1,
+      "verification_point_id": "V1",
+      "key_point_id": "V1",
+      "label": "Left Bottom corner",
+      "point_type": "start",
+      "polyline_index": 0,
+      "segment_index": 0,
+      "endpoint": "start",
+      "trajectory_index": 0,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_01.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 0,
+        "sample_index_in_polyline": 0,
+        "is_control_point": true,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "machine_x_mm": 26.872145482908238,
+        "machine_y_mm": 25.469256837137507,
+        "machine_z_mm": 24.913477149756183,
+        "machine_z_from_board_mm": -48.1360098931129,
+        "image_x_px": 411.5174531254437,
+        "image_y_px": 267.569263352639,
+        "board_x_mm": 23.181356115120057,
+        "board_y_mm": 29.429506480848474,
+        "board_z_mm": 19.913477149756186,
+        "travel": true
+      },
+      "command": {
+        "machine_x_mm": 26.872145482908238,
+        "machine_y_mm": 25.469256837137507,
+        "machine_z_mm": 24.913477149756183
+      },
+      "gcode": "G90\nG21\nG1 X26.872 Y25.469 Z24.913 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.784878084281125,
+        "local_y_mm": -24.901973060943256,
+        "machine_x_mm": 28.258518961285617,
+        "machine_y_mm": 26.58857182393616,
+        "machine_z_mm": 24.14157495267051,
+        "board_x_mm": 24.32051594627138,
+        "board_y_mm": 30.593792795596855,
+        "board_z_mm": 92.1910619955396,
+        "image_center_x_px": 444.25,
+        "image_center_y_px": 277.75,
+        "image_points_px": [
+          [
+            495.0,
+            280.0
+          ],
+          [
+            441.0,
+            327.0
+          ],
+          [
+            394.0,
+            276.0
+          ],
+          [
+            447.0,
+            228.0
+          ]
+        ],
+        "reprojection_mean_px": 0.24160335605350933,
+        "reprojection_max_px": 0.24314644521023135,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_01_detected.jpg",
+        "error_x_mm": 1.3863734783773793,
+        "error_y_mm": 1.1193149867986527,
+        "error_z_mm": -0.771902197085673,
+        "error_xy_mm": 1.7818241948127942,
+        "error_xyz_mm": 1.9418368785987024
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.784878084281125,
+        "local_y_mm": -24.901973060943256,
+        "machine_x_mm": 28.258518961285617,
+        "machine_y_mm": 26.58857182393616,
+        "machine_z_mm": 24.14157495267051,
+        "board_x_mm": 24.32051594627138,
+        "board_y_mm": 30.593792795596855,
+        "board_z_mm": 92.1910619955396,
+        "image_center_x_px": 444.25,
+        "image_center_y_px": 277.75,
+        "image_points_px": [
+          [
+            495.0,
+            280.0
+          ],
+          [
+            441.0,
+            327.0
+          ],
+          [
+            394.0,
+            276.0
+          ],
+          [
+            447.0,
+            228.0
+          ]
+        ],
+        "reprojection_mean_px": 0.24160335605350933,
+        "reprojection_max_px": 0.24314644521023135,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_01_detected.jpg",
+        "error_x_mm": 1.3863734783773793,
+        "error_y_mm": 1.1193149867986527,
+        "error_z_mm": -0.771902197085673,
+        "error_xy_mm": 1.7818241948127942,
+        "error_xyz_mm": 1.9418368785987024
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.784878084281125,
+        "local_y_mm": -24.901973060943256,
+        "machine_x_mm": 28.258518961285617,
+        "machine_y_mm": 26.58857182393616,
+        "machine_z_mm": 24.14157495267051,
+        "board_x_mm": 24.32051594627138,
+        "board_y_mm": 30.593792795596855,
+        "board_z_mm": 92.1910619955396,
+        "image_center_x_px": 444.25,
+        "image_center_y_px": 277.75,
+        "image_points_px": [
+          [
+            495.0,
+            280.0
+          ],
+          [
+            441.0,
+            327.0
+          ],
+          [
+            394.0,
+            276.0
+          ],
+          [
+            447.0,
+            228.0
+          ]
+        ],
+        "reprojection_mean_px": 0.24160335605350933,
+        "reprojection_max_px": 0.24314644521023135,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_01_detected.jpg",
+        "error_x_mm": 1.3863734783773793,
+        "error_y_mm": 1.1193149867986527,
+        "error_z_mm": -0.771902197085673,
+        "error_xy_mm": 1.7818241948127942,
+        "error_xyz_mm": 1.9418368785987024
+      }
+    },
+    {
+      "index": 2,
+      "verification_point_id": "V2",
+      "key_point_id": "V2",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 0,
+      "endpoint": "sample",
+      "trajectory_index": 5,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_02.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 0,
+        "sample_index_in_polyline": 5,
+        "is_control_point": false,
+        "local_x_mm": -10.8093086280121,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756183,
+        "machine_x_mm": 16.241263214350486,
+        "machine_y_mm": 26.306105435047833,
+        "machine_z_mm": 24.913477149756183,
+        "machine_z_from_board_mm": -48.136009893112906,
+        "image_x_px": 398.99346810754554,
+        "image_y_px": 244.29579937161392,
+        "board_x_mm": 23.05612336950727,
+        "board_y_mm": 19.81878068935923,
+        "board_z_mm": 19.913477149756183,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 16.241263214350486,
+        "machine_y_mm": 26.306105435047833,
+        "machine_z_mm": 24.913477149756183
+      },
+      "gcode": "G90\nG21\nG1 X16.241 Y26.306 Z24.913 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -12.20524892693397,
+        "local_y_mm": -24.628858477345368,
+        "machine_x_mm": 17.91789941632902,
+        "machine_y_mm": 27.098129846894857,
+        "machine_z_mm": 23.864636288914028,
+        "board_x_mm": 23.920436466433777,
+        "board_y_mm": 21.26754419922394,
+        "board_z_mm": 91.91412333178312,
+        "image_center_x_px": 427.5,
+        "image_center_y_px": 249.0,
+        "image_points_px": [
+          [
+            478.0,
+            251.0
+          ],
+          [
+            425.0,
+            299.0
+          ],
+          [
+            377.0,
+            247.0
+          ],
+          [
+            430.0,
+            199.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14234602936536794,
+        "reprojection_max_px": 0.14310979134520868,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_02_detected.jpg",
+        "error_x_mm": 1.6766362019785355,
+        "error_y_mm": 0.7920244118470237,
+        "error_z_mm": -1.048840860842155,
+        "error_xy_mm": 1.8542954518486616,
+        "error_xyz_mm": 2.1303705720176347
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -12.20524892693397,
+        "local_y_mm": -24.628858477345368,
+        "machine_x_mm": 17.91789941632902,
+        "machine_y_mm": 27.098129846894857,
+        "machine_z_mm": 23.864636288914028,
+        "board_x_mm": 23.920436466433777,
+        "board_y_mm": 21.26754419922394,
+        "board_z_mm": 91.91412333178312,
+        "image_center_x_px": 427.5,
+        "image_center_y_px": 249.0,
+        "image_points_px": [
+          [
+            478.0,
+            251.0
+          ],
+          [
+            425.0,
+            299.0
+          ],
+          [
+            377.0,
+            247.0
+          ],
+          [
+            430.0,
+            199.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14234602936536794,
+        "reprojection_max_px": 0.14310979134520868,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_02_detected.jpg",
+        "error_x_mm": 1.6766362019785355,
+        "error_y_mm": 0.7920244118470237,
+        "error_z_mm": -1.048840860842155,
+        "error_xy_mm": 1.8542954518486616,
+        "error_xyz_mm": 2.1303705720176347
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -12.20524892693397,
+        "local_y_mm": -24.628858477345368,
+        "machine_x_mm": 17.91789941632902,
+        "machine_y_mm": 27.098129846894857,
+        "machine_z_mm": 23.864636288914028,
+        "board_x_mm": 23.920436466433777,
+        "board_y_mm": 21.26754419922394,
+        "board_z_mm": 91.91412333178312,
+        "image_center_x_px": 427.5,
+        "image_center_y_px": 249.0,
+        "image_points_px": [
+          [
+            478.0,
+            251.0
+          ],
+          [
+            425.0,
+            299.0
+          ],
+          [
+            377.0,
+            247.0
+          ],
+          [
+            430.0,
+            199.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14234602936536794,
+        "reprojection_max_px": 0.14310979134520868,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_02_detected.jpg",
+        "error_x_mm": 1.6766362019785355,
+        "error_y_mm": 0.7920244118470237,
+        "error_z_mm": -1.048840860842155,
+        "error_xy_mm": 1.8542954518486616,
+        "error_xyz_mm": 2.1303705720176347
+      }
+    },
+    {
+      "index": 3,
+      "verification_point_id": "V3",
+      "key_point_id": "V3",
+      "label": "Bottom side midpoint",
+      "point_type": "midpoint",
+      "polyline_index": 0,
+      "segment_index": 0,
+      "endpoint": "middle",
+      "trajectory_index": 10,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_03.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 0,
+        "sample_index_in_polyline": 10,
+        "is_control_point": false,
+        "local_x_mm": -0.8093086280121009,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "machine_x_mm": 5.60509306217673,
+        "machine_y_mm": 27.141139369948913,
+        "machine_z_mm": 24.913477149756183,
+        "machine_z_from_board_mm": -48.1360098931129,
+        "image_x_px": 386.4694830896474,
+        "image_y_px": 221.0223353905889,
+        "board_x_mm": 22.928789225194983,
+        "board_y_mm": 10.203436164224497,
+        "board_z_mm": 19.913477149756186,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 5.60509306217673,
+        "machine_y_mm": 27.141139369948913,
+        "machine_z_mm": 24.913477149756183
+      },
+      "gcode": "G90\nG21\nG1 X5.605 Y27.141 Z24.913 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -2.0821477198447456,
+        "local_y_mm": -24.842215296491197,
+        "machine_x_mm": 7.024129759053279,
+        "machine_y_mm": 28.174205219016677,
+        "machine_z_mm": 22.683568540414825,
+        "board_x_mm": 23.991850404480196,
+        "board_y_mm": 11.403316981693775,
+        "board_z_mm": 90.73305558328391,
+        "image_center_x_px": 411.0,
+        "image_center_y_px": 218.0,
+        "image_points_px": [
+          [
+            461.0,
+            220.0
+          ],
+          [
+            409.0,
+            268.0
+          ],
+          [
+            361.0,
+            216.0
+          ],
+          [
+            413.0,
+            168.0
+          ]
+        ],
+        "reprojection_mean_px": 0.0070803155143555965,
+        "reprojection_max_px": 0.0070838892676354836,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_03_detected.jpg",
+        "error_x_mm": 1.4190366968765495,
+        "error_y_mm": 1.0330658490677642,
+        "error_z_mm": -2.229908609341358,
+        "error_xy_mm": 1.755246477162797,
+        "error_xyz_mm": 2.8378482344211284
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -2.0821477198447456,
+        "local_y_mm": -24.842215296491197,
+        "machine_x_mm": 7.024129759053279,
+        "machine_y_mm": 28.174205219016677,
+        "machine_z_mm": 22.683568540414825,
+        "board_x_mm": 23.991850404480196,
+        "board_y_mm": 11.403316981693775,
+        "board_z_mm": 90.73305558328391,
+        "image_center_x_px": 411.0,
+        "image_center_y_px": 218.0,
+        "image_points_px": [
+          [
+            461.0,
+            220.0
+          ],
+          [
+            409.0,
+            268.0
+          ],
+          [
+            361.0,
+            216.0
+          ],
+          [
+            413.0,
+            168.0
+          ]
+        ],
+        "reprojection_mean_px": 0.0070803155143555965,
+        "reprojection_max_px": 0.0070838892676354836,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_03_detected.jpg",
+        "error_x_mm": 1.4190366968765495,
+        "error_y_mm": 1.0330658490677642,
+        "error_z_mm": -2.229908609341358,
+        "error_xy_mm": 1.755246477162797,
+        "error_xyz_mm": 2.8378482344211284
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -2.0821477198447456,
+        "local_y_mm": -24.842215296491197,
+        "machine_x_mm": 7.024129759053279,
+        "machine_y_mm": 28.174205219016677,
+        "machine_z_mm": 22.683568540414825,
+        "board_x_mm": 23.991850404480196,
+        "board_y_mm": 11.403316981693775,
+        "board_z_mm": 90.73305558328391,
+        "image_center_x_px": 411.0,
+        "image_center_y_px": 218.0,
+        "image_points_px": [
+          [
+            461.0,
+            220.0
+          ],
+          [
+            409.0,
+            268.0
+          ],
+          [
+            361.0,
+            216.0
+          ],
+          [
+            413.0,
+            168.0
+          ]
+        ],
+        "reprojection_mean_px": 0.0070803155143555965,
+        "reprojection_max_px": 0.0070838892676354836,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_03_detected.jpg",
+        "error_x_mm": 1.4190366968765495,
+        "error_y_mm": 1.0330658490677642,
+        "error_z_mm": -2.229908609341358,
+        "error_xy_mm": 1.755246477162797,
+        "error_xyz_mm": 2.8378482344211284
+      }
+    },
+    {
+      "index": 4,
+      "verification_point_id": "V4",
+      "key_point_id": "V4",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 0,
+      "endpoint": "sample",
+      "trajectory_index": 10,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_04.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 0,
+        "sample_index_in_polyline": 10,
+        "is_control_point": false,
+        "local_x_mm": -0.8093086280121009,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "machine_x_mm": 5.60509306217673,
+        "machine_y_mm": 27.141139369948913,
+        "machine_z_mm": 24.913477149756183,
+        "machine_z_from_board_mm": -48.1360098931129,
+        "image_x_px": 386.4694830896474,
+        "image_y_px": 221.0223353905889,
+        "board_x_mm": 22.928789225194983,
+        "board_y_mm": 10.203436164224497,
+        "board_z_mm": 19.913477149756186,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 5.60509306217673,
+        "machine_y_mm": 27.141139369948913,
+        "machine_z_mm": 24.913477149756183
+      },
+      "gcode": "G90\nG21\nG1 X5.605 Y27.141 Z24.913 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -2.184682324559852,
+        "local_y_mm": -24.730833763738953,
+        "machine_x_mm": 7.127182374521422,
+        "machine_y_mm": 28.04632993374687,
+        "machine_z_mm": 23.56736301271266,
+        "board_x_mm": 23.883598307837957,
+        "board_y_mm": 11.505161968250803,
+        "board_z_mm": 91.61685005558175,
+        "image_center_x_px": 411.25,
+        "image_center_y_px": 218.25,
+        "image_points_px": [
+          [
+            462.0,
+            220.0
+          ],
+          [
+            409.0,
+            268.0
+          ],
+          [
+            361.0,
+            217.0
+          ],
+          [
+            413.0,
+            168.0
+          ]
+        ],
+        "reprojection_mean_px": 0.18841454345780695,
+        "reprojection_max_px": 0.1891315755871461,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_04_detected.jpg",
+        "error_x_mm": 1.5220893123446926,
+        "error_y_mm": 0.9051905637979551,
+        "error_z_mm": -1.3461141370435215,
+        "error_xy_mm": 1.770911017398333,
+        "error_xyz_mm": 2.2244435487310583
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -2.184682324559852,
+        "local_y_mm": -24.730833763738953,
+        "machine_x_mm": 7.127182374521422,
+        "machine_y_mm": 28.04632993374687,
+        "machine_z_mm": 23.56736301271266,
+        "board_x_mm": 23.883598307837957,
+        "board_y_mm": 11.505161968250803,
+        "board_z_mm": 91.61685005558175,
+        "image_center_x_px": 411.25,
+        "image_center_y_px": 218.25,
+        "image_points_px": [
+          [
+            462.0,
+            220.0
+          ],
+          [
+            409.0,
+            268.0
+          ],
+          [
+            361.0,
+            217.0
+          ],
+          [
+            413.0,
+            168.0
+          ]
+        ],
+        "reprojection_mean_px": 0.18841454345780695,
+        "reprojection_max_px": 0.1891315755871461,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_04_detected.jpg",
+        "error_x_mm": 1.5220893123446926,
+        "error_y_mm": 0.9051905637979551,
+        "error_z_mm": -1.3461141370435215,
+        "error_xy_mm": 1.770911017398333,
+        "error_xyz_mm": 2.2244435487310583
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -2.184682324559852,
+        "local_y_mm": -24.730833763738953,
+        "machine_x_mm": 7.127182374521422,
+        "machine_y_mm": 28.04632993374687,
+        "machine_z_mm": 23.56736301271266,
+        "board_x_mm": 23.883598307837957,
+        "board_y_mm": 11.505161968250803,
+        "board_z_mm": 91.61685005558175,
+        "image_center_x_px": 411.25,
+        "image_center_y_px": 218.25,
+        "image_points_px": [
+          [
+            462.0,
+            220.0
+          ],
+          [
+            409.0,
+            268.0
+          ],
+          [
+            361.0,
+            217.0
+          ],
+          [
+            413.0,
+            168.0
+          ]
+        ],
+        "reprojection_mean_px": 0.18841454345780695,
+        "reprojection_max_px": 0.1891315755871461,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_04_detected.jpg",
+        "error_x_mm": 1.5220893123446926,
+        "error_y_mm": 0.9051905637979551,
+        "error_z_mm": -1.3461141370435215,
+        "error_xy_mm": 1.770911017398333,
+        "error_xyz_mm": 2.2244435487310583
+      }
+    },
+    {
+      "index": 5,
+      "verification_point_id": "V5",
+      "key_point_id": "V5",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 0,
+      "endpoint": "sample",
+      "trajectory_index": 15,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_05.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 0,
+        "sample_index_in_polyline": 15,
+        "is_control_point": false,
+        "local_x_mm": 9.1906913719879,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756183,
+        "machine_x_mm": -5.034057456898386,
+        "machine_y_mm": 27.974104206553722,
+        "machine_z_mm": 24.91347714975618,
+        "machine_z_from_board_mm": -48.136009893112906,
+        "image_x_px": 373.9454980717492,
+        "image_y_px": 197.7488714095639,
+        "board_x_mm": 22.799314332666615,
+        "board_y_mm": 0.5855642656607358,
+        "board_z_mm": 19.913477149756183,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -5.034057456898386,
+        "machine_y_mm": 27.974104206553722,
+        "machine_z_mm": 24.91347714975618
+      },
+      "gcode": "G90\nG21\nG1 X-5.034 Y27.974 Z24.913 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 7.78032345229478,
+        "local_y_mm": -24.885647970648005,
+        "machine_x_mm": -3.6001401127801045,
+        "machine_y_mm": 29.04646900361738,
+        "machine_z_mm": 22.676724400835326,
+        "board_x_mm": 23.899541559772715,
+        "board_y_mm": 1.7959641206142898,
+        "board_z_mm": 90.72621144370441,
+        "image_center_x_px": 395.0,
+        "image_center_y_px": 188.0,
+        "image_points_px": [
+          [
+            445.0,
+            190.0
+          ],
+          [
+            393.0,
+            238.0
+          ],
+          [
+            345.0,
+            186.0
+          ],
+          [
+            397.0,
+            138.0
+          ]
+        ],
+        "reprojection_mean_px": 0.007170425449783106,
+        "reprojection_max_px": 0.007172590307351541,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_05_detected.jpg",
+        "error_x_mm": 1.433917344118281,
+        "error_y_mm": 1.0723647970636563,
+        "error_z_mm": -2.2367527489208534,
+        "error_xy_mm": 1.7905544414355576,
+        "error_xyz_mm": 2.8651610892844395
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 7.78032345229478,
+        "local_y_mm": -24.885647970648005,
+        "machine_x_mm": -3.6001401127801045,
+        "machine_y_mm": 29.04646900361738,
+        "machine_z_mm": 22.676724400835326,
+        "board_x_mm": 23.899541559772715,
+        "board_y_mm": 1.7959641206142898,
+        "board_z_mm": 90.72621144370441,
+        "image_center_x_px": 395.0,
+        "image_center_y_px": 188.0,
+        "image_points_px": [
+          [
+            445.0,
+            190.0
+          ],
+          [
+            393.0,
+            238.0
+          ],
+          [
+            345.0,
+            186.0
+          ],
+          [
+            397.0,
+            138.0
+          ]
+        ],
+        "reprojection_mean_px": 0.007170425449783106,
+        "reprojection_max_px": 0.007172590307351541,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_05_detected.jpg",
+        "error_x_mm": 1.433917344118281,
+        "error_y_mm": 1.0723647970636563,
+        "error_z_mm": -2.2367527489208534,
+        "error_xy_mm": 1.7905544414355576,
+        "error_xyz_mm": 2.8651610892844395
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 7.78032345229478,
+        "local_y_mm": -24.885647970648005,
+        "machine_x_mm": -3.6001401127801045,
+        "machine_y_mm": 29.04646900361738,
+        "machine_z_mm": 22.676724400835326,
+        "board_x_mm": 23.899541559772715,
+        "board_y_mm": 1.7959641206142898,
+        "board_z_mm": 90.72621144370441,
+        "image_center_x_px": 395.0,
+        "image_center_y_px": 188.0,
+        "image_points_px": [
+          [
+            445.0,
+            190.0
+          ],
+          [
+            393.0,
+            238.0
+          ],
+          [
+            345.0,
+            186.0
+          ],
+          [
+            397.0,
+            138.0
+          ]
+        ],
+        "reprojection_mean_px": 0.007170425449783106,
+        "reprojection_max_px": 0.007172590307351541,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_05_detected.jpg",
+        "error_x_mm": 1.433917344118281,
+        "error_y_mm": 1.0723647970636563,
+        "error_z_mm": -2.2367527489208534,
+        "error_xy_mm": 1.7905544414355576,
+        "error_xyz_mm": 2.8651610892844395
+      }
+    },
+    {
+      "index": 6,
+      "verification_point_id": "V6",
+      "key_point_id": "V6",
+      "label": "Right Bottom corner",
+      "point_type": "end",
+      "polyline_index": 0,
+      "segment_index": 0,
+      "endpoint": "end",
+      "trajectory_index": 20,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_06.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 0,
+        "sample_index_in_polyline": 20,
+        "is_control_point": true,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "machine_x_mm": -15.673802847502522,
+        "machine_y_mm": 28.80480192989981,
+        "machine_z_mm": 24.913477149756186,
+        "machine_z_from_board_mm": -48.1360098931129,
+        "image_x_px": 361.4215130538511,
+        "image_y_px": 174.47540742853886,
+        "board_x_mm": 22.667717440994448,
+        "board_y_mm": -9.032677685209174,
+        "board_z_mm": 19.913477149756186,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -15.673802847502522,
+        "machine_y_mm": 28.80480192989981,
+        "machine_z_mm": 24.913477149756186
+      },
+      "gcode": "G90\nG21\nG1 X-15.674 Y28.805 Z24.913 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.952116729836384,
+        "local_y_mm": -25.03414842283945,
+        "machine_x_mm": -14.550704877298603,
+        "machine_y_mm": 30.057159523106364,
+        "machine_z_mm": 21.785257558378817,
+        "board_x_mm": 23.906436849623574,
+        "board_y_mm": -8.114544311623854,
+        "board_z_mm": 89.8347446012479,
+        "image_center_x_px": 378.75,
+        "image_center_y_px": 157.25,
+        "image_points_px": [
+          [
+            429.0,
+            159.0
+          ],
+          [
+            376.0,
+            207.0
+          ],
+          [
+            329.0,
+            155.0
+          ],
+          [
+            381.0,
+            108.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22485690166493522,
+        "reprojection_max_px": 0.22491059251691908,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_06_detected.jpg",
+        "error_x_mm": 1.1230979702039185,
+        "error_y_mm": 1.252357593206554,
+        "error_z_mm": -3.12821959137737,
+        "error_xy_mm": 1.6821856591762618,
+        "error_xyz_mm": 3.5518314154553385
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.952116729836384,
+        "local_y_mm": -25.03414842283945,
+        "machine_x_mm": -14.550704877298603,
+        "machine_y_mm": 30.057159523106364,
+        "machine_z_mm": 21.785257558378817,
+        "board_x_mm": 23.906436849623574,
+        "board_y_mm": -8.114544311623854,
+        "board_z_mm": 89.8347446012479,
+        "image_center_x_px": 378.75,
+        "image_center_y_px": 157.25,
+        "image_points_px": [
+          [
+            429.0,
+            159.0
+          ],
+          [
+            376.0,
+            207.0
+          ],
+          [
+            329.0,
+            155.0
+          ],
+          [
+            381.0,
+            108.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22485690166493522,
+        "reprojection_max_px": 0.22491059251691908,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_06_detected.jpg",
+        "error_x_mm": 1.1230979702039185,
+        "error_y_mm": 1.252357593206554,
+        "error_z_mm": -3.12821959137737,
+        "error_xy_mm": 1.6821856591762618,
+        "error_xyz_mm": 3.5518314154553385
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.952116729836384,
+        "local_y_mm": -25.03414842283945,
+        "machine_x_mm": -14.550704877298603,
+        "machine_y_mm": 30.057159523106364,
+        "machine_z_mm": 21.785257558378817,
+        "board_x_mm": 23.906436849623574,
+        "board_y_mm": -8.114544311623854,
+        "board_z_mm": 89.8347446012479,
+        "image_center_x_px": 378.75,
+        "image_center_y_px": 157.25,
+        "image_points_px": [
+          [
+            429.0,
+            159.0
+          ],
+          [
+            376.0,
+            207.0
+          ],
+          [
+            329.0,
+            155.0
+          ],
+          [
+            381.0,
+            108.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22485690166493522,
+        "reprojection_max_px": 0.22491059251691908,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_06_detected.jpg",
+        "error_x_mm": 1.1230979702039185,
+        "error_y_mm": 1.252357593206554,
+        "error_z_mm": -3.12821959137737,
+        "error_xy_mm": 1.6821856591762618,
+        "error_xyz_mm": 3.5518314154553385
+      }
+    },
+    {
+      "index": 7,
+      "verification_point_id": "V7",
+      "key_point_id": "V7",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 0,
+      "endpoint": "sample",
+      "trajectory_index": 20,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_07.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 0,
+        "sample_index_in_polyline": 20,
+        "is_control_point": true,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "machine_x_mm": -15.673802847502522,
+        "machine_y_mm": 28.80480192989981,
+        "machine_z_mm": 24.913477149756186,
+        "machine_z_from_board_mm": -48.1360098931129,
+        "image_x_px": 361.4215130538511,
+        "image_y_px": 174.47540742853886,
+        "board_x_mm": 22.667717440994448,
+        "board_y_mm": -9.032677685209174,
+        "board_z_mm": 19.913477149756186,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -15.673802847502522,
+        "machine_y_mm": 28.80480192989981,
+        "machine_z_mm": 24.913477149756186
+      },
+      "gcode": "G90\nG21\nG1 X-15.674 Y28.805 Z24.913 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.880387984565516,
+        "local_y_mm": -24.930742551463958,
+        "machine_x_mm": -14.480314496125134,
+        "machine_y_mm": 29.940405487816392,
+        "machine_z_mm": 22.26505025844719,
+        "board_x_mm": 23.805614985171204,
+        "board_y_mm": -8.0428470258262,
+        "board_z_mm": 90.31453730131628,
+        "image_center_x_px": 378.75,
+        "image_center_y_px": 157.5,
+        "image_points_px": [
+          [
+            429.0,
+            159.0
+          ],
+          [
+            376.0,
+            207.0
+          ],
+          [
+            329.0,
+            156.0
+          ],
+          [
+            381.0,
+            108.0
+          ]
+        ],
+        "reprojection_mean_px": 0.07896680658079963,
+        "reprojection_max_px": 0.07972577790065474,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_07_detected.jpg",
+        "error_x_mm": 1.193488351377388,
+        "error_y_mm": 1.135603557916582,
+        "error_z_mm": -2.648426891308997,
+        "error_xy_mm": 1.647425229145868,
+        "error_xyz_mm": 3.1190022257502403
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.880387984565516,
+        "local_y_mm": -24.930742551463958,
+        "machine_x_mm": -14.480314496125134,
+        "machine_y_mm": 29.940405487816392,
+        "machine_z_mm": 22.26505025844719,
+        "board_x_mm": 23.805614985171204,
+        "board_y_mm": -8.0428470258262,
+        "board_z_mm": 90.31453730131628,
+        "image_center_x_px": 378.75,
+        "image_center_y_px": 157.5,
+        "image_points_px": [
+          [
+            429.0,
+            159.0
+          ],
+          [
+            376.0,
+            207.0
+          ],
+          [
+            329.0,
+            156.0
+          ],
+          [
+            381.0,
+            108.0
+          ]
+        ],
+        "reprojection_mean_px": 0.07896680658079963,
+        "reprojection_max_px": 0.07972577790065474,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_07_detected.jpg",
+        "error_x_mm": 1.193488351377388,
+        "error_y_mm": 1.135603557916582,
+        "error_z_mm": -2.648426891308997,
+        "error_xy_mm": 1.647425229145868,
+        "error_xyz_mm": 3.1190022257502403
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.880387984565516,
+        "local_y_mm": -24.930742551463958,
+        "machine_x_mm": -14.480314496125134,
+        "machine_y_mm": 29.940405487816392,
+        "machine_z_mm": 22.26505025844719,
+        "board_x_mm": 23.805614985171204,
+        "board_y_mm": -8.0428470258262,
+        "board_z_mm": 90.31453730131628,
+        "image_center_x_px": 378.75,
+        "image_center_y_px": 157.5,
+        "image_points_px": [
+          [
+            429.0,
+            159.0
+          ],
+          [
+            376.0,
+            207.0
+          ],
+          [
+            329.0,
+            156.0
+          ],
+          [
+            381.0,
+            108.0
+          ]
+        ],
+        "reprojection_mean_px": 0.07896680658079963,
+        "reprojection_max_px": 0.07972577790065474,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_07_detected.jpg",
+        "error_x_mm": 1.193488351377388,
+        "error_y_mm": 1.135603557916582,
+        "error_z_mm": -2.648426891308997,
+        "error_xy_mm": 1.647425229145868,
+        "error_xyz_mm": 3.1190022257502403
+      }
+    },
+    {
+      "index": 8,
+      "verification_point_id": "V8",
+      "key_point_id": "V8",
+      "label": "Right Bottom corner",
+      "point_type": "start",
+      "polyline_index": 0,
+      "segment_index": 1,
+      "endpoint": "start",
+      "trajectory_index": 21,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_08.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 1,
+        "sample_index_in_polyline": 21,
+        "is_control_point": false,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -22.016278748226867,
+        "surface_height_mm": 20.099265851716368,
+        "machine_x_mm": -15.80594948167916,
+        "machine_y_mm": 26.70189552730384,
+        "machine_z_mm": 25.09926585171636,
+        "machine_z_from_board_mm": -47.95022119115272,
+        "image_x_px": 356.7668202576461,
+        "image_y_px": 176.98020443211848,
+        "board_x_mm": 20.734551129298122,
+        "board_y_mm": -8.99895245222934,
+        "board_z_mm": 20.099265851716368,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -15.80594948167916,
+        "machine_y_mm": 26.70189552730384,
+        "machine_z_mm": 25.09926585171636
+      },
+      "gcode": "G90\nG21\nG1 X-15.806 Y26.702 Z25.099 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.991180464236233,
+        "local_y_mm": -23.132961825775322,
+        "machine_x_mm": -14.719657244021374,
+        "machine_y_mm": 28.024245122972467,
+        "machine_z_mm": 23.074362886892942,
+        "board_x_mm": 22.03416296392976,
+        "board_y_mm": -8.118956477594836,
+        "board_z_mm": 91.12384992976203,
+        "image_center_x_px": 373.0,
+        "image_center_y_px": 159.5,
+        "image_points_px": [
+          [
+            423.0,
+            161.0
+          ],
+          [
+            371.0,
+            209.0
+          ],
+          [
+            323.0,
+            159.0
+          ],
+          [
+            375.0,
+            109.0
+          ]
+        ],
+        "reprojection_mean_px": 0.19196886894390403,
+        "reprojection_max_px": 0.19619664467974451,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_08_detected.jpg",
+        "error_x_mm": 1.086292237657787,
+        "error_y_mm": 1.3223495956686264,
+        "error_z_mm": -2.0249029648234185,
+        "error_xy_mm": 1.7113267597862607,
+        "error_xyz_mm": 2.6512018587258144
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.991180464236233,
+        "local_y_mm": -23.132961825775322,
+        "machine_x_mm": -14.719657244021374,
+        "machine_y_mm": 28.024245122972467,
+        "machine_z_mm": 23.074362886892942,
+        "board_x_mm": 22.03416296392976,
+        "board_y_mm": -8.118956477594836,
+        "board_z_mm": 91.12384992976203,
+        "image_center_x_px": 373.0,
+        "image_center_y_px": 159.5,
+        "image_points_px": [
+          [
+            423.0,
+            161.0
+          ],
+          [
+            371.0,
+            209.0
+          ],
+          [
+            323.0,
+            159.0
+          ],
+          [
+            375.0,
+            109.0
+          ]
+        ],
+        "reprojection_mean_px": 0.19196886894390403,
+        "reprojection_max_px": 0.19619664467974451,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_08_detected.jpg",
+        "error_x_mm": 1.086292237657787,
+        "error_y_mm": 1.3223495956686264,
+        "error_z_mm": -2.0249029648234185,
+        "error_xy_mm": 1.7113267597862607,
+        "error_xyz_mm": 2.6512018587258144
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.991180464236233,
+        "local_y_mm": -23.132961825775322,
+        "machine_x_mm": -14.719657244021374,
+        "machine_y_mm": 28.024245122972467,
+        "machine_z_mm": 23.074362886892942,
+        "board_x_mm": 22.03416296392976,
+        "board_y_mm": -8.118956477594836,
+        "board_z_mm": 91.12384992976203,
+        "image_center_x_px": 373.0,
+        "image_center_y_px": 159.5,
+        "image_points_px": [
+          [
+            423.0,
+            161.0
+          ],
+          [
+            371.0,
+            209.0
+          ],
+          [
+            323.0,
+            159.0
+          ],
+          [
+            375.0,
+            109.0
+          ]
+        ],
+        "reprojection_mean_px": 0.19196886894390403,
+        "reprojection_max_px": 0.19619664467974451,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_08_detected.jpg",
+        "error_x_mm": 1.086292237657787,
+        "error_y_mm": 1.3223495956686264,
+        "error_z_mm": -2.0249029648234185,
+        "error_xy_mm": 1.7113267597862607,
+        "error_xyz_mm": 2.6512018587258144
+      }
+    },
+    {
+      "index": 9,
+      "verification_point_id": "V9",
+      "key_point_id": "V9",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 1,
+      "endpoint": "sample",
+      "trajectory_index": 26,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_09.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 1,
+        "sample_index_in_polyline": 26,
+        "is_control_point": false,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -12.016278748226865,
+        "surface_height_mm": 20.414287784640987,
+        "machine_x_mm": -16.490898961635498,
+        "machine_y_mm": 16.2453434430337,
+        "machine_z_mm": 25.414287784640987,
+        "machine_z_from_board_mm": -47.6351992582281,
+        "image_x_px": 333.49335627662106,
+        "image_y_px": 189.50418945001664,
+        "board_x_mm": 11.119686823751112,
+        "board_y_mm": -8.856283463088994,
+        "board_z_mm": 20.414287784640987,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -16.490898961635498,
+        "machine_y_mm": 16.2453434430337,
+        "machine_z_mm": 25.414287784640987
+      },
+      "gcode": "G90\nG21\nG1 X-16.491 Y16.245 Z25.414 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.03045922766474,
+        "local_y_mm": -13.056247431152844,
+        "machine_x_mm": -15.434366777950626,
+        "machine_y_mm": 17.23529734020908,
+        "machine_z_mm": 23.177249730594184,
+        "board_x_mm": 12.112990027151755,
+        "board_y_mm": -7.978926993488024,
+        "board_z_mm": 91.22673677346327,
+        "image_center_x_px": 342.0,
+        "image_center_y_px": 176.25,
+        "image_points_px": [
+          [
+            392.0,
+            178.0
+          ],
+          [
+            340.0,
+            226.0
+          ],
+          [
+            292.0,
+            175.0
+          ],
+          [
+            344.0,
+            126.0
+          ]
+        ],
+        "reprojection_mean_px": 0.06046644636224145,
+        "reprojection_max_px": 0.06107685308167761,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_09_detected.jpg",
+        "error_x_mm": 1.0565321836848725,
+        "error_y_mm": 0.9899538971753792,
+        "error_z_mm": -2.2370380540468027,
+        "error_xy_mm": 1.4478497759417743,
+        "error_xyz_mm": 2.6646966485789996
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.03045922766474,
+        "local_y_mm": -13.056247431152844,
+        "machine_x_mm": -15.434366777950626,
+        "machine_y_mm": 17.23529734020908,
+        "machine_z_mm": 23.177249730594184,
+        "board_x_mm": 12.112990027151755,
+        "board_y_mm": -7.978926993488024,
+        "board_z_mm": 91.22673677346327,
+        "image_center_x_px": 342.0,
+        "image_center_y_px": 176.25,
+        "image_points_px": [
+          [
+            392.0,
+            178.0
+          ],
+          [
+            340.0,
+            226.0
+          ],
+          [
+            292.0,
+            175.0
+          ],
+          [
+            344.0,
+            126.0
+          ]
+        ],
+        "reprojection_mean_px": 0.06046644636224145,
+        "reprojection_max_px": 0.06107685308167761,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_09_detected.jpg",
+        "error_x_mm": 1.0565321836848725,
+        "error_y_mm": 0.9899538971753792,
+        "error_z_mm": -2.2370380540468027,
+        "error_xy_mm": 1.4478497759417743,
+        "error_xyz_mm": 2.6646966485789996
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.03045922766474,
+        "local_y_mm": -13.056247431152844,
+        "machine_x_mm": -15.434366777950626,
+        "machine_y_mm": 17.23529734020908,
+        "machine_z_mm": 23.177249730594184,
+        "board_x_mm": 12.112990027151755,
+        "board_y_mm": -7.978926993488024,
+        "board_z_mm": 91.22673677346327,
+        "image_center_x_px": 342.0,
+        "image_center_y_px": 176.25,
+        "image_points_px": [
+          [
+            392.0,
+            178.0
+          ],
+          [
+            340.0,
+            226.0
+          ],
+          [
+            292.0,
+            175.0
+          ],
+          [
+            344.0,
+            126.0
+          ]
+        ],
+        "reprojection_mean_px": 0.06046644636224145,
+        "reprojection_max_px": 0.06107685308167761,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_09_detected.jpg",
+        "error_x_mm": 1.0565321836848725,
+        "error_y_mm": 0.9899538971753792,
+        "error_z_mm": -2.2370380540468027,
+        "error_xy_mm": 1.4478497759417743,
+        "error_xyz_mm": 2.6646966485789996
+      }
+    },
+    {
+      "index": 10,
+      "verification_point_id": "V10",
+      "key_point_id": "V10",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 1,
+      "endpoint": "sample",
+      "trajectory_index": 31,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_10.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 1,
+        "sample_index_in_polyline": 31,
+        "is_control_point": false,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -2.016278748226865,
+        "surface_height_mm": 19.796545366305267,
+        "machine_x_mm": -17.216875022282675,
+        "machine_y_mm": 5.811624631518074,
+        "machine_z_mm": 24.79654536630527,
+        "machine_z_from_board_mm": -48.25294167656382,
+        "image_x_px": 310.219892295596,
+        "image_y_px": 202.02817446791477,
+        "board_x_mm": 1.5222574387363998,
+        "board_y_mm": -8.752125124859267,
+        "board_z_mm": 19.796545366305267,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -17.216875022282675,
+        "machine_y_mm": 5.811624631518074,
+        "machine_z_mm": 24.79654536630527
+      },
+      "gcode": "G90\nG21\nG1 X-17.217 Y5.812 Z24.797 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.8099379781673,
+        "local_y_mm": -3.1897467603945815,
+        "machine_x_mm": -15.85510558394774,
+        "machine_y_mm": 6.649737963709212,
+        "machine_z_mm": 23.956640807119243,
+        "board_x_mm": 2.4023328099149124,
+        "board_y_mm": -7.589557488058563,
+        "board_z_mm": 92.00612784998833,
+        "image_center_x_px": 312.0,
+        "image_center_y_px": 193.25,
+        "image_points_px": [
+          [
+            362.0,
+            195.0
+          ],
+          [
+            310.0,
+            243.0
+          ],
+          [
+            262.0,
+            192.0
+          ],
+          [
+            314.0,
+            143.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14492555365468282,
+        "reprojection_max_px": 0.14627562860494212,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_10_detected.jpg",
+        "error_x_mm": 1.3617694383349352,
+        "error_y_mm": 0.8381133321911376,
+        "error_z_mm": -0.8399045591860279,
+        "error_xy_mm": 1.5990153097389586,
+        "error_xyz_mm": 1.8061809514334528
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.8099379781673,
+        "local_y_mm": -3.1897467603945815,
+        "machine_x_mm": -15.85510558394774,
+        "machine_y_mm": 6.649737963709212,
+        "machine_z_mm": 23.956640807119243,
+        "board_x_mm": 2.4023328099149124,
+        "board_y_mm": -7.589557488058563,
+        "board_z_mm": 92.00612784998833,
+        "image_center_x_px": 312.0,
+        "image_center_y_px": 193.25,
+        "image_points_px": [
+          [
+            362.0,
+            195.0
+          ],
+          [
+            310.0,
+            243.0
+          ],
+          [
+            262.0,
+            192.0
+          ],
+          [
+            314.0,
+            143.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14492555365468282,
+        "reprojection_max_px": 0.14627562860494212,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_10_detected.jpg",
+        "error_x_mm": 1.3617694383349352,
+        "error_y_mm": 0.8381133321911376,
+        "error_z_mm": -0.8399045591860279,
+        "error_xy_mm": 1.5990153097389586,
+        "error_xyz_mm": 1.8061809514334528
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.8099379781673,
+        "local_y_mm": -3.1897467603945815,
+        "machine_x_mm": -15.85510558394774,
+        "machine_y_mm": 6.649737963709212,
+        "machine_z_mm": 23.956640807119243,
+        "board_x_mm": 2.4023328099149124,
+        "board_y_mm": -7.589557488058563,
+        "board_z_mm": 92.00612784998833,
+        "image_center_x_px": 312.0,
+        "image_center_y_px": 193.25,
+        "image_points_px": [
+          [
+            362.0,
+            195.0
+          ],
+          [
+            310.0,
+            243.0
+          ],
+          [
+            262.0,
+            192.0
+          ],
+          [
+            314.0,
+            143.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14492555365468282,
+        "reprojection_max_px": 0.14627562860494212,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_10_detected.jpg",
+        "error_x_mm": 1.3617694383349352,
+        "error_y_mm": 0.8381133321911376,
+        "error_z_mm": -0.8399045591860279,
+        "error_xy_mm": 1.5990153097389586,
+        "error_xyz_mm": 1.8061809514334528
+      }
+    },
+    {
+      "index": 11,
+      "verification_point_id": "V11",
+      "key_point_id": "V11",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 1,
+      "endpoint": "sample",
+      "trajectory_index": 36,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_11.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 1,
+        "sample_index_in_polyline": 36,
+        "is_control_point": false,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 7.983721251773135,
+        "surface_height_mm": 18.29032639280018,
+        "machine_x_mm": -17.987716511564003,
+        "machine_y_mm": -4.688346712135644,
+        "machine_z_mm": 23.290326392800186,
+        "machine_z_from_board_mm": -49.75916065006891,
+        "image_x_px": 286.946428314571,
+        "image_y_px": 214.55215948581292,
+        "board_x_mm": -8.139484792820944,
+        "board_y_mm": -8.683468290091374,
+        "board_z_mm": 18.29032639280018,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -17.987716511564003,
+        "machine_y_mm": -4.688346712135644,
+        "machine_z_mm": 23.290326392800186
+      },
+      "gcode": "G90\nG21\nG1 X-17.988 Y-4.688 Z23.290 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.937185867213437,
+        "local_y_mm": 6.475783823615588,
+        "machine_x_mm": -16.637168107487803,
+        "machine_y_mm": -3.6914635650345904,
+        "machine_z_mm": 23.136405823172396,
+        "board_x_mm": -7.11522994681224,
+        "board_y_mm": -7.542489876312054,
+        "board_z_mm": 91.18589286604148,
+        "image_center_x_px": 282.5,
+        "image_center_y_px": 209.5,
+        "image_points_px": [
+          [
+            332.0,
+            211.0
+          ],
+          [
+            280.0,
+            259.0
+          ],
+          [
+            233.0,
+            208.0
+          ],
+          [
+            285.0,
+            160.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22083475587283233,
+        "reprojection_max_px": 0.22227586488061274,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_11_detected.jpg",
+        "error_x_mm": 1.3505484040762,
+        "error_y_mm": 0.9968831471010535,
+        "error_z_mm": -0.15392056962778966,
+        "error_xy_mm": 1.6786175862080295,
+        "error_xyz_mm": 1.6856596757594382
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.937185867213437,
+        "local_y_mm": 6.475783823615588,
+        "machine_x_mm": -16.637168107487803,
+        "machine_y_mm": -3.6914635650345904,
+        "machine_z_mm": 23.136405823172396,
+        "board_x_mm": -7.11522994681224,
+        "board_y_mm": -7.542489876312054,
+        "board_z_mm": 91.18589286604148,
+        "image_center_x_px": 282.5,
+        "image_center_y_px": 209.5,
+        "image_points_px": [
+          [
+            332.0,
+            211.0
+          ],
+          [
+            280.0,
+            259.0
+          ],
+          [
+            233.0,
+            208.0
+          ],
+          [
+            285.0,
+            160.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22083475587283233,
+        "reprojection_max_px": 0.22227586488061274,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_11_detected.jpg",
+        "error_x_mm": 1.3505484040762,
+        "error_y_mm": 0.9968831471010535,
+        "error_z_mm": -0.15392056962778966,
+        "error_xy_mm": 1.6786175862080295,
+        "error_xyz_mm": 1.6856596757594382
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.937185867213437,
+        "local_y_mm": 6.475783823615588,
+        "machine_x_mm": -16.637168107487803,
+        "machine_y_mm": -3.6914635650345904,
+        "machine_z_mm": 23.136405823172396,
+        "board_x_mm": -7.11522994681224,
+        "board_y_mm": -7.542489876312054,
+        "board_z_mm": 91.18589286604148,
+        "image_center_x_px": 282.5,
+        "image_center_y_px": 209.5,
+        "image_points_px": [
+          [
+            332.0,
+            211.0
+          ],
+          [
+            280.0,
+            259.0
+          ],
+          [
+            233.0,
+            208.0
+          ],
+          [
+            285.0,
+            160.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22083475587283233,
+        "reprojection_max_px": 0.22227586488061274,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_11_detected.jpg",
+        "error_x_mm": 1.3505484040762,
+        "error_y_mm": 0.9968831471010535,
+        "error_z_mm": -0.15392056962778966,
+        "error_xy_mm": 1.6786175862080295,
+        "error_xyz_mm": 1.6856596757594382
+      }
+    },
+    {
+      "index": 12,
+      "verification_point_id": "V12",
+      "key_point_id": "V12",
+      "label": "Right side midpoint",
+      "point_type": "midpoint",
+      "polyline_index": 0,
+      "segment_index": 1,
+      "endpoint": "middle",
+      "trajectory_index": 38,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_12.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 1,
+        "sample_index_in_polyline": 38,
+        "is_control_point": false,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 11.983721251773135,
+        "surface_height_mm": 17.492757612642727,
+        "machine_x_mm": -18.307266030248716,
+        "machine_y_mm": -8.924367141532201,
+        "machine_z_mm": 22.492757612642727,
+        "machine_z_from_board_mm": -50.55672943022636,
+        "image_x_px": 277.63704272216097,
+        "image_y_px": 219.56175349297217,
+        "board_x_mm": -12.038054473080486,
+        "board_y_mm": -8.663466583307276,
+        "board_z_mm": 17.492757612642727,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -18.307266030248716,
+        "machine_y_mm": -8.924367141532201,
+        "machine_z_mm": 22.492757612642727
+      },
+      "gcode": "G90\nG21\nG1 X-18.307 Y-8.924 Z22.493 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.157143232008735,
+        "local_y_mm": 10.601823549606769,
+        "machine_x_mm": -17.14949684214293,
+        "machine_y_mm": -8.092066764628186,
+        "machine_z_mm": 20.65661865930511,
+        "board_x_mm": -11.180373334559544,
+        "board_y_mm": -7.68373756547996,
+        "board_z_mm": 88.7061057021742,
+        "image_center_x_px": 270.0,
+        "image_center_y_px": 215.75,
+        "image_points_px": [
+          [
+            319.0,
+            218.0
+          ],
+          [
+            268.0,
+            265.0
+          ],
+          [
+            221.0,
+            214.0
+          ],
+          [
+            272.0,
+            166.0
+          ]
+        ],
+        "reprojection_mean_px": 0.2529062102593434,
+        "reprojection_max_px": 0.2560378854095078,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_12_detected.jpg",
+        "error_x_mm": 1.1577691881057852,
+        "error_y_mm": 0.8323003769040156,
+        "error_z_mm": -1.836138953337617,
+        "error_xy_mm": 1.425886885528335,
+        "error_xyz_mm": 2.3247708846863713
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.157143232008735,
+        "local_y_mm": 10.601823549606769,
+        "machine_x_mm": -17.14949684214293,
+        "machine_y_mm": -8.092066764628186,
+        "machine_z_mm": 20.65661865930511,
+        "board_x_mm": -11.180373334559544,
+        "board_y_mm": -7.68373756547996,
+        "board_z_mm": 88.7061057021742,
+        "image_center_x_px": 270.0,
+        "image_center_y_px": 215.75,
+        "image_points_px": [
+          [
+            319.0,
+            218.0
+          ],
+          [
+            268.0,
+            265.0
+          ],
+          [
+            221.0,
+            214.0
+          ],
+          [
+            272.0,
+            166.0
+          ]
+        ],
+        "reprojection_mean_px": 0.2529062102593434,
+        "reprojection_max_px": 0.2560378854095078,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_12_detected.jpg",
+        "error_x_mm": 1.1577691881057852,
+        "error_y_mm": 0.8323003769040156,
+        "error_z_mm": -1.836138953337617,
+        "error_xy_mm": 1.425886885528335,
+        "error_xyz_mm": 2.3247708846863713
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.157143232008735,
+        "local_y_mm": 10.601823549606769,
+        "machine_x_mm": -17.14949684214293,
+        "machine_y_mm": -8.092066764628186,
+        "machine_z_mm": 20.65661865930511,
+        "board_x_mm": -11.180373334559544,
+        "board_y_mm": -7.68373756547996,
+        "board_z_mm": 88.7061057021742,
+        "image_center_x_px": 270.0,
+        "image_center_y_px": 215.75,
+        "image_points_px": [
+          [
+            319.0,
+            218.0
+          ],
+          [
+            268.0,
+            265.0
+          ],
+          [
+            221.0,
+            214.0
+          ],
+          [
+            272.0,
+            166.0
+          ]
+        ],
+        "reprojection_mean_px": 0.2529062102593434,
+        "reprojection_max_px": 0.2560378854095078,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_12_detected.jpg",
+        "error_x_mm": 1.1577691881057852,
+        "error_y_mm": 0.8323003769040156,
+        "error_z_mm": -1.836138953337617,
+        "error_xy_mm": 1.425886885528335,
+        "error_xyz_mm": 2.3247708846863713
+      }
+    },
+    {
+      "index": 13,
+      "verification_point_id": "V13",
+      "key_point_id": "V13",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 1,
+      "endpoint": "sample",
+      "trajectory_index": 41,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_13.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 1,
+        "sample_index_in_polyline": 41,
+        "is_control_point": false,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 17.983721251773133,
+        "surface_height_mm": 16.01848769356855,
+        "machine_x_mm": -18.80294538612389,
+        "machine_y_mm": -15.333845796380523,
+        "machine_z_mm": 21.018487693568556,
+        "machine_z_from_board_mm": -52.030999349300544,
+        "image_x_px": 263.67296433354596,
+        "image_y_px": 227.07614450371108,
+        "board_x_mm": -17.937959086287453,
+        "board_y_mm": -8.64413696562568,
+        "board_z_mm": 16.01848769356855,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -18.80294538612389,
+        "machine_y_mm": -15.333845796380523,
+        "machine_z_mm": 21.018487693568556
+      },
+      "gcode": "G90\nG21\nG1 X-18.803 Y-15.334 Z21.018 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.572871948504527,
+        "local_y_mm": 16.488643708897435,
+        "machine_x_mm": -17.990267215675413,
+        "machine_y_mm": -14.362087782738232,
+        "machine_z_mm": 19.455528757183743,
+        "board_x_mm": -16.98170535792243,
+        "board_y_mm": -7.984523411787245,
+        "board_z_mm": 87.50501580005283,
+        "image_center_x_px": 251.75,
+        "image_center_y_px": 224.5,
+        "image_points_px": [
+          [
+            301.0,
+            226.0
+          ],
+          [
+            249.0,
+            273.0
+          ],
+          [
+            203.0,
+            223.0
+          ],
+          [
+            254.0,
+            176.0
+          ]
+        ],
+        "reprojection_mean_px": 0.2608050865170112,
+        "reprojection_max_px": 0.2650027750803793,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_13_detected.jpg",
+        "error_x_mm": 0.8126781704484785,
+        "error_y_mm": 0.9717580136422903,
+        "error_z_mm": -1.5629589363848133,
+        "error_xy_mm": 1.2667910032051442,
+        "error_xyz_mm": 2.0118648271259785
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.572871948504527,
+        "local_y_mm": 16.488643708897435,
+        "machine_x_mm": -17.990267215675413,
+        "machine_y_mm": -14.362087782738232,
+        "machine_z_mm": 19.455528757183743,
+        "board_x_mm": -16.98170535792243,
+        "board_y_mm": -7.984523411787245,
+        "board_z_mm": 87.50501580005283,
+        "image_center_x_px": 251.75,
+        "image_center_y_px": 224.5,
+        "image_points_px": [
+          [
+            301.0,
+            226.0
+          ],
+          [
+            249.0,
+            273.0
+          ],
+          [
+            203.0,
+            223.0
+          ],
+          [
+            254.0,
+            176.0
+          ]
+        ],
+        "reprojection_mean_px": 0.2608050865170112,
+        "reprojection_max_px": 0.2650027750803793,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_13_detected.jpg",
+        "error_x_mm": 0.8126781704484785,
+        "error_y_mm": 0.9717580136422903,
+        "error_z_mm": -1.5629589363848133,
+        "error_xy_mm": 1.2667910032051442,
+        "error_xyz_mm": 2.0118648271259785
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.572871948504527,
+        "local_y_mm": 16.488643708897435,
+        "machine_x_mm": -17.990267215675413,
+        "machine_y_mm": -14.362087782738232,
+        "machine_z_mm": 19.455528757183743,
+        "board_x_mm": -16.98170535792243,
+        "board_y_mm": -7.984523411787245,
+        "board_z_mm": 87.50501580005283,
+        "image_center_x_px": 251.75,
+        "image_center_y_px": 224.5,
+        "image_points_px": [
+          [
+            301.0,
+            226.0
+          ],
+          [
+            249.0,
+            273.0
+          ],
+          [
+            203.0,
+            223.0
+          ],
+          [
+            254.0,
+            176.0
+          ]
+        ],
+        "reprojection_mean_px": 0.2608050865170112,
+        "reprojection_max_px": 0.2650027750803793,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_13_detected.jpg",
+        "error_x_mm": 0.8126781704484785,
+        "error_y_mm": 0.9717580136422903,
+        "error_z_mm": -1.5629589363848133,
+        "error_xy_mm": 1.2667910032051442,
+        "error_xyz_mm": 2.0118648271259785
+      }
+    },
+    {
+      "index": 14,
+      "verification_point_id": "V14",
+      "key_point_id": "V14",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 1,
+      "endpoint": "sample",
+      "trajectory_index": 46,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_14.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 1,
+        "sample_index_in_polyline": 46,
+        "is_control_point": false,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 27.983721251773133,
+        "surface_height_mm": 13.26697458643395,
+        "machine_x_mm": -19.652484493015123,
+        "machine_y_mm": -26.174296908789437,
+        "machine_z_mm": 18.26697458643395,
+        "machine_z_from_board_mm": -54.78251245643514,
+        "image_x_px": 240.39950035252093,
+        "image_y_px": 239.60012952160923,
+        "board_x_mm": -27.91749653520617,
+        "board_y_mm": -8.621495821555563,
+        "board_z_mm": 13.26697458643395,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -19.652484493015123,
+        "machine_y_mm": -26.174296908789437,
+        "machine_z_mm": 18.26697458643395
+      },
+      "gcode": "G90\nG21\nG1 X-19.652 Y-26.174 Z18.267 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.434482254400134,
+        "local_y_mm": 26.923679425048665,
+        "machine_x_mm": -18.537442162339595,
+        "machine_y_mm": -25.549675881222946,
+        "machine_z_mm": 15.766280030858837,
+        "board_x_mm": -27.253216326101583,
+        "board_y_mm": -7.6650953233034524,
+        "board_z_mm": 83.81576707372793,
+        "image_center_x_px": 222.0,
+        "image_center_y_px": 241.75,
+        "image_points_px": [
+          [
+            270.0,
+            244.0
+          ],
+          [
+            220.0,
+            290.0
+          ],
+          [
+            174.0,
+            240.0
+          ],
+          [
+            224.0,
+            193.0
+          ]
+        ],
+        "reprojection_mean_px": 0.26424096949464343,
+        "reprojection_max_px": 0.26660361360712165,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_14_detected.jpg",
+        "error_x_mm": 1.1150423306755286,
+        "error_y_mm": 0.6246210275664907,
+        "error_z_mm": -2.5006945555751123,
+        "error_xy_mm": 1.2780730915235379,
+        "error_xyz_mm": 2.8083703615370146
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.434482254400134,
+        "local_y_mm": 26.923679425048665,
+        "machine_x_mm": -18.537442162339595,
+        "machine_y_mm": -25.549675881222946,
+        "machine_z_mm": 15.766280030858837,
+        "board_x_mm": -27.253216326101583,
+        "board_y_mm": -7.6650953233034524,
+        "board_z_mm": 83.81576707372793,
+        "image_center_x_px": 222.0,
+        "image_center_y_px": 241.75,
+        "image_points_px": [
+          [
+            270.0,
+            244.0
+          ],
+          [
+            220.0,
+            290.0
+          ],
+          [
+            174.0,
+            240.0
+          ],
+          [
+            224.0,
+            193.0
+          ]
+        ],
+        "reprojection_mean_px": 0.26424096949464343,
+        "reprojection_max_px": 0.26660361360712165,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_14_detected.jpg",
+        "error_x_mm": 1.1150423306755286,
+        "error_y_mm": 0.6246210275664907,
+        "error_z_mm": -2.5006945555751123,
+        "error_xy_mm": 1.2780730915235379,
+        "error_xyz_mm": 2.8083703615370146
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.434482254400134,
+        "local_y_mm": 26.923679425048665,
+        "machine_x_mm": -18.537442162339595,
+        "machine_y_mm": -25.549675881222946,
+        "machine_z_mm": 15.766280030858837,
+        "board_x_mm": -27.253216326101583,
+        "board_y_mm": -7.6650953233034524,
+        "board_z_mm": 83.81576707372793,
+        "image_center_x_px": 222.0,
+        "image_center_y_px": 241.75,
+        "image_points_px": [
+          [
+            270.0,
+            244.0
+          ],
+          [
+            220.0,
+            290.0
+          ],
+          [
+            174.0,
+            240.0
+          ],
+          [
+            224.0,
+            193.0
+          ]
+        ],
+        "reprojection_mean_px": 0.26424096949464343,
+        "reprojection_max_px": 0.26660361360712165,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_14_detected.jpg",
+        "error_x_mm": 1.1150423306755286,
+        "error_y_mm": 0.6246210275664907,
+        "error_z_mm": -2.5006945555751123,
+        "error_xy_mm": 1.2780730915235379,
+        "error_xyz_mm": 2.8083703615370146
+      }
+    },
+    {
+      "index": 15,
+      "verification_point_id": "V15",
+      "key_point_id": "V15",
+      "label": "Right Top corner",
+      "point_type": "end",
+      "polyline_index": 0,
+      "segment_index": 1,
+      "endpoint": "end",
+      "trajectory_index": 55,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_15.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 1,
+        "sample_index_in_polyline": 55,
+        "is_control_point": true,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.050942895194094,
+        "machine_x_mm": -21.224601739699615,
+        "machine_y_mm": -46.187332552224795,
+        "machine_z_mm": 13.050942895194094,
+        "machine_z_from_board_mm": -59.99854414767499,
+        "image_x_px": 198.5072651866759,
+        "image_y_px": 262.1433025538259,
+        "board_x_mm": -46.34147505551418,
+        "board_y_mm": -8.583061776505971,
+        "board_z_mm": 8.050942895194094,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -21.224601739699615,
+        "machine_y_mm": -46.187332552224795,
+        "machine_z_mm": 13.050942895194094
+      },
+      "gcode": "G90\nG21\nG1 X-21.225 Y-46.187 Z13.051 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.930650273381573,
+        "local_y_mm": 45.76173945210137,
+        "machine_x_mm": -20.329081447758014,
+        "machine_y_mm": -45.68383673711408,
+        "machine_z_mm": 7.574912919925964,
+        "board_x_mm": -45.806286606311374,
+        "board_y_mm": -7.815084791741684,
+        "board_z_mm": 75.62439996279505,
+        "image_center_x_px": 170.0,
+        "image_center_y_px": 269.75,
+        "image_points_px": [
+          [
+            217.0,
+            271.0
+          ],
+          [
+            168.0,
+            317.0
+          ],
+          [
+            123.0,
+            268.0
+          ],
+          [
+            172.0,
+            223.0
+          ]
+        ],
+        "reprojection_mean_px": 0.17127491560946223,
+        "reprojection_max_px": 0.17277841109466532,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_15_detected.jpg",
+        "error_x_mm": 0.895520291941601,
+        "error_y_mm": 0.5034958151107176,
+        "error_z_mm": -5.47602997526813,
+        "error_xy_mm": 1.0273580822250712,
+        "error_xyz_mm": 5.5715679049212214
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.930650273381573,
+        "local_y_mm": 45.76173945210137,
+        "machine_x_mm": -20.329081447758014,
+        "machine_y_mm": -45.68383673711408,
+        "machine_z_mm": 7.574912919925964,
+        "board_x_mm": -45.806286606311374,
+        "board_y_mm": -7.815084791741684,
+        "board_z_mm": 75.62439996279505,
+        "image_center_x_px": 170.0,
+        "image_center_y_px": 269.75,
+        "image_points_px": [
+          [
+            217.0,
+            271.0
+          ],
+          [
+            168.0,
+            317.0
+          ],
+          [
+            123.0,
+            268.0
+          ],
+          [
+            172.0,
+            223.0
+          ]
+        ],
+        "reprojection_mean_px": 0.17127491560946223,
+        "reprojection_max_px": 0.17277841109466532,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_15_detected.jpg",
+        "error_x_mm": 0.895520291941601,
+        "error_y_mm": 0.5034958151107176,
+        "error_z_mm": -5.47602997526813,
+        "error_xy_mm": 1.0273580822250712,
+        "error_xyz_mm": 5.5715679049212214
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 18.930650273381573,
+        "local_y_mm": 45.76173945210137,
+        "machine_x_mm": -20.329081447758014,
+        "machine_y_mm": -45.68383673711408,
+        "machine_z_mm": 7.574912919925964,
+        "board_x_mm": -45.806286606311374,
+        "board_y_mm": -7.815084791741684,
+        "board_z_mm": 75.62439996279505,
+        "image_center_x_px": 170.0,
+        "image_center_y_px": 269.75,
+        "image_points_px": [
+          [
+            217.0,
+            271.0
+          ],
+          [
+            168.0,
+            317.0
+          ],
+          [
+            123.0,
+            268.0
+          ],
+          [
+            172.0,
+            223.0
+          ]
+        ],
+        "reprojection_mean_px": 0.17127491560946223,
+        "reprojection_max_px": 0.17277841109466532,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_15_detected.jpg",
+        "error_x_mm": 0.895520291941601,
+        "error_y_mm": 0.5034958151107176,
+        "error_z_mm": -5.47602997526813,
+        "error_xy_mm": 1.0273580822250712,
+        "error_xyz_mm": 5.5715679049212214
+      }
+    },
+    {
+      "index": 16,
+      "verification_point_id": "V16",
+      "key_point_id": "V16",
+      "label": "Right Top corner",
+      "point_type": "start",
+      "polyline_index": 0,
+      "segment_index": 2,
+      "endpoint": "start",
+      "trajectory_index": 56,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_16.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 2,
+        "sample_index_in_polyline": 56,
+        "is_control_point": false,
+        "local_x_mm": 17.1906913719879,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.05094289519409,
+        "machine_x_mm": -19.012290662164013,
+        "machine_y_mm": -46.36036219910085,
+        "machine_z_mm": 13.050942895194108,
+        "machine_z_from_board_mm": -59.998544147675,
+        "image_x_px": 201.01206219025553,
+        "image_y_px": 266.7979953500309,
+        "board_x_mm": -46.31438969626674,
+        "board_y_mm": -6.583128832311695,
+        "board_z_mm": 8.05094289519409,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -19.012290662164013,
+        "machine_y_mm": -46.36036219910085,
+        "machine_z_mm": 13.050942895194108
+      },
+      "gcode": "G90\nG21\nG1 X-19.012 Y-46.360 Z13.051 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.428351043438642,
+        "local_y_mm": 45.94369373546406,
+        "machine_x_mm": -18.722441103665464,
+        "machine_y_mm": -46.00449291497235,
+        "machine_z_mm": 7.646100255897466,
+        "board_x_mm": -45.96484824929165,
+        "board_y_mm": -6.348544120428372,
+        "board_z_mm": 75.69558729876655,
+        "image_center_x_px": 171.75,
+        "image_center_y_px": 274.25,
+        "image_points_px": [
+          [
+            219.0,
+            276.0
+          ],
+          [
+            170.0,
+            321.0
+          ],
+          [
+            125.0,
+            273.0
+          ],
+          [
+            173.0,
+            227.0
+          ]
+        ],
+        "reprojection_mean_px": 0.35053837415662215,
+        "reprojection_max_px": 0.35254102054543796,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_16_detected.jpg",
+        "error_x_mm": 0.289849558498549,
+        "error_y_mm": 0.35586928412849517,
+        "error_z_mm": -5.404842639296643,
+        "error_xy_mm": 0.4589724544544383,
+        "error_xyz_mm": 5.42429531547712
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.428351043438642,
+        "local_y_mm": 45.94369373546406,
+        "machine_x_mm": -18.722441103665464,
+        "machine_y_mm": -46.00449291497235,
+        "machine_z_mm": 7.646100255897466,
+        "board_x_mm": -45.96484824929165,
+        "board_y_mm": -6.348544120428372,
+        "board_z_mm": 75.69558729876655,
+        "image_center_x_px": 171.75,
+        "image_center_y_px": 274.25,
+        "image_points_px": [
+          [
+            219.0,
+            276.0
+          ],
+          [
+            170.0,
+            321.0
+          ],
+          [
+            125.0,
+            273.0
+          ],
+          [
+            173.0,
+            227.0
+          ]
+        ],
+        "reprojection_mean_px": 0.35053837415662215,
+        "reprojection_max_px": 0.35254102054543796,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_16_detected.jpg",
+        "error_x_mm": 0.289849558498549,
+        "error_y_mm": 0.35586928412849517,
+        "error_z_mm": -5.404842639296643,
+        "error_xy_mm": 0.4589724544544383,
+        "error_xyz_mm": 5.42429531547712
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 17.428351043438642,
+        "local_y_mm": 45.94369373546406,
+        "machine_x_mm": -18.722441103665464,
+        "machine_y_mm": -46.00449291497235,
+        "machine_z_mm": 7.646100255897466,
+        "board_x_mm": -45.96484824929165,
+        "board_y_mm": -6.348544120428372,
+        "board_z_mm": 75.69558729876655,
+        "image_center_x_px": 171.75,
+        "image_center_y_px": 274.25,
+        "image_points_px": [
+          [
+            219.0,
+            276.0
+          ],
+          [
+            170.0,
+            321.0
+          ],
+          [
+            125.0,
+            273.0
+          ],
+          [
+            173.0,
+            227.0
+          ]
+        ],
+        "reprojection_mean_px": 0.35053837415662215,
+        "reprojection_max_px": 0.35254102054543796,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_16_detected.jpg",
+        "error_x_mm": 0.289849558498549,
+        "error_y_mm": 0.35586928412849517,
+        "error_z_mm": -5.404842639296643,
+        "error_xy_mm": 0.4589724544544383,
+        "error_xyz_mm": 5.42429531547712
+      }
+    },
+    {
+      "index": 17,
+      "verification_point_id": "V17",
+      "key_point_id": "V17",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 2,
+      "endpoint": "sample",
+      "trajectory_index": 61,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_17.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 2,
+        "sample_index_in_polyline": 61,
+        "is_control_point": false,
+        "local_x_mm": 7.190691371987899,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.050942895194087,
+        "machine_x_mm": -7.9501397380802,
+        "machine_y_mm": -47.223638568162215,
+        "machine_z_mm": 13.050942895194087,
+        "machine_z_from_board_mm": -59.998544147675005,
+        "image_x_px": 213.53604720815366,
+        "image_y_px": 290.0714593310559,
+        "board_x_mm": -46.17720211031645,
+        "board_y_mm": 3.416935189228565,
+        "board_z_mm": 8.050942895194087,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": -7.9501397380802,
+        "machine_y_mm": -47.223638568162215,
+        "machine_z_mm": 13.050942895194087
+      },
+      "gcode": "G90\nG21\nG1 X-7.950 Y-47.224 Z13.051 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 6.728222465169907,
+        "local_y_mm": 45.981335754702094,
+        "machine_x_mm": -7.1951788088109065,
+        "machine_y_mm": -46.94068872212034,
+        "machine_z_mm": 7.783461573643649,
+        "board_x_mm": -45.85536653314754,
+        "board_y_mm": 4.07463024910632,
+        "board_z_mm": 75.83294861651274,
+        "image_center_x_px": 187.75,
+        "image_center_y_px": 304.75,
+        "image_points_px": [
+          [
+            235.0,
+            306.0
+          ],
+          [
+            186.0,
+            351.0
+          ],
+          [
+            140.0,
+            304.0
+          ],
+          [
+            190.0,
+            258.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14978339810935853,
+        "reprojection_max_px": 0.15173244316701204,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_17_detected.jpg",
+        "error_x_mm": 0.7549609292692931,
+        "error_y_mm": 0.28294984604187334,
+        "error_z_mm": -5.267481321550438,
+        "error_xy_mm": 0.8062422837449512,
+        "error_xyz_mm": 5.328825958218284
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 6.728222465169907,
+        "local_y_mm": 45.981335754702094,
+        "machine_x_mm": -7.1951788088109065,
+        "machine_y_mm": -46.94068872212034,
+        "machine_z_mm": 7.783461573643649,
+        "board_x_mm": -45.85536653314754,
+        "board_y_mm": 4.07463024910632,
+        "board_z_mm": 75.83294861651274,
+        "image_center_x_px": 187.75,
+        "image_center_y_px": 304.75,
+        "image_points_px": [
+          [
+            235.0,
+            306.0
+          ],
+          [
+            186.0,
+            351.0
+          ],
+          [
+            140.0,
+            304.0
+          ],
+          [
+            190.0,
+            258.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14978339810935853,
+        "reprojection_max_px": 0.15173244316701204,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_17_detected.jpg",
+        "error_x_mm": 0.7549609292692931,
+        "error_y_mm": 0.28294984604187334,
+        "error_z_mm": -5.267481321550438,
+        "error_xy_mm": 0.8062422837449512,
+        "error_xyz_mm": 5.328825958218284
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": 6.728222465169907,
+        "local_y_mm": 45.981335754702094,
+        "machine_x_mm": -7.1951788088109065,
+        "machine_y_mm": -46.94068872212034,
+        "machine_z_mm": 7.783461573643649,
+        "board_x_mm": -45.85536653314754,
+        "board_y_mm": 4.07463024910632,
+        "board_z_mm": 75.83294861651274,
+        "image_center_x_px": 187.75,
+        "image_center_y_px": 304.75,
+        "image_points_px": [
+          [
+            235.0,
+            306.0
+          ],
+          [
+            186.0,
+            351.0
+          ],
+          [
+            140.0,
+            304.0
+          ],
+          [
+            190.0,
+            258.0
+          ]
+        ],
+        "reprojection_mean_px": 0.14978339810935853,
+        "reprojection_max_px": 0.15173244316701204,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_17_detected.jpg",
+        "error_x_mm": 0.7549609292692931,
+        "error_y_mm": 0.28294984604187334,
+        "error_z_mm": -5.267481321550438,
+        "error_xy_mm": 0.8062422837449512,
+        "error_xyz_mm": 5.328825958218284
+      }
+    },
+    {
+      "index": 18,
+      "verification_point_id": "V18",
+      "key_point_id": "V18",
+      "label": "Top side midpoint",
+      "point_type": "midpoint",
+      "polyline_index": 0,
+      "segment_index": 2,
+      "endpoint": "middle",
+      "trajectory_index": 66,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_18.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 2,
+        "sample_index_in_polyline": 66,
+        "is_control_point": false,
+        "local_x_mm": -2.8093086280121007,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.05094289519409,
+        "machine_x_mm": 3.111247586094694,
+        "machine_y_mm": -48.08363103736173,
+        "machine_z_mm": 13.050942895194108,
+        "machine_z_from_board_mm": -59.998544147675,
+        "image_x_px": 226.06003222605182,
+        "image_y_px": 313.34492331208094,
+        "board_x_mm": -46.03707690609215,
+        "board_y_mm": 13.416075198979025,
+        "board_z_mm": 8.05094289519409,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 3.111247586094694,
+        "machine_y_mm": -48.08363103736173,
+        "machine_z_mm": 13.050942895194108
+      },
+      "gcode": "G90\nG21\nG1 X3.111 Y-48.084 Z13.051 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -3.747251371064935,
+        "local_y_mm": 45.51187187154386,
+        "machine_x_mm": 4.123847379063818,
+        "machine_y_mm": -47.3149608329665,
+        "machine_z_mm": 7.675176622708477,
+        "board_x_mm": -45.24971023408784,
+        "board_y_mm": 14.270006339892126,
+        "board_z_mm": 75.72466366557757,
+        "image_center_x_px": 205.5,
+        "image_center_y_px": 334.0,
+        "image_points_px": [
+          [
+            253.0,
+            336.0
+          ],
+          [
+            203.0,
+            381.0
+          ],
+          [
+            159.0,
+            332.0
+          ],
+          [
+            207.0,
+            287.0
+          ]
+        ],
+        "reprojection_mean_px": 0.49418669329630777,
+        "reprojection_max_px": 0.4991483258433403,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_18_detected.jpg",
+        "error_x_mm": 1.012599792969124,
+        "error_y_mm": 0.768670204395228,
+        "error_z_mm": -5.375766272485631,
+        "error_xy_mm": 1.271303356341874,
+        "error_xyz_mm": 5.524045188106283
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -3.747251371064935,
+        "local_y_mm": 45.51187187154386,
+        "machine_x_mm": 4.123847379063818,
+        "machine_y_mm": -47.3149608329665,
+        "machine_z_mm": 7.675176622708477,
+        "board_x_mm": -45.24971023408784,
+        "board_y_mm": 14.270006339892126,
+        "board_z_mm": 75.72466366557757,
+        "image_center_x_px": 205.5,
+        "image_center_y_px": 334.0,
+        "image_points_px": [
+          [
+            253.0,
+            336.0
+          ],
+          [
+            203.0,
+            381.0
+          ],
+          [
+            159.0,
+            332.0
+          ],
+          [
+            207.0,
+            287.0
+          ]
+        ],
+        "reprojection_mean_px": 0.49418669329630777,
+        "reprojection_max_px": 0.4991483258433403,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_18_detected.jpg",
+        "error_x_mm": 1.012599792969124,
+        "error_y_mm": 0.768670204395228,
+        "error_z_mm": -5.375766272485631,
+        "error_xy_mm": 1.271303356341874,
+        "error_xyz_mm": 5.524045188106283
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -3.747251371064935,
+        "local_y_mm": 45.51187187154386,
+        "machine_x_mm": 4.123847379063818,
+        "machine_y_mm": -47.3149608329665,
+        "machine_z_mm": 7.675176622708477,
+        "board_x_mm": -45.24971023408784,
+        "board_y_mm": 14.270006339892126,
+        "board_z_mm": 75.72466366557757,
+        "image_center_x_px": 205.5,
+        "image_center_y_px": 334.0,
+        "image_points_px": [
+          [
+            253.0,
+            336.0
+          ],
+          [
+            203.0,
+            381.0
+          ],
+          [
+            159.0,
+            332.0
+          ],
+          [
+            207.0,
+            287.0
+          ]
+        ],
+        "reprojection_mean_px": 0.49418669329630777,
+        "reprojection_max_px": 0.4991483258433403,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_18_detected.jpg",
+        "error_x_mm": 1.012599792969124,
+        "error_y_mm": 0.768670204395228,
+        "error_z_mm": -5.375766272485631,
+        "error_xy_mm": 1.271303356341874,
+        "error_xyz_mm": 5.524045188106283
+      }
+    },
+    {
+      "index": 19,
+      "verification_point_id": "V19",
+      "key_point_id": "V19",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 2,
+      "endpoint": "sample",
+      "trajectory_index": 66,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_19.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 2,
+        "sample_index_in_polyline": 66,
+        "is_control_point": false,
+        "local_x_mm": -2.8093086280121007,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.05094289519409,
+        "machine_x_mm": 3.111247586094694,
+        "machine_y_mm": -48.08363103736173,
+        "machine_z_mm": 13.050942895194108,
+        "machine_z_from_board_mm": -59.998544147675,
+        "image_x_px": 226.06003222605182,
+        "image_y_px": 313.34492331208094,
+        "board_x_mm": -46.03707690609215,
+        "board_y_mm": 13.416075198979025,
+        "board_z_mm": 8.05094289519409,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 3.111247586094694,
+        "machine_y_mm": -48.08363103736173,
+        "machine_z_mm": 13.050942895194108
+      },
+      "gcode": "G90\nG21\nG1 X3.111 Y-48.084 Z13.051 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -4.012149592660933,
+        "local_y_mm": 45.99885096293651,
+        "machine_x_mm": 4.37679027944908,
+        "machine_y_mm": -47.858697997161514,
+        "machine_z_mm": 5.6791282687195235,
+        "board_x_mm": -45.725518608889814,
+        "board_y_mm": 14.536647853564842,
+        "board_z_mm": 73.72861531158861,
+        "image_center_x_px": 205.25,
+        "image_center_y_px": 334.75,
+        "image_points_px": [
+          [
+            252.0,
+            337.0
+          ],
+          [
+            203.0,
+            381.0
+          ],
+          [
+            158.0,
+            333.0
+          ],
+          [
+            208.0,
+            288.0
+          ]
+        ],
+        "reprojection_mean_px": 0.26470079919638956,
+        "reprojection_max_px": 0.26491199260165194,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_19_detected.jpg",
+        "error_x_mm": 1.2655426933543854,
+        "error_y_mm": 0.22493304020021299,
+        "error_z_mm": -7.371814626474585,
+        "error_xy_mm": 1.285376669026003,
+        "error_xyz_mm": 7.483037088534374
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -4.012149592660933,
+        "local_y_mm": 45.99885096293651,
+        "machine_x_mm": 4.37679027944908,
+        "machine_y_mm": -47.858697997161514,
+        "machine_z_mm": 5.6791282687195235,
+        "board_x_mm": -45.725518608889814,
+        "board_y_mm": 14.536647853564842,
+        "board_z_mm": 73.72861531158861,
+        "image_center_x_px": 205.25,
+        "image_center_y_px": 334.75,
+        "image_points_px": [
+          [
+            252.0,
+            337.0
+          ],
+          [
+            203.0,
+            381.0
+          ],
+          [
+            158.0,
+            333.0
+          ],
+          [
+            208.0,
+            288.0
+          ]
+        ],
+        "reprojection_mean_px": 0.26470079919638956,
+        "reprojection_max_px": 0.26491199260165194,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_19_detected.jpg",
+        "error_x_mm": 1.2655426933543854,
+        "error_y_mm": 0.22493304020021299,
+        "error_z_mm": -7.371814626474585,
+        "error_xy_mm": 1.285376669026003,
+        "error_xyz_mm": 7.483037088534374
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -4.012149592660933,
+        "local_y_mm": 45.99885096293651,
+        "machine_x_mm": 4.37679027944908,
+        "machine_y_mm": -47.858697997161514,
+        "machine_z_mm": 5.6791282687195235,
+        "board_x_mm": -45.725518608889814,
+        "board_y_mm": 14.536647853564842,
+        "board_z_mm": 73.72861531158861,
+        "image_center_x_px": 205.25,
+        "image_center_y_px": 334.75,
+        "image_points_px": [
+          [
+            252.0,
+            337.0
+          ],
+          [
+            203.0,
+            381.0
+          ],
+          [
+            158.0,
+            333.0
+          ],
+          [
+            208.0,
+            288.0
+          ]
+        ],
+        "reprojection_mean_px": 0.26470079919638956,
+        "reprojection_max_px": 0.26491199260165194,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_19_detected.jpg",
+        "error_x_mm": 1.2655426933543854,
+        "error_y_mm": 0.22493304020021299,
+        "error_z_mm": -7.371814626474585,
+        "error_xy_mm": 1.285376669026003,
+        "error_xyz_mm": 7.483037088534374
+      }
+    },
+    {
+      "index": 20,
+      "verification_point_id": "V20",
+      "key_point_id": "V20",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 2,
+      "endpoint": "sample",
+      "trajectory_index": 71,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_20.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 2,
+        "sample_index_in_polyline": 71,
+        "is_control_point": false,
+        "local_x_mm": -12.8093086280121,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.050942895194094,
+        "machine_x_mm": 14.169476071600032,
+        "machine_y_mm": -48.94018765220257,
+        "machine_z_mm": 13.050942895194105,
+        "machine_z_from_board_mm": -59.99854414767499,
+        "image_x_px": 238.58401724394997,
+        "image_y_px": 336.61838729310597,
+        "board_x_mm": -45.89407574874034,
+        "board_y_mm": 23.41212846187758,
+        "board_z_mm": 8.050942895194094,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 14.169476071600032,
+        "machine_y_mm": -48.94018765220257,
+        "machine_z_mm": 13.050942895194105
+      },
+      "gcode": "G90\nG21\nG1 X14.169 Y-48.940 Z13.051 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -14.041991345832603,
+        "local_y_mm": 45.5675468014379,
+        "machine_x_mm": 15.213085573872702,
+        "machine_y_mm": -48.23652838183849,
+        "machine_z_mm": 8.833347865793485,
+        "board_x_mm": -45.16353400387021,
+        "board_y_mm": 24.298629176634414,
+        "board_z_mm": 76.88283490866257,
+        "image_center_x_px": 220.75,
+        "image_center_y_px": 364.0,
+        "image_points_px": [
+          [
+            268.0,
+            366.0
+          ],
+          [
+            219.0,
+            411.0
+          ],
+          [
+            174.0,
+            362.0
+          ],
+          [
+            222.0,
+            317.0
+          ]
+        ],
+        "reprojection_mean_px": 0.20268191347926903,
+        "reprojection_max_px": 0.20402814016859944,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_20_detected.jpg",
+        "error_x_mm": 1.0436095022726697,
+        "error_y_mm": 0.7036592703640778,
+        "error_z_mm": -4.21759502940062,
+        "error_xy_mm": 1.2586727779701585,
+        "error_xyz_mm": 4.4014048886722446
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -14.041991345832603,
+        "local_y_mm": 45.5675468014379,
+        "machine_x_mm": 15.213085573872702,
+        "machine_y_mm": -48.23652838183849,
+        "machine_z_mm": 8.833347865793485,
+        "board_x_mm": -45.16353400387021,
+        "board_y_mm": 24.298629176634414,
+        "board_z_mm": 76.88283490866257,
+        "image_center_x_px": 220.75,
+        "image_center_y_px": 364.0,
+        "image_points_px": [
+          [
+            268.0,
+            366.0
+          ],
+          [
+            219.0,
+            411.0
+          ],
+          [
+            174.0,
+            362.0
+          ],
+          [
+            222.0,
+            317.0
+          ]
+        ],
+        "reprojection_mean_px": 0.20268191347926903,
+        "reprojection_max_px": 0.20402814016859944,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_20_detected.jpg",
+        "error_x_mm": 1.0436095022726697,
+        "error_y_mm": 0.7036592703640778,
+        "error_z_mm": -4.21759502940062,
+        "error_xy_mm": 1.2586727779701585,
+        "error_xyz_mm": 4.4014048886722446
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -14.041991345832603,
+        "local_y_mm": 45.5675468014379,
+        "machine_x_mm": 15.213085573872702,
+        "machine_y_mm": -48.23652838183849,
+        "machine_z_mm": 8.833347865793485,
+        "board_x_mm": -45.16353400387021,
+        "board_y_mm": 24.298629176634414,
+        "board_z_mm": 76.88283490866257,
+        "image_center_x_px": 220.75,
+        "image_center_y_px": 364.0,
+        "image_points_px": [
+          [
+            268.0,
+            366.0
+          ],
+          [
+            219.0,
+            411.0
+          ],
+          [
+            174.0,
+            362.0
+          ],
+          [
+            222.0,
+            317.0
+          ]
+        ],
+        "reprojection_mean_px": 0.20268191347926903,
+        "reprojection_max_px": 0.20402814016859944,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_20_detected.jpg",
+        "error_x_mm": 1.0436095022726697,
+        "error_y_mm": 0.7036592703640778,
+        "error_z_mm": -4.21759502940062,
+        "error_xy_mm": 1.2586727779701585,
+        "error_xyz_mm": 4.4014048886722446
+      }
+    },
+    {
+      "index": 21,
+      "verification_point_id": "V21",
+      "key_point_id": "V21",
+      "label": "Left Top corner",
+      "point_type": "end",
+      "polyline_index": 0,
+      "segment_index": 2,
+      "endpoint": "end",
+      "trajectory_index": 75,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_21.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 2,
+        "sample_index_in_polyline": 75,
+        "is_control_point": true,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.05094289519409,
+        "machine_x_mm": 23.012231549269455,
+        "machine_y_mm": -49.62291859961988,
+        "machine_z_mm": 13.050942895194108,
+        "machine_z_from_board_mm": -59.998544147675,
+        "image_x_px": 248.60320525826847,
+        "image_y_px": 355.23715847792596,
+        "board_x_mm": -45.77769712114217,
+        "board_y_mm": 31.40535061436057,
+        "board_z_mm": 8.05094289519409,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 23.012231549269455,
+        "machine_y_mm": -49.62291859961988,
+        "machine_z_mm": 13.050942895194108
+      },
+      "gcode": "G90\nG21\nG1 X23.012 Y-49.623 Z13.051 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.599841845104873,
+        "local_y_mm": 45.686343259548565,
+        "machine_x_mm": 24.426550899365743,
+        "machine_y_mm": -49.08027643326098,
+        "machine_z_mm": 7.452264693246889,
+        "board_x_mm": -45.16328870154188,
+        "board_y_mm": 32.63654382928236,
+        "board_z_mm": 75.50175173611598,
+        "image_center_x_px": 234.0,
+        "image_center_y_px": 388.0,
+        "image_points_px": [
+          [
+            281.0,
+            390.0
+          ],
+          [
+            232.0,
+            435.0
+          ],
+          [
+            187.0,
+            386.0
+          ],
+          [
+            236.0,
+            341.0
+          ]
+        ],
+        "reprojection_mean_px": 0.002332147194329028,
+        "reprojection_max_px": 0.0023339862000832613,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_21_detected.jpg",
+        "error_x_mm": 1.4143193500962887,
+        "error_y_mm": 0.5426421663589025,
+        "error_z_mm": -5.598678201947219,
+        "error_xy_mm": 1.514846442636174,
+        "error_xyz_mm": 5.79999632359594
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.599841845104873,
+        "local_y_mm": 45.686343259548565,
+        "machine_x_mm": 24.426550899365743,
+        "machine_y_mm": -49.08027643326098,
+        "machine_z_mm": 7.452264693246889,
+        "board_x_mm": -45.16328870154188,
+        "board_y_mm": 32.63654382928236,
+        "board_z_mm": 75.50175173611598,
+        "image_center_x_px": 234.0,
+        "image_center_y_px": 388.0,
+        "image_points_px": [
+          [
+            281.0,
+            390.0
+          ],
+          [
+            232.0,
+            435.0
+          ],
+          [
+            187.0,
+            386.0
+          ],
+          [
+            236.0,
+            341.0
+          ]
+        ],
+        "reprojection_mean_px": 0.002332147194329028,
+        "reprojection_max_px": 0.0023339862000832613,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_21_detected.jpg",
+        "error_x_mm": 1.4143193500962887,
+        "error_y_mm": 0.5426421663589025,
+        "error_z_mm": -5.598678201947219,
+        "error_xy_mm": 1.514846442636174,
+        "error_xyz_mm": 5.79999632359594
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.599841845104873,
+        "local_y_mm": 45.686343259548565,
+        "machine_x_mm": 24.426550899365743,
+        "machine_y_mm": -49.08027643326098,
+        "machine_z_mm": 7.452264693246889,
+        "board_x_mm": -45.16328870154188,
+        "board_y_mm": 32.63654382928236,
+        "board_z_mm": 75.50175173611598,
+        "image_center_x_px": 234.0,
+        "image_center_y_px": 388.0,
+        "image_points_px": [
+          [
+            281.0,
+            390.0
+          ],
+          [
+            232.0,
+            435.0
+          ],
+          [
+            187.0,
+            386.0
+          ],
+          [
+            236.0,
+            341.0
+          ]
+        ],
+        "reprojection_mean_px": 0.002332147194329028,
+        "reprojection_max_px": 0.0023339862000832613,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_21_detected.jpg",
+        "error_x_mm": 1.4143193500962887,
+        "error_y_mm": 0.5426421663589025,
+        "error_z_mm": -5.598678201947219,
+        "error_xy_mm": 1.514846442636174,
+        "error_xyz_mm": 5.79999632359594
+      }
+    },
+    {
+      "index": 22,
+      "verification_point_id": "V22",
+      "key_point_id": "V22",
+      "label": "Left Top corner",
+      "point_type": "start",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "start",
+      "trajectory_index": 76,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_22.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 76,
+        "is_control_point": false,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 43.98372125177313,
+        "surface_height_mm": 8.639126734390867,
+        "machine_x_mm": 23.10952338675095,
+        "machine_y_mm": -47.362112871411604,
+        "machine_z_mm": 13.639126734390867,
+        "machine_z_from_board_mm": -59.41036030847822,
+        "image_x_px": 253.2578980544735,
+        "image_y_px": 352.73236147434636,
+        "board_x_mm": -43.70312585002162,
+        "board_y_mm": 31.328868289300658,
+        "board_z_mm": 8.639126734390867,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 23.10952338675095,
+        "machine_y_mm": -47.362112871411604,
+        "machine_z_mm": 13.639126734390867
+      },
+      "gcode": "G90\nG21\nG1 X23.110 Y-47.362 Z13.639 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.707325071493607,
+        "local_y_mm": 43.890621084313985,
+        "machine_x_mm": 24.66219044748687,
+        "machine_y_mm": -47.166043720195965,
+        "machine_z_mm": 9.625988113406663,
+        "board_x_mm": -43.39390866660564,
+        "board_y_mm": 32.70946631031679,
+        "board_z_mm": 77.67547515627575,
+        "image_center_x_px": 238.75,
+        "image_center_y_px": 386.75,
+        "image_points_px": [
+          [
+            286.0,
+            389.0
+          ],
+          [
+            237.0,
+            434.0
+          ],
+          [
+            192.0,
+            385.0
+          ],
+          [
+            240.0,
+            339.0
+          ]
+        ],
+        "reprojection_mean_px": 0.30655768115825766,
+        "reprojection_max_px": 0.30823854801195216,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_22_detected.jpg",
+        "error_x_mm": 1.5526670607359208,
+        "error_y_mm": 0.19606915121563873,
+        "error_z_mm": -4.013138620984204,
+        "error_xy_mm": 1.5649977998555604,
+        "error_xyz_mm": 4.307493436418417
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.707325071493607,
+        "local_y_mm": 43.890621084313985,
+        "machine_x_mm": 24.66219044748687,
+        "machine_y_mm": -47.166043720195965,
+        "machine_z_mm": 9.625988113406663,
+        "board_x_mm": -43.39390866660564,
+        "board_y_mm": 32.70946631031679,
+        "board_z_mm": 77.67547515627575,
+        "image_center_x_px": 238.75,
+        "image_center_y_px": 386.75,
+        "image_points_px": [
+          [
+            286.0,
+            389.0
+          ],
+          [
+            237.0,
+            434.0
+          ],
+          [
+            192.0,
+            385.0
+          ],
+          [
+            240.0,
+            339.0
+          ]
+        ],
+        "reprojection_mean_px": 0.30655768115825766,
+        "reprojection_max_px": 0.30823854801195216,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_22_detected.jpg",
+        "error_x_mm": 1.5526670607359208,
+        "error_y_mm": 0.19606915121563873,
+        "error_z_mm": -4.013138620984204,
+        "error_xy_mm": 1.5649977998555604,
+        "error_xyz_mm": 4.307493436418417
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.707325071493607,
+        "local_y_mm": 43.890621084313985,
+        "machine_x_mm": 24.66219044748687,
+        "machine_y_mm": -47.166043720195965,
+        "machine_z_mm": 9.625988113406663,
+        "board_x_mm": -43.39390866660564,
+        "board_y_mm": 32.70946631031679,
+        "board_z_mm": 77.67547515627575,
+        "image_center_x_px": 238.75,
+        "image_center_y_px": 386.75,
+        "image_points_px": [
+          [
+            286.0,
+            389.0
+          ],
+          [
+            237.0,
+            434.0
+          ],
+          [
+            192.0,
+            385.0
+          ],
+          [
+            240.0,
+            339.0
+          ]
+        ],
+        "reprojection_mean_px": 0.30655768115825766,
+        "reprojection_max_px": 0.30823854801195216,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_22_detected.jpg",
+        "error_x_mm": 1.5526670607359208,
+        "error_y_mm": 0.19606915121563873,
+        "error_z_mm": -4.013138620984204,
+        "error_xy_mm": 1.5649977998555604,
+        "error_xyz_mm": 4.307493436418417
+      }
+    },
+    {
+      "index": 23,
+      "verification_point_id": "V23",
+      "key_point_id": "V23",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "sample",
+      "trajectory_index": 81,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_23.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 81,
+        "is_control_point": false,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 33.98372125177313,
+        "surface_height_mm": 11.540298010702202,
+        "machine_x_mm": 23.590406622647862,
+        "machine_y_mm": -36.17889938541598,
+        "machine_z_mm": 16.540298010702212,
+        "machine_z_from_board_mm": -56.50918903216689,
+        "image_x_px": 276.53136203549855,
+        "image_y_px": 340.2083764564482,
+        "board_x_mm": -33.441164017382384,
+        "board_y_mm": 30.95020533258434,
+        "board_z_mm": 11.540298010702202,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 23.590406622647862,
+        "machine_y_mm": -36.17889938541598,
+        "machine_z_mm": 16.540298010702212
+      },
+      "gcode": "G90\nG21\nG1 X23.590 Y-36.179 Z16.540 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.675327839638495,
+        "local_y_mm": 33.54197004202548,
+        "machine_x_mm": 25.318242946392218,
+        "machine_y_mm": -36.07988208793569,
+        "machine_z_mm": 12.847910390310176,
+        "board_x_mm": -33.20598728116846,
+        "board_y_mm": 32.49519869790071,
+        "board_z_mm": 80.89739743317926,
+        "image_center_x_px": 268.0,
+        "image_center_y_px": 372.0,
+        "image_points_px": [
+          [
+            316.0,
+            374.0
+          ],
+          [
+            266.0,
+            420.0
+          ],
+          [
+            220.0,
+            370.0
+          ],
+          [
+            270.0,
+            324.0
+          ]
+        ],
+        "reprojection_mean_px": 0.0039108311773333425,
+        "reprojection_max_px": 0.0039146005826148625,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_23_detected.jpg",
+        "error_x_mm": 1.7278363237443557,
+        "error_y_mm": 0.09901729748029453,
+        "error_z_mm": -3.6923876203920365,
+        "error_xy_mm": 1.730671195476111,
+        "error_xyz_mm": 4.077860851730363
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.675327839638495,
+        "local_y_mm": 33.54197004202548,
+        "machine_x_mm": 25.318242946392218,
+        "machine_y_mm": -36.07988208793569,
+        "machine_z_mm": 12.847910390310176,
+        "board_x_mm": -33.20598728116846,
+        "board_y_mm": 32.49519869790071,
+        "board_z_mm": 80.89739743317926,
+        "image_center_x_px": 268.0,
+        "image_center_y_px": 372.0,
+        "image_points_px": [
+          [
+            316.0,
+            374.0
+          ],
+          [
+            266.0,
+            420.0
+          ],
+          [
+            220.0,
+            370.0
+          ],
+          [
+            270.0,
+            324.0
+          ]
+        ],
+        "reprojection_mean_px": 0.0039108311773333425,
+        "reprojection_max_px": 0.0039146005826148625,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_23_detected.jpg",
+        "error_x_mm": 1.7278363237443557,
+        "error_y_mm": 0.09901729748029453,
+        "error_z_mm": -3.6923876203920365,
+        "error_xy_mm": 1.730671195476111,
+        "error_xyz_mm": 4.077860851730363
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.675327839638495,
+        "local_y_mm": 33.54197004202548,
+        "machine_x_mm": 25.318242946392218,
+        "machine_y_mm": -36.07988208793569,
+        "machine_z_mm": 12.847910390310176,
+        "board_x_mm": -33.20598728116846,
+        "board_y_mm": 32.49519869790071,
+        "board_z_mm": 80.89739743317926,
+        "image_center_x_px": 268.0,
+        "image_center_y_px": 372.0,
+        "image_points_px": [
+          [
+            316.0,
+            374.0
+          ],
+          [
+            266.0,
+            420.0
+          ],
+          [
+            220.0,
+            370.0
+          ],
+          [
+            270.0,
+            324.0
+          ]
+        ],
+        "reprojection_mean_px": 0.0039108311773333425,
+        "reprojection_max_px": 0.0039146005826148625,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_23_detected.jpg",
+        "error_x_mm": 1.7278363237443557,
+        "error_y_mm": 0.09901729748029453,
+        "error_z_mm": -3.6923876203920365,
+        "error_xy_mm": 1.730671195476111,
+        "error_xyz_mm": 4.077860851730363
+      }
+    },
+    {
+      "index": 24,
+      "verification_point_id": "V24",
+      "key_point_id": "V24",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "sample",
+      "trajectory_index": 86,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_24.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 86,
+        "is_control_point": false,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 23.983721251773133,
+        "surface_height_mm": 14.3791675287619,
+        "machine_x_mm": 24.06179858397284,
+        "machine_y_mm": -25.193293195393473,
+        "machine_z_mm": 19.3791675287619,
+        "machine_z_from_board_mm": -53.67031951410719,
+        "image_x_px": 299.8048260165235,
+        "image_y_px": 327.68439143855005,
+        "board_x_mm": -23.360614205332837,
+        "board_y_mm": 30.577340340954656,
+        "board_z_mm": 14.3791675287619,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 24.06179858397284,
+        "machine_y_mm": -25.193293195393473,
+        "machine_z_mm": 19.3791675287619
+      },
+      "gcode": "G90\nG21\nG1 X24.062 Y-25.193 Z19.379 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.32849335896124,
+        "local_y_mm": 22.971294030980296,
+        "machine_x_mm": 25.64986194675925,
+        "machine_y_mm": -24.72956993331973,
+        "machine_z_mm": 18.16696601242296,
+        "board_x_mm": -22.80379166498698,
+        "board_y_mm": 31.970334119230362,
+        "board_z_mm": 86.21645305529205,
+        "image_center_x_px": 298.0,
+        "image_center_y_px": 356.5,
+        "image_points_px": [
+          [
+            347.0,
+            358.0
+          ],
+          [
+            296.0,
+            405.0
+          ],
+          [
+            249.0,
+            355.0
+          ],
+          [
+            300.0,
+            308.0
+          ]
+        ],
+        "reprojection_mean_px": 0.11241450793744914,
+        "reprojection_max_px": 0.11278952390222714,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_24_detected.jpg",
+        "error_x_mm": 1.5880633627864071,
+        "error_y_mm": 0.46372326207374215,
+        "error_z_mm": -1.21220151633894,
+        "error_xy_mm": 1.654383422309588,
+        "error_xyz_mm": 2.050955149248079
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.32849335896124,
+        "local_y_mm": 22.971294030980296,
+        "machine_x_mm": 25.64986194675925,
+        "machine_y_mm": -24.72956993331973,
+        "machine_z_mm": 18.16696601242296,
+        "board_x_mm": -22.80379166498698,
+        "board_y_mm": 31.970334119230362,
+        "board_z_mm": 86.21645305529205,
+        "image_center_x_px": 298.0,
+        "image_center_y_px": 356.5,
+        "image_points_px": [
+          [
+            347.0,
+            358.0
+          ],
+          [
+            296.0,
+            405.0
+          ],
+          [
+            249.0,
+            355.0
+          ],
+          [
+            300.0,
+            308.0
+          ]
+        ],
+        "reprojection_mean_px": 0.11241450793744914,
+        "reprojection_max_px": 0.11278952390222714,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_24_detected.jpg",
+        "error_x_mm": 1.5880633627864071,
+        "error_y_mm": 0.46372326207374215,
+        "error_z_mm": -1.21220151633894,
+        "error_xy_mm": 1.654383422309588,
+        "error_xyz_mm": 2.050955149248079
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.32849335896124,
+        "local_y_mm": 22.971294030980296,
+        "machine_x_mm": 25.64986194675925,
+        "machine_y_mm": -24.72956993331973,
+        "machine_z_mm": 18.16696601242296,
+        "board_x_mm": -22.80379166498698,
+        "board_y_mm": 31.970334119230362,
+        "board_z_mm": 86.21645305529205,
+        "image_center_x_px": 298.0,
+        "image_center_y_px": 356.5,
+        "image_points_px": [
+          [
+            347.0,
+            358.0
+          ],
+          [
+            296.0,
+            405.0
+          ],
+          [
+            249.0,
+            355.0
+          ],
+          [
+            300.0,
+            308.0
+          ]
+        ],
+        "reprojection_mean_px": 0.11241450793744914,
+        "reprojection_max_px": 0.11278952390222714,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_24_detected.jpg",
+        "error_x_mm": 1.5880633627864071,
+        "error_y_mm": 0.46372326207374215,
+        "error_z_mm": -1.21220151633894,
+        "error_xy_mm": 1.654383422309588,
+        "error_xyz_mm": 2.050955149248079
+      }
+    },
+    {
+      "index": 25,
+      "verification_point_id": "V25",
+      "key_point_id": "V25",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "sample",
+      "trajectory_index": 91,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_25.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 91,
+        "is_control_point": false,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 13.983721251773135,
+        "surface_height_mm": 17.007972315347434,
+        "machine_x_mm": 24.536433497370155,
+        "machine_y_mm": -14.40832828632317,
+        "machine_z_mm": 22.007972315347434,
+        "machine_z_from_board_mm": -51.04151472752166,
+        "image_x_px": 323.07828999754855,
+        "image_y_px": 315.16040642065195,
+        "board_x_mm": -13.463183296621477,
+        "board_y_mm": 30.221932809579577,
+        "board_z_mm": 17.007972315347434,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 24.536433497370155,
+        "machine_y_mm": -14.40832828632317,
+        "machine_z_mm": 22.007972315347434
+      },
+      "gcode": "G90\nG21\nG1 X24.536 Y-14.408 Z22.008 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.0886275851459,
+        "local_y_mm": 13.317342747222394,
+        "machine_x_mm": 26.035573625376124,
+        "machine_y_mm": -14.37003289599767,
+        "machine_z_mm": 20.42909783459561,
+        "board_x_mm": -13.302656560482362,
+        "board_y_mm": 31.5658826678496,
+        "board_z_mm": 88.4785848774647,
+        "image_center_x_px": 326.75,
+        "image_center_y_px": 341.0,
+        "image_points_px": [
+          [
+            376.0,
+            343.0
+          ],
+          [
+            325.0,
+            390.0
+          ],
+          [
+            277.0,
+            339.0
+          ],
+          [
+            329.0,
+            292.0
+          ]
+        ],
+        "reprojection_mean_px": 0.27023269674978595,
+        "reprojection_max_px": 0.27222099159176766,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_25_detected.jpg",
+        "error_x_mm": 1.499140128005969,
+        "error_y_mm": 0.03829539032549967,
+        "error_z_mm": -1.578874480751825,
+        "error_xy_mm": 1.4996291742687375,
+        "error_xyz_mm": 2.177551902088049
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.0886275851459,
+        "local_y_mm": 13.317342747222394,
+        "machine_x_mm": 26.035573625376124,
+        "machine_y_mm": -14.37003289599767,
+        "machine_z_mm": 20.42909783459561,
+        "board_x_mm": -13.302656560482362,
+        "board_y_mm": 31.5658826678496,
+        "board_z_mm": 88.4785848774647,
+        "image_center_x_px": 326.75,
+        "image_center_y_px": 341.0,
+        "image_points_px": [
+          [
+            376.0,
+            343.0
+          ],
+          [
+            325.0,
+            390.0
+          ],
+          [
+            277.0,
+            339.0
+          ],
+          [
+            329.0,
+            292.0
+          ]
+        ],
+        "reprojection_mean_px": 0.27023269674978595,
+        "reprojection_max_px": 0.27222099159176766,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_25_detected.jpg",
+        "error_x_mm": 1.499140128005969,
+        "error_y_mm": 0.03829539032549967,
+        "error_z_mm": -1.578874480751825,
+        "error_xy_mm": 1.4996291742687375,
+        "error_xyz_mm": 2.177551902088049
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -22.0886275851459,
+        "local_y_mm": 13.317342747222394,
+        "machine_x_mm": 26.035573625376124,
+        "machine_y_mm": -14.37003289599767,
+        "machine_z_mm": 20.42909783459561,
+        "board_x_mm": -13.302656560482362,
+        "board_y_mm": 31.5658826678496,
+        "board_z_mm": 88.4785848774647,
+        "image_center_x_px": 326.75,
+        "image_center_y_px": 341.0,
+        "image_points_px": [
+          [
+            376.0,
+            343.0
+          ],
+          [
+            325.0,
+            390.0
+          ],
+          [
+            277.0,
+            339.0
+          ],
+          [
+            329.0,
+            292.0
+          ]
+        ],
+        "reprojection_mean_px": 0.27023269674978595,
+        "reprojection_max_px": 0.27222099159176766,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_25_detected.jpg",
+        "error_x_mm": 1.499140128005969,
+        "error_y_mm": 0.03829539032549967,
+        "error_z_mm": -1.578874480751825,
+        "error_xy_mm": 1.4996291742687375,
+        "error_xyz_mm": 2.177551902088049
+      }
+    },
+    {
+      "index": 26,
+      "verification_point_id": "V26",
+      "key_point_id": "V26",
+      "label": "Left side midpoint",
+      "point_type": "midpoint",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "middle",
+      "trajectory_index": 93,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_26.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 93,
+        "is_control_point": false,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 9.983721251773135,
+        "surface_height_mm": 17.891542002721447,
+        "machine_x_mm": 24.736822077751995,
+        "machine_y_mm": -10.150191326845748,
+        "machine_z_mm": 22.891542002721458,
+        "machine_z_from_board_mm": -50.15794504014764,
+        "image_x_px": 332.3876755899586,
+        "image_y_px": 310.15081241349264,
+        "board_x_mm": -9.55437605196206,
+        "board_y_mm": 30.093281798762455,
+        "board_z_mm": 17.891542002721447,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 24.736822077751995,
+        "machine_y_mm": -10.150191326845748,
+        "machine_z_mm": 22.891542002721458
+      },
+      "gcode": "G90\nG21\nG1 X24.737 Y-10.150 Z22.892 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.949285445404588,
+        "local_y_mm": 8.931042097049609,
+        "machine_x_mm": 26.178110535858742,
+        "machine_y_mm": -9.660605525003575,
+        "machine_z_mm": 23.39555781059107,
+        "board_x_mm": -8.986204148383292,
+        "board_y_mm": 31.352548214915547,
+        "board_z_mm": 91.44504485346016,
+        "image_center_x_px": 340.0,
+        "image_center_y_px": 334.5,
+        "image_points_px": [
+          [
+            390.0,
+            336.0
+          ],
+          [
+            338.0,
+            384.0
+          ],
+          [
+            290.0,
+            333.0
+          ],
+          [
+            342.0,
+            285.0
+          ]
+        ],
+        "reprojection_mean_px": 0.12075707646333086,
+        "reprojection_max_px": 0.12122258610007922,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_26_detected.jpg",
+        "error_x_mm": 1.4412884581067473,
+        "error_y_mm": 0.48958580184217304,
+        "error_z_mm": 0.5040158078696138,
+        "error_xy_mm": 1.522171697554901,
+        "error_xyz_mm": 1.6034458554686615
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.949285445404588,
+        "local_y_mm": 8.931042097049609,
+        "machine_x_mm": 26.178110535858742,
+        "machine_y_mm": -9.660605525003575,
+        "machine_z_mm": 23.39555781059107,
+        "board_x_mm": -8.986204148383292,
+        "board_y_mm": 31.352548214915547,
+        "board_z_mm": 91.44504485346016,
+        "image_center_x_px": 340.0,
+        "image_center_y_px": 334.5,
+        "image_points_px": [
+          [
+            390.0,
+            336.0
+          ],
+          [
+            338.0,
+            384.0
+          ],
+          [
+            290.0,
+            333.0
+          ],
+          [
+            342.0,
+            285.0
+          ]
+        ],
+        "reprojection_mean_px": 0.12075707646333086,
+        "reprojection_max_px": 0.12122258610007922,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_26_detected.jpg",
+        "error_x_mm": 1.4412884581067473,
+        "error_y_mm": 0.48958580184217304,
+        "error_z_mm": 0.5040158078696138,
+        "error_xy_mm": 1.522171697554901,
+        "error_xyz_mm": 1.6034458554686615
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.949285445404588,
+        "local_y_mm": 8.931042097049609,
+        "machine_x_mm": 26.178110535858742,
+        "machine_y_mm": -9.660605525003575,
+        "machine_z_mm": 23.39555781059107,
+        "board_x_mm": -8.986204148383292,
+        "board_y_mm": 31.352548214915547,
+        "board_z_mm": 91.44504485346016,
+        "image_center_x_px": 340.0,
+        "image_center_y_px": 334.5,
+        "image_points_px": [
+          [
+            390.0,
+            336.0
+          ],
+          [
+            338.0,
+            384.0
+          ],
+          [
+            290.0,
+            333.0
+          ],
+          [
+            342.0,
+            285.0
+          ]
+        ],
+        "reprojection_mean_px": 0.12075707646333086,
+        "reprojection_max_px": 0.12122258610007922,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_26_detected.jpg",
+        "error_x_mm": 1.4412884581067473,
+        "error_y_mm": 0.48958580184217304,
+        "error_z_mm": 0.5040158078696138,
+        "error_xy_mm": 1.522171697554901,
+        "error_xyz_mm": 1.6034458554686615
+      }
+    },
+    {
+      "index": 27,
+      "verification_point_id": "V27",
+      "key_point_id": "V27",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "sample",
+      "trajectory_index": 96,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_27.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 96,
+        "is_control_point": false,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 3.983721251773135,
+        "surface_height_mm": 18.994941325302737,
+        "machine_x_mm": 25.053096455176792,
+        "machine_y_mm": -3.81205095054919,
+        "machine_z_mm": 23.994941325302737,
+        "machine_z_from_board_mm": -49.054545717566356,
+        "image_x_px": 346.3517539785736,
+        "image_y_px": 302.6364214027538,
+        "board_x_mm": -3.734697846157353,
+        "board_y_mm": 29.917958127594957,
+        "board_z_mm": 18.994941325302737,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 25.053096455176792,
+        "machine_y_mm": -3.81205095054919,
+        "machine_z_mm": 23.994941325302737
+      },
+      "gcode": "G90\nG21\nG1 X25.053 Y-3.812 Z23.995 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.77339525754351,
+        "local_y_mm": 3.3727623967261082,
+        "machine_x_mm": 26.35946782705672,
+        "machine_y_mm": -3.692919801769963,
+        "machine_z_mm": 22.68293855971919,
+        "board_x_mm": -3.516426138406157,
+        "board_y_mm": 31.082877932883253,
+        "board_z_mm": 90.73242560258828,
+        "image_center_x_px": 356.75,
+        "image_center_y_px": 324.5,
+        "image_points_px": [
+          [
+            407.0,
+            327.0
+          ],
+          [
+            354.0,
+            374.0
+          ],
+          [
+            307.0,
+            322.0
+          ],
+          [
+            359.0,
+            275.0
+          ]
+        ],
+        "reprojection_mean_px": 0.24057169251089858,
+        "reprojection_max_px": 0.242771168656846,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_27_detected.jpg",
+        "error_x_mm": 1.3063713718799264,
+        "error_y_mm": 0.11913114877922704,
+        "error_z_mm": -1.3120027655835464,
+        "error_xy_mm": 1.3117920535957288,
+        "error_xyz_mm": 1.8553031150665849
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.77339525754351,
+        "local_y_mm": 3.3727623967261082,
+        "machine_x_mm": 26.35946782705672,
+        "machine_y_mm": -3.692919801769963,
+        "machine_z_mm": 22.68293855971919,
+        "board_x_mm": -3.516426138406157,
+        "board_y_mm": 31.082877932883253,
+        "board_z_mm": 90.73242560258828,
+        "image_center_x_px": 356.75,
+        "image_center_y_px": 324.5,
+        "image_points_px": [
+          [
+            407.0,
+            327.0
+          ],
+          [
+            354.0,
+            374.0
+          ],
+          [
+            307.0,
+            322.0
+          ],
+          [
+            359.0,
+            275.0
+          ]
+        ],
+        "reprojection_mean_px": 0.24057169251089858,
+        "reprojection_max_px": 0.242771168656846,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_27_detected.jpg",
+        "error_x_mm": 1.3063713718799264,
+        "error_y_mm": 0.11913114877922704,
+        "error_z_mm": -1.3120027655835464,
+        "error_xy_mm": 1.3117920535957288,
+        "error_xyz_mm": 1.8553031150665849
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.77339525754351,
+        "local_y_mm": 3.3727623967261082,
+        "machine_x_mm": 26.35946782705672,
+        "machine_y_mm": -3.692919801769963,
+        "machine_z_mm": 22.68293855971919,
+        "board_x_mm": -3.516426138406157,
+        "board_y_mm": 31.082877932883253,
+        "board_z_mm": 90.73242560258828,
+        "image_center_x_px": 356.75,
+        "image_center_y_px": 324.5,
+        "image_points_px": [
+          [
+            407.0,
+            327.0
+          ],
+          [
+            354.0,
+            374.0
+          ],
+          [
+            307.0,
+            322.0
+          ],
+          [
+            359.0,
+            275.0
+          ]
+        ],
+        "reprojection_mean_px": 0.24057169251089858,
+        "reprojection_max_px": 0.242771168656846,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_27_detected.jpg",
+        "error_x_mm": 1.3063713718799264,
+        "error_y_mm": 0.11913114877922704,
+        "error_z_mm": -1.3120027655835464,
+        "error_xy_mm": 1.3117920535957288,
+        "error_xyz_mm": 1.8553031150665849
+      }
+    },
+    {
+      "index": 28,
+      "verification_point_id": "V28",
+      "key_point_id": "V28",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "sample",
+      "trajectory_index": 101,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_28.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 101,
+        "is_control_point": false,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": -6.016278748226865,
+        "surface_height_mm": 20.145097888068868,
+        "machine_x_mm": 25.633199269141144,
+        "machine_y_mm": 6.660189178417724,
+        "machine_z_mm": 25.14509788806887,
+        "machine_z_from_board_mm": -47.90438915480022,
+        "image_x_px": 369.6252179595986,
+        "image_y_px": 290.11243638485564,
+        "board_x_mm": 5.885726793003199,
+        "board_y_mm": 29.679964798169372,
+        "board_z_mm": 20.145097888068868,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 25.633199269141144,
+        "machine_y_mm": 6.660189178417724,
+        "machine_z_mm": 25.14509788806887
+      },
+      "gcode": "G90\nG21\nG1 X25.633 Y6.660 Z25.145 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.179052861688007,
+        "local_y_mm": -6.204668851293037,
+        "machine_x_mm": 26.35811225068632,
+        "machine_y_mm": 6.614342679777008,
+        "machine_z_mm": 25.92690797283882,
+        "board_x_mm": 5.90451952006573,
+        "board_y_mm": 30.334500816554396,
+        "board_z_mm": 93.97639501570791,
+        "image_center_x_px": 386.25,
+        "image_center_y_px": 308.25,
+        "image_points_px": [
+          [
+            437.0,
+            310.0
+          ],
+          [
+            383.0,
+            358.0
+          ],
+          [
+            336.0,
+            306.0
+          ],
+          [
+            389.0,
+            259.0
+          ]
+        ],
+        "reprojection_mean_px": 0.18357824046516064,
+        "reprojection_max_px": 0.18639491556810864,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_28_detected.jpg",
+        "error_x_mm": 0.7249129815451774,
+        "error_y_mm": -0.04584649864071633,
+        "error_z_mm": 0.7818100847699476,
+        "error_xy_mm": 0.7263612959473624,
+        "error_xyz_mm": 1.0671587233857598
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.179052861688007,
+        "local_y_mm": -6.204668851293037,
+        "machine_x_mm": 26.35811225068632,
+        "machine_y_mm": 6.614342679777008,
+        "machine_z_mm": 25.92690797283882,
+        "board_x_mm": 5.90451952006573,
+        "board_y_mm": 30.334500816554396,
+        "board_z_mm": 93.97639501570791,
+        "image_center_x_px": 386.25,
+        "image_center_y_px": 308.25,
+        "image_points_px": [
+          [
+            437.0,
+            310.0
+          ],
+          [
+            383.0,
+            358.0
+          ],
+          [
+            336.0,
+            306.0
+          ],
+          [
+            389.0,
+            259.0
+          ]
+        ],
+        "reprojection_mean_px": 0.18357824046516064,
+        "reprojection_max_px": 0.18639491556810864,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_28_detected.jpg",
+        "error_x_mm": 0.7249129815451774,
+        "error_y_mm": -0.04584649864071633,
+        "error_z_mm": 0.7818100847699476,
+        "error_xy_mm": 0.7263612959473624,
+        "error_xyz_mm": 1.0671587233857598
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.179052861688007,
+        "local_y_mm": -6.204668851293037,
+        "machine_x_mm": 26.35811225068632,
+        "machine_y_mm": 6.614342679777008,
+        "machine_z_mm": 25.92690797283882,
+        "board_x_mm": 5.90451952006573,
+        "board_y_mm": 30.334500816554396,
+        "board_z_mm": 93.97639501570791,
+        "image_center_x_px": 386.25,
+        "image_center_y_px": 308.25,
+        "image_points_px": [
+          [
+            437.0,
+            310.0
+          ],
+          [
+            383.0,
+            358.0
+          ],
+          [
+            336.0,
+            306.0
+          ],
+          [
+            389.0,
+            259.0
+          ]
+        ],
+        "reprojection_mean_px": 0.18357824046516064,
+        "reprojection_max_px": 0.18639491556810864,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_28_detected.jpg",
+        "error_x_mm": 0.7249129815451774,
+        "error_y_mm": -0.04584649864071633,
+        "error_z_mm": 0.7818100847699476,
+        "error_xy_mm": 0.7263612959473624,
+        "error_xyz_mm": 1.0671587233857598
+      }
+    },
+    {
+      "index": 29,
+      "verification_point_id": "V29",
+      "key_point_id": "V29",
+      "label": "Line 1 sample",
+      "point_type": "sample",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "sample",
+      "trajectory_index": 106,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_29.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 106,
+        "is_control_point": false,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": -16.016278748226867,
+        "surface_height_mm": 20.418506811513875,
+        "machine_x_mm": 26.28568676154186,
+        "machine_y_mm": 17.09085685114753,
+        "machine_z_mm": 25.418506811513875,
+        "machine_z_from_board_mm": -47.63098023135521,
+        "image_x_px": 392.89868194062365,
+        "image_y_px": 277.5884513669575,
+        "board_x_mm": 15.474214128537636,
+        "board_y_mm": 29.510010486147046,
+        "board_z_mm": 20.418506811513875,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 26.28568676154186,
+        "machine_y_mm": 17.09085685114753,
+        "machine_z_mm": 25.418506811513875
+      },
+      "gcode": "G90\nG21\nG1 X26.286 Y17.091 Z25.419 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.366209017274468,
+        "local_y_mm": -15.744686459440889,
+        "machine_x_mm": 27.196353031020166,
+        "machine_y_mm": 16.816102982631904,
+        "machine_z_mm": 24.83267605739144,
+        "board_x_mm": 15.299333843196495,
+        "board_y_mm": 30.348007845158754,
+        "board_z_mm": 92.88216310026053,
+        "image_center_x_px": 415.5,
+        "image_center_y_px": 292.0,
+        "image_points_px": [
+          [
+            466.0,
+            294.0
+          ],
+          [
+            413.0,
+            342.0
+          ],
+          [
+            365.0,
+            290.0
+          ],
+          [
+            418.0,
+            242.0
+          ]
+        ],
+        "reprojection_mean_px": 0.1202937262889516,
+        "reprojection_max_px": 0.12084862477909566,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_29_detected.jpg",
+        "error_x_mm": 0.9106662694783054,
+        "error_y_mm": -0.2747538685156279,
+        "error_z_mm": -0.585830754122437,
+        "error_xy_mm": 0.9512111976999832,
+        "error_xyz_mm": 1.117139389291014
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.366209017274468,
+        "local_y_mm": -15.744686459440889,
+        "machine_x_mm": 27.196353031020166,
+        "machine_y_mm": 16.816102982631904,
+        "machine_z_mm": 24.83267605739144,
+        "board_x_mm": 15.299333843196495,
+        "board_y_mm": 30.348007845158754,
+        "board_z_mm": 92.88216310026053,
+        "image_center_x_px": 415.5,
+        "image_center_y_px": 292.0,
+        "image_points_px": [
+          [
+            466.0,
+            294.0
+          ],
+          [
+            413.0,
+            342.0
+          ],
+          [
+            365.0,
+            290.0
+          ],
+          [
+            418.0,
+            242.0
+          ]
+        ],
+        "reprojection_mean_px": 0.1202937262889516,
+        "reprojection_max_px": 0.12084862477909566,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_29_detected.jpg",
+        "error_x_mm": 0.9106662694783054,
+        "error_y_mm": -0.2747538685156279,
+        "error_z_mm": -0.585830754122437,
+        "error_xy_mm": 0.9512111976999832,
+        "error_xyz_mm": 1.117139389291014
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -21.366209017274468,
+        "local_y_mm": -15.744686459440889,
+        "machine_x_mm": 27.196353031020166,
+        "machine_y_mm": 16.816102982631904,
+        "machine_z_mm": 24.83267605739144,
+        "board_x_mm": 15.299333843196495,
+        "board_y_mm": 30.348007845158754,
+        "board_z_mm": 92.88216310026053,
+        "image_center_x_px": 415.5,
+        "image_center_y_px": 292.0,
+        "image_points_px": [
+          [
+            466.0,
+            294.0
+          ],
+          [
+            413.0,
+            342.0
+          ],
+          [
+            365.0,
+            290.0
+          ],
+          [
+            418.0,
+            242.0
+          ]
+        ],
+        "reprojection_mean_px": 0.1202937262889516,
+        "reprojection_max_px": 0.12084862477909566,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_29_detected.jpg",
+        "error_x_mm": 0.9106662694783054,
+        "error_y_mm": -0.2747538685156279,
+        "error_z_mm": -0.585830754122437,
+        "error_xy_mm": 0.9512111976999832,
+        "error_xyz_mm": 1.117139389291014
+      }
+    },
+    {
+      "index": 30,
+      "verification_point_id": "V30",
+      "key_point_id": "V30",
+      "label": "Left Bottom corner",
+      "point_type": "end",
+      "polyline_index": 0,
+      "segment_index": 3,
+      "endpoint": "end",
+      "trajectory_index": 110,
+      "nearest_trajectory_distance_mm": 0.0,
+      "matches_generated_trajectory": true,
+      "image_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\verification_30.jpg",
+      "target": {
+        "polyline_index": 0,
+        "segment_index": 3,
+        "sample_index_in_polyline": 110,
+        "is_control_point": true,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "machine_x_mm": 26.872145482908238,
+        "machine_y_mm": 25.469256837137507,
+        "machine_z_mm": 24.913477149756183,
+        "machine_z_from_board_mm": -48.1360098931129,
+        "image_x_px": 411.5174531254437,
+        "image_y_px": 267.569263352639,
+        "board_x_mm": 23.181356115120057,
+        "board_y_mm": 29.429506480848474,
+        "board_z_mm": 19.913477149756186,
+        "travel": false
+      },
+      "command": {
+        "machine_x_mm": 26.872145482908238,
+        "machine_y_mm": 25.469256837137507,
+        "machine_z_mm": 24.913477149756183
+      },
+      "gcode": "G90\nG21\nG1 X26.872 Y25.469 Z24.913 F2400\nM400",
+      "detect_ok": true,
+      "actual": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -20.97479681335824,
+        "local_y_mm": -22.45152717601279,
+        "machine_x_mm": 27.22211719824425,
+        "machine_y_mm": 24.031950975923834,
+        "machine_z_mm": 25.429708794979717,
+        "board_x_mm": 21.896931052587792,
+        "board_y_mm": 29.848085675208786,
+        "board_z_mm": 93.4791958378488,
+        "image_center_x_px": 436.0,
+        "image_center_y_px": 279.75,
+        "image_points_px": [
+          [
+            487.0,
+            282.0
+          ],
+          [
+            434.0,
+            330.0
+          ],
+          [
+            385.0,
+            278.0
+          ],
+          [
+            438.0,
+            229.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22205385493014151,
+        "reprojection_max_px": 0.22397238308430323,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_30_detected.jpg",
+        "error_x_mm": 0.3499717153360109,
+        "error_y_mm": -1.437305861213673,
+        "error_z_mm": 0.5162316452235345,
+        "error_xy_mm": 1.4792999493728134,
+        "error_xyz_mm": 1.5667876217741208
+      },
+      "observed": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -20.97479681335824,
+        "local_y_mm": -22.45152717601279,
+        "machine_x_mm": 27.22211719824425,
+        "machine_y_mm": 24.031950975923834,
+        "machine_z_mm": 25.429708794979717,
+        "board_x_mm": 21.896931052587792,
+        "board_y_mm": 29.848085675208786,
+        "board_z_mm": 93.4791958378488,
+        "image_center_x_px": 436.0,
+        "image_center_y_px": 279.75,
+        "image_points_px": [
+          [
+            487.0,
+            282.0
+          ],
+          [
+            434.0,
+            330.0
+          ],
+          [
+            385.0,
+            278.0
+          ],
+          [
+            438.0,
+            229.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22205385493014151,
+        "reprojection_max_px": 0.22397238308430323,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_30_detected.jpg",
+        "error_x_mm": 0.3499717153360109,
+        "error_y_mm": -1.437305861213673,
+        "error_z_mm": 0.5162316452235345,
+        "error_xy_mm": 1.4792999493728134,
+        "error_xyz_mm": 1.5667876217741208
+      },
+      "detected": {
+        "source": "platform_tag_image_detection",
+        "local_source": "target_machine_xy_affine",
+        "tag_id": 0,
+        "local_x_mm": -20.97479681335824,
+        "local_y_mm": -22.45152717601279,
+        "machine_x_mm": 27.22211719824425,
+        "machine_y_mm": 24.031950975923834,
+        "machine_z_mm": 25.429708794979717,
+        "board_x_mm": 21.896931052587792,
+        "board_y_mm": 29.848085675208786,
+        "board_z_mm": 93.4791958378488,
+        "image_center_x_px": 436.0,
+        "image_center_y_px": 279.75,
+        "image_points_px": [
+          [
+            487.0,
+            282.0
+          ],
+          [
+            434.0,
+            330.0
+          ],
+          [
+            385.0,
+            278.0
+          ],
+          [
+            438.0,
+            229.0
+          ]
+        ],
+        "reprojection_mean_px": 0.22205385493014151,
+        "reprojection_max_px": 0.22397238308430323,
+        "overlay_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_verification\\capture_20260704_191325\\detected_overlays\\verification_30_detected.jpg",
+        "error_x_mm": 0.3499717153360109,
+        "error_y_mm": -1.437305861213673,
+        "error_z_mm": 0.5162316452235345,
+        "error_xy_mm": 1.4792999493728134,
+        "error_xyz_mm": 1.5667876217741208
+      }
+    }
+  ],
+  "detection": {
+    "method": "platform_tag_image_detection",
+    "detected_count": 30,
+    "failed_count": 0,
+    "tag_id": 0,
+    "tag_size_mm": 20.0,
+    "dictionary": "DICT_APRILTAG_36h11",
+    "intrinsics": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\摄像头内参\\camera_calibration_results.json",
+    "charuco_extrinsic": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\charuco_manual_extrinsic_latest.json",
+    "machine_transform": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage4_coordinate_fit_latest.json",
+    "board_origin": "center",
+    "surface_center_machine_mm": [
+      3.453103,
+      -9.721217
+    ],
+    "surface_yaw_deg": -118.285714,
+    "created_at": 1783163663.8842134,
+    "machine_xy_to_local_affine": [
+      [
+        2.783970625208699,
+        1.8444581315869064
+      ],
+      [
+        -0.9235721927608227,
+        -0.07220040585807397
+      ],
+      [
+        0.05754102258251825,
+        -0.9292020202580318
+      ]
+    ],
+    "mean_error_xy_mm": 1.4251097578463925,
+    "max_error_xy_mm": 1.8542954518486616,
+    "metrics": {
+      "sample_count": 30,
+      "rms_xyz_error_mm": 3.5251822939916617,
+      "rms_xy_error_mm": 1.4651903962894826,
+      "mean_abs_error_mm": [
+        1.1824197032760355,
+        0.6810616352211095,
+        2.5824808330453624
+      ],
+      "max_abs_error_mm": [
+        1.7278363237443557,
+        1.437305861213673,
+        7.371814626474585
+      ],
+      "mean_error_mm": [
+        1.1824197032760355,
+        0.5638678866631083,
+        -2.462343663854489
+      ],
+      "max_xy_error_mm": 1.8542954518486616,
+      "mean_z_error_mm": -2.462343663854489,
+      "rms_z_error_mm": 3.2062637615288896
+    },
+    "offset_corrected_metrics": {
+      "rms_xyz_error_mm": 2.155854943785101,
+      "rms_xy_error_mm": 0.6562922741230647,
+      "mean_abs_error_mm": [
+        0.2813581815851596,
+        0.4224229625397836,
+        1.6764634253204742
+      ],
+      "max_abs_error_mm": [
+        0.8925701447774865,
+        2.0011737478767815,
+        4.909470962620096
+      ],
+      "mean_error_mm": [
+        -1.0362081563168128e-16,
+        -1.3322676295501878e-16,
+        -2.6645352591003756e-16
+      ],
+      "max_xy_error_mm": 2.167409980095275,
+      "mean_z_error_mm": -2.960594732333751e-17,
+      "rms_z_error_mm": 2.053531346137438
+    },
+    "z_error_model": {
+      "type": "linear_machine_xyz",
+      "features": [
+        "1",
+        "machine_x_mm",
+        "machine_y_mm",
+        "machine_z_mm"
+      ],
+      "coefficients": [
+        -18.015941662580282,
+        0.02064221060661464,
+        -0.0671291580879031,
+        0.7230968804132738
+      ],
+      "command_precompensation": "machine_z_mm -= predicted_error_z_mm"
+    },
+    "z_error_model_metrics": {
+      "sample_count": 30,
+      "rms_z_error_before_mm": 3.2062637615288896,
+      "rms_z_error_after_model_mm": 0.8030367517422751,
+      "max_abs_z_error_after_model_mm": 2.085005755129888,
+      "mean_z_error_after_model_mm": -9.473903143468002e-16
+    },
+    "z_error_samples": [
+      {
+        "machine_x_mm": 26.872145482908238,
+        "machine_y_mm": 25.469256837137507,
+        "machine_z_mm": 24.913477149756183,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "error_z_mm": -0.771902197085673
+      },
+      {
+        "machine_x_mm": 16.241263214350486,
+        "machine_y_mm": 26.306105435047833,
+        "machine_z_mm": 24.913477149756183,
+        "local_x_mm": -10.8093086280121,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756183,
+        "error_z_mm": -1.048840860842155
+      },
+      {
+        "machine_x_mm": 5.60509306217673,
+        "machine_y_mm": 27.141139369948913,
+        "machine_z_mm": 24.913477149756183,
+        "local_x_mm": -0.8093086280121009,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "error_z_mm": -2.229908609341358
+      },
+      {
+        "machine_x_mm": 5.60509306217673,
+        "machine_y_mm": 27.141139369948913,
+        "machine_z_mm": 24.913477149756183,
+        "local_x_mm": -0.8093086280121009,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "error_z_mm": -1.3461141370435215
+      },
+      {
+        "machine_x_mm": -5.034057456898386,
+        "machine_y_mm": 27.974104206553722,
+        "machine_z_mm": 24.91347714975618,
+        "local_x_mm": 9.1906913719879,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756183,
+        "error_z_mm": -2.2367527489208534
+      },
+      {
+        "machine_x_mm": -15.673802847502522,
+        "machine_y_mm": 28.80480192989981,
+        "machine_z_mm": 24.913477149756186,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "error_z_mm": -3.12821959137737
+      },
+      {
+        "machine_x_mm": -15.673802847502522,
+        "machine_y_mm": 28.80480192989981,
+        "machine_z_mm": 24.913477149756186,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "error_z_mm": -2.648426891308997
+      },
+      {
+        "machine_x_mm": -15.80594948167916,
+        "machine_y_mm": 26.70189552730384,
+        "machine_z_mm": 25.09926585171636,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -22.016278748226867,
+        "surface_height_mm": 20.099265851716368,
+        "error_z_mm": -2.0249029648234185
+      },
+      {
+        "machine_x_mm": -16.490898961635498,
+        "machine_y_mm": 16.2453434430337,
+        "machine_z_mm": 25.414287784640987,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -12.016278748226865,
+        "surface_height_mm": 20.414287784640987,
+        "error_z_mm": -2.2370380540468027
+      },
+      {
+        "machine_x_mm": -17.216875022282675,
+        "machine_y_mm": 5.811624631518074,
+        "machine_z_mm": 24.79654536630527,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": -2.016278748226865,
+        "surface_height_mm": 19.796545366305267,
+        "error_z_mm": -0.8399045591860279
+      },
+      {
+        "machine_x_mm": -17.987716511564003,
+        "machine_y_mm": -4.688346712135644,
+        "machine_z_mm": 23.290326392800186,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 7.983721251773135,
+        "surface_height_mm": 18.29032639280018,
+        "error_z_mm": -0.15392056962778966
+      },
+      {
+        "machine_x_mm": -18.307266030248716,
+        "machine_y_mm": -8.924367141532201,
+        "machine_z_mm": 22.492757612642727,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 11.983721251773135,
+        "surface_height_mm": 17.492757612642727,
+        "error_z_mm": -1.836138953337617
+      },
+      {
+        "machine_x_mm": -18.80294538612389,
+        "machine_y_mm": -15.333845796380523,
+        "machine_z_mm": 21.018487693568556,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 17.983721251773133,
+        "surface_height_mm": 16.01848769356855,
+        "error_z_mm": -1.5629589363848133
+      },
+      {
+        "machine_x_mm": -19.652484493015123,
+        "machine_y_mm": -26.174296908789437,
+        "machine_z_mm": 18.26697458643395,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 27.983721251773133,
+        "surface_height_mm": 13.26697458643395,
+        "error_z_mm": -2.5006945555751123
+      },
+      {
+        "machine_x_mm": -21.224601739699615,
+        "machine_y_mm": -46.187332552224795,
+        "machine_z_mm": 13.050942895194094,
+        "local_x_mm": 19.1906913719879,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.050942895194094,
+        "error_z_mm": -5.47602997526813
+      },
+      {
+        "machine_x_mm": -19.012290662164013,
+        "machine_y_mm": -46.36036219910085,
+        "machine_z_mm": 13.050942895194108,
+        "local_x_mm": 17.1906913719879,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.05094289519409,
+        "error_z_mm": -5.404842639296643
+      },
+      {
+        "machine_x_mm": -7.9501397380802,
+        "machine_y_mm": -47.223638568162215,
+        "machine_z_mm": 13.050942895194087,
+        "local_x_mm": 7.190691371987899,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.050942895194087,
+        "error_z_mm": -5.267481321550438
+      },
+      {
+        "machine_x_mm": 3.111247586094694,
+        "machine_y_mm": -48.08363103736173,
+        "machine_z_mm": 13.050942895194108,
+        "local_x_mm": -2.8093086280121007,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.05094289519409,
+        "error_z_mm": -5.375766272485631
+      },
+      {
+        "machine_x_mm": 3.111247586094694,
+        "machine_y_mm": -48.08363103736173,
+        "machine_z_mm": 13.050942895194108,
+        "local_x_mm": -2.8093086280121007,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.05094289519409,
+        "error_z_mm": -7.371814626474585
+      },
+      {
+        "machine_x_mm": 14.169476071600032,
+        "machine_y_mm": -48.94018765220257,
+        "machine_z_mm": 13.050942895194105,
+        "local_x_mm": -12.8093086280121,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.050942895194094,
+        "error_z_mm": -4.21759502940062
+      },
+      {
+        "machine_x_mm": 23.012231549269455,
+        "machine_y_mm": -49.62291859961988,
+        "machine_z_mm": 13.050942895194108,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 45.98372125177313,
+        "surface_height_mm": 8.05094289519409,
+        "error_z_mm": -5.598678201947219
+      },
+      {
+        "machine_x_mm": 23.10952338675095,
+        "machine_y_mm": -47.362112871411604,
+        "machine_z_mm": 13.639126734390867,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 43.98372125177313,
+        "surface_height_mm": 8.639126734390867,
+        "error_z_mm": -4.013138620984204
+      },
+      {
+        "machine_x_mm": 23.590406622647862,
+        "machine_y_mm": -36.17889938541598,
+        "machine_z_mm": 16.540298010702212,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 33.98372125177313,
+        "surface_height_mm": 11.540298010702202,
+        "error_z_mm": -3.6923876203920365
+      },
+      {
+        "machine_x_mm": 24.06179858397284,
+        "machine_y_mm": -25.193293195393473,
+        "machine_z_mm": 19.3791675287619,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 23.983721251773133,
+        "surface_height_mm": 14.3791675287619,
+        "error_z_mm": -1.21220151633894
+      },
+      {
+        "machine_x_mm": 24.536433497370155,
+        "machine_y_mm": -14.40832828632317,
+        "machine_z_mm": 22.007972315347434,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 13.983721251773135,
+        "surface_height_mm": 17.007972315347434,
+        "error_z_mm": -1.578874480751825
+      },
+      {
+        "machine_x_mm": 24.736822077751995,
+        "machine_y_mm": -10.150191326845748,
+        "machine_z_mm": 22.891542002721458,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 9.983721251773135,
+        "surface_height_mm": 17.891542002721447,
+        "error_z_mm": 0.5040158078696138
+      },
+      {
+        "machine_x_mm": 25.053096455176792,
+        "machine_y_mm": -3.81205095054919,
+        "machine_z_mm": 23.994941325302737,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": 3.983721251773135,
+        "surface_height_mm": 18.994941325302737,
+        "error_z_mm": -1.3120027655835464
+      },
+      {
+        "machine_x_mm": 25.633199269141144,
+        "machine_y_mm": 6.660189178417724,
+        "machine_z_mm": 25.14509788806887,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": -6.016278748226865,
+        "surface_height_mm": 20.145097888068868,
+        "error_z_mm": 0.7818100847699476
+      },
+      {
+        "machine_x_mm": 26.28568676154186,
+        "machine_y_mm": 17.09085685114753,
+        "machine_z_mm": 25.418506811513875,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": -16.016278748226867,
+        "surface_height_mm": 20.418506811513875,
+        "error_z_mm": -0.585830754122437
+      },
+      {
+        "machine_x_mm": 26.872145482908238,
+        "machine_y_mm": 25.469256837137507,
+        "machine_z_mm": 24.913477149756183,
+        "local_x_mm": -20.8093086280121,
+        "local_y_mm": -24.016278748226867,
+        "surface_height_mm": 19.913477149756186,
+        "error_z_mm": 0.5162316452235345
+      }
+    ],
+    "surface_correction_output": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_trajectory_correction_latest.json"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "method": "stage0_machine_frame_collect",
+  "execute": true,
+  "zsafe_mm": 75.0,
+  "distance_mm": 40.0,
+  "repeats": 1,
+  "wait_emm_reached": true,
+  "emm_reached_timeout_s": 10.0,
+  "emm_reached_poll_s": 0.05,
+  "emm_reached_stable": 2,
+  "moonraker_url": "http://192.168.67.182",
+  "snapshot_url": "http://127.0.0.1:8765/snapshot",
+  "board_origin": "center",
+  "points": [
+    {
+      "name": "center",
+      "x": 0.0,
+      "y": 0.0,
+      "z": 75.0
+    },
+    {
+      "name": "x_plus",
+      "x": 40.0,
+      "y": 0.0,
+      "z": 75.0
+    },
+    {
+      "name": "y_plus",
+      "x": 0.0,
+      "y": 40.0,
+      "z": 75.0
+    },
+    {
+      "name": "x_minus",
+      "x": -40.0,
+      "y": 0.0,
+      "z": 75.0
+    },
+    {
+      "name": "y_minus",
+      "x": 0.0,
+      "y": -40.0,
+      "z": 75.0
+    }
+  ],
+  "created_at": 1782958384.596019
+}

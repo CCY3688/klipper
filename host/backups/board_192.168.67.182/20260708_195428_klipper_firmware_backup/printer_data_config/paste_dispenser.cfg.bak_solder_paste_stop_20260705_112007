@@ -1,0 +1,84 @@
+# Remote screw-driven paste/glue/solder-paste dispenser.
+# This is intentionally configured as a manual_stepper, not as an extruder,
+# so Klipper does not require heater/temperature pins and KlipperScreen will
+# not expose it as a normal hotend.
+#
+# Mechanical calibration:
+# - Motor-to-leadscrew drive: direct 1:1.
+# - Stepper: 1.8 deg -> 200 full steps/revolution.
+# - Driver microstepping: 16 -> 3200 microsteps/revolution.
+# - Leadscrew: M4, single-start, 0.7 mm pitch -> 0.7 mm travel/revolution.
+# - Resolution: 0.00021875 mm plunger travel/microstep.
+#
+# Syringe and line geometry:
+# - Syringe: 10 cc, 15.6 mm inner diameter -> 191.134 uL/plunger mm.
+# - One motor revolution dispenses about 133.794 uL before compliance losses.
+# - One microstep dispenses about 0.0418 uL in the ideal geometry model.
+# - 10 cc theoretical plunger stroke is about 52.32 mm.
+# - Tube: 240 mm long, assumed 3.0 mm inner diameter -> about 1696 uL dead volume.
+# - Needle: assumed 18G, 13 mm long -> roughly 7 uL dead volume, depending on wall type.
+# - Empty tube + needle priming is therefore roughly 1.70 mL before material reaches the tip.
+
+[manual_stepper paste_pump]
+step_pin: PD2
+dir_pin: PD5
+enable_pin: !PD0
+microsteps: 16
+full_steps_per_rotation: 200
+rotation_distance: 0.7
+velocity: 2.0
+accel: 30
+
+[gcode_macro PASTE_PUSH]
+description: Push paste dispenser by screw/plunger travel in mm
+gcode:
+    {% set mm = params.MM|default(0.1)|float %}
+    {% set speed = params.SPEED|default(0.2)|float %}
+    {% set travel = mm if mm >= 0 else 0 - mm %}
+    MANUAL_STEPPER STEPPER=paste_pump ENABLE=1
+    MANUAL_STEPPER STEPPER=paste_pump SYNC=1
+    MANUAL_STEPPER STEPPER=paste_pump SET_POSITION=0
+    G4 P20
+    MANUAL_STEPPER STEPPER=paste_pump MOVE={travel} SPEED={speed} ACCEL=30 SYNC=1
+
+[gcode_macro PASTE_PULL]
+description: Pull back paste dispenser by screw/plunger travel in mm
+gcode:
+    {% set mm = params.MM|default(0.05)|float %}
+    {% set speed = params.SPEED|default(0.2)|float %}
+    {% set positive_mm = mm if mm >= 0 else 0 - mm %}
+    {% set travel = 0 - positive_mm %}
+    MANUAL_STEPPER STEPPER=paste_pump ENABLE=1
+    MANUAL_STEPPER STEPPER=paste_pump SYNC=1
+    MANUAL_STEPPER STEPPER=paste_pump SET_POSITION=0
+    G4 P20
+    MANUAL_STEPPER STEPPER=paste_pump MOVE={travel} SPEED={speed} ACCEL=30 SYNC=1
+
+[gcode_macro PASTE_PUSH_UL]
+description: Push paste dispenser by approximate volume in microliters
+gcode:
+    {% set ul = params.UL|default(10.0)|float %}
+    {% set rate = params.RATE|default(25.0)|float %}
+    {% set syringe_area = 191.134497 %}
+    {% set positive_ul = ul if ul >= 0 else 0 - ul %}
+    {% set positive_rate = rate if rate > 0 else 25.0 %}
+    {% set mm = positive_ul / syringe_area %}
+    {% set speed = positive_rate / syringe_area %}
+    PASTE_PUSH MM={mm} SPEED={speed}
+
+[gcode_macro PASTE_PULL_UL]
+description: Pull back paste dispenser by approximate volume in microliters
+gcode:
+    {% set ul = params.UL|default(5.0)|float %}
+    {% set rate = params.RATE|default(25.0)|float %}
+    {% set syringe_area = 191.134497 %}
+    {% set positive_ul = ul if ul >= 0 else 0 - ul %}
+    {% set positive_rate = rate if rate > 0 else 25.0 %}
+    {% set mm = positive_ul / syringe_area %}
+    {% set speed = positive_rate / syringe_area %}
+    PASTE_PULL MM={mm} SPEED={speed}
+
+[gcode_macro PASTE_DISABLE]
+description: Disable paste dispenser stepper
+gcode:
+    MANUAL_STEPPER STEPPER=paste_pump ENABLE=0

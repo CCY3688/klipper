@@ -1,0 +1,43 @@
+# Remote screw-driven paste/glue/solder-paste dispenser.
+# This is intentionally configured as a manual_stepper, not as an extruder,
+# so Klipper does not require heater/temperature pins and KlipperScreen will
+# not expose it as a normal hotend.
+
+[manual_stepper paste_pump]
+step_pin: PD2
+dir_pin: PD5
+enable_pin: !PD0
+microsteps: 16
+rotation_distance: 8.0
+velocity: 2.0
+accel: 30
+
+[gcode_macro PASTE_PUSH]
+description: Push paste dispenser by screw travel in mm
+gcode:
+    {% set mm = params.MM|default(1.0)|float %}
+    {% set speed = params.SPEED|default(1.0)|float %}
+    {% set travel = mm if mm >= 0 else 0 - mm %}
+    MANUAL_STEPPER STEPPER=paste_pump ENABLE=1
+    MANUAL_STEPPER STEPPER=paste_pump SYNC=1
+    MANUAL_STEPPER STEPPER=paste_pump SET_POSITION=0
+    G4 P20
+    MANUAL_STEPPER STEPPER=paste_pump MOVE={travel} SPEED={speed} ACCEL=30 SYNC=1
+
+[gcode_macro PASTE_PULL]
+description: Pull back paste dispenser by screw travel in mm
+gcode:
+    {% set mm = params.MM|default(0.5)|float %}
+    {% set speed = params.SPEED|default(1.0)|float %}
+    {% set positive_mm = mm if mm >= 0 else 0 - mm %}
+    {% set travel = 0 - positive_mm %}
+    MANUAL_STEPPER STEPPER=paste_pump ENABLE=1
+    MANUAL_STEPPER STEPPER=paste_pump SYNC=1
+    MANUAL_STEPPER STEPPER=paste_pump SET_POSITION=0
+    G4 P20
+    MANUAL_STEPPER STEPPER=paste_pump MOVE={travel} SPEED={speed} ACCEL=30 SYNC=1
+
+[gcode_macro PASTE_DISABLE]
+description: Disable paste dispenser stepper
+gcode:
+    MANUAL_STEPPER STEPPER=paste_pump ENABLE=0

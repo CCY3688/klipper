@@ -1,0 +1,23 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build 0x_report PDF",
+            "type": "shell",
+            "command": "${workspaceFolder}\\0x_report\\compile.bat",
+            "options": {
+                "cwd": "${workspaceFolder}\\0x_report"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            }
+        }
+    ]
+}

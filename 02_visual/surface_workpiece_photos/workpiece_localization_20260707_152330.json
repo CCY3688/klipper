@@ -1,0 +1,37 @@
+{
+  "created_at": "2026-07-07T15:23:30.438784",
+  "mesh_name": "机翼部分曲面2.STL",
+  "mesh_path": "d:\\ccy\\Desktop\\test\\机翼部分曲面2.STL",
+  "photo_path": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\surface_workpiece_photos\\workpiece_20260707_152211.jpg",
+  "image_size_px": {
+    "width": 640.0,
+    "height": 480.0
+  },
+  "manual_alignment": {
+    "contact_face": "y_min",
+    "contact_face_label": "Y- bed face",
+    "bed_u_axis": "Z",
+    "bed_v_axis": "X",
+    "height_axis": "Y",
+    "center_px": {
+      "x": 327.51774945662254,
+      "y": 240.6678500684505
+    },
+    "center_offset_px": {
+      "x": 7.517749456622539,
+      "y": 0.6678500684505053
+    },
+    "yaw_deg": -117.42857142857125,
+    "scale_px_per_mm": 2.667374285769448,
+    "locked_handle": null
+  },
+  "model_bounds_mm": {
+    "min_x": 167.5463,
+    "max_x": 285.326,
+    "min_y": 11.67781,
+    "max_y": 32.13264,
+    "min_z": 150.0304,
+    "max_z": 250.0304
+  },
+  "note": "Manual image-space STL top projection alignment. Apply camera-to-motion calibration before using this as a machine-coordinate pose."
+}

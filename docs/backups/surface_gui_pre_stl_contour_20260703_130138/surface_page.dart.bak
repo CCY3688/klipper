@@ -1,0 +1,2304 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../state/printer_controller.dart';
+import '../fluidd/widgets/fluidd_card.dart';
+import 'bed_face_selector.dart';
+import 'point_cloud_preview.dart';
+import 'registration_preview.dart';
+import 'stl_mesh.dart';
+import 'stl_parser.dart';
+import 'surface_registration.dart';
+import 'surface_scan_models.dart';
+import 'surface_preview.dart';
+
+class SurfacePage extends StatefulWidget {
+  const SurfacePage({super.key});
+
+  @override
+  State<SurfacePage> createState() => _SurfacePageState();
+}
+
+class _SurfacePageState extends State<SurfacePage> {
+  StlMesh? _mesh;
+  String? _meshName;
+  bool _loading = false;
+  String? _error;
+  BedFaceDirection _bedFaceDirection = BedFaceDirection.negZ; // 默认底面接触床
+
+  SurfaceScanResult? _scanResult;
+  SurfaceScanProgress? _scanProgress;
+  Timer? _scanPollTimer;
+  bool _scanActive = false;
+  bool _loadingScanResult = false;
+  String? _scanError;
+  bool _registering = false;
+  SurfaceRegistrationResult? _registrationResult;
+  String? _registrationError;
+
+  // 手动姿态调整
+  bool _manualPoseMode = false;
+  double _manualYaw = 0.0; // 绕Z轴旋转角度（度）
+
+  int _previewTab = 0;
+  SurfacePreviewMode _previewMode = SurfacePreviewMode.combined;
+  bool _showBounds = true;
+  bool _showAxes = true;
+  bool _showScanLines = true;
+  bool _showInvalidScanPoints = true;
+  bool _showBed = true;
+  bool _showRegisteredMesh = true;
+  bool _showRegisteredScan = true;
+
+  double _rotationX = -0.72;
+  double _rotationY = 0.0;
+  double _rotationZ = -0.72;
+  double _zoom = 1.0;
+  double _scanZScale = 1.0;
+  Offset _pan = Offset.zero;
+
+  double _gestureStartZoom = 1.0;
+  Offset _gestureStartPan = Offset.zero;
+  Offset _gestureStartFocal = Offset.zero;
+
+  final _scanXMin = TextEditingController(text: '0');
+  final _scanXMax = TextEditingController(text: '120');
+  final _scanYMin = TextEditingController(text: '0');
+  final _scanYMax = TextEditingController(text: '120');
+  final _scanStep = TextEditingController(text: '2.0');
+  final _scanZ = TextEditingController(text: '100.0');
+  final _scanSamples = TextEditingController(text: '5');
+  final _scanProfile = TextEditingController();
+  final _fitOffset = TextEditingController(text: '0.35');
+  final _safeZ = TextEditingController(text: '8.0');
+  final _lineSpacing = TextEditingController(text: '0.60');
+  String _scanResultMethod = 'median';
+
+  @override
+  void dispose() {
+    _scanPollTimer?.cancel();
+    _scanXMin.dispose();
+    _scanXMax.dispose();
+    _scanYMin.dispose();
+    _scanYMax.dispose();
+    _scanStep.dispose();
+    _scanZ.dispose();
+    _scanSamples.dispose();
+    _scanProfile.dispose();
+    _fitOffset.dispose();
+    _safeZ.dispose();
+    _lineSpacing.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickStl() async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'STL', extensions: ['stl']),
+      ],
+    );
+    if (file == null) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final bytes = await file.readAsBytes();
+      final mesh = StlParser.parse(bytes, name: file.name);
+      if (!mounted) return;
+      setState(() {
+        _mesh = mesh;
+        _meshName = file.name;
+        _loading = false;
+        _registrationResult = null;
+        _registrationError = null;
+      });
+      _resetView();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+      _showMessage('STL 加载失败: $e', isError: true);
+    }
+  }
+
+  void _showPending(String name) {
+    _showMessage('$name 接口待接入');
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.redAccent : Colors.blueGrey,
+      ),
+    );
+  }
+
+  double? _readDouble(TextEditingController controller, String label) {
+    final value = double.tryParse(controller.text.trim());
+    if (value == null) {
+      _showMessage('$label 需要输入数字', isError: true);
+      return null;
+    }
+    return value;
+  }
+
+  int? _readInt(TextEditingController controller, String label) {
+    final value = int.tryParse(controller.text.trim());
+    if (value == null) {
+      _showMessage('$label 需要输入整数', isError: true);
+      return null;
+    }
+    return value;
+  }
+
+  String _autoScanProfile() {
+    final now = DateTime.now();
+    String two(int value) => value.toString().padLeft(2, '0');
+    return 'surface-${now.year}${two(now.month)}${two(now.day)}-'
+        '${two(now.hour)}${two(now.minute)}${two(now.second)}';
+  }
+
+  bool get _hasActivePreview {
+    if (_previewTab == 0) return _mesh != null;
+    if (_previewTab == 1) return _scanResult != null;
+    return _mesh != null && _scanResult != null && _registrationResult != null;
+  }
+
+  Future<void> _startSurfaceScan() async {
+    if (_scanActive) return;
+
+    final xMin = _readDouble(_scanXMin, 'X 起点');
+    final xMax = _readDouble(_scanXMax, 'X 终点');
+    final yMin = _readDouble(_scanYMin, 'Y 起点');
+    final yMax = _readDouble(_scanYMax, 'Y 终点');
+    final spacing = _readDouble(_scanStep, '采样间距');
+    final scanZ = _readDouble(_scanZ, '扫描 Z');
+    final samples = _readInt(_scanSamples, '采样次数');
+    if (xMin == null ||
+        xMax == null ||
+        yMin == null ||
+        yMax == null ||
+        spacing == null ||
+        scanZ == null ||
+        samples == null) {
+      return;
+    }
+    if ((xMax - xMin).abs() <= 1e-6 || (yMax - yMin).abs() <= 1e-6) {
+      _showMessage('扫描范围需要包含有效的 X/Y 面积', isError: true);
+      return;
+    }
+    if (spacing <= 0) {
+      _showMessage('采样间距必须大于 0', isError: true);
+      return;
+    }
+    if (samples < 1) {
+      _showMessage('采样次数必须大于 0', isError: true);
+      return;
+    }
+
+    final printer = context.read<PrinterController>();
+    if (printer.phase != AppConnPhase.connected || !printer.klippyReady) {
+      _showMessage('请先连接并确认 Klipper 已就绪', isError: true);
+      return;
+    }
+    if (!printer.isHomed) {
+      _showMessage('开始曲面扫描前需要先归零 X/Y/Z', isError: true);
+      return;
+    }
+
+    final profile = _scanProfile.text.trim().isEmpty
+        ? _autoScanProfile()
+        : _scanProfile.text.trim();
+    _scanProfile.text = profile;
+
+    setState(() {
+      _scanActive = true;
+      _scanError = null;
+      _previewTab = 1;
+      _scanProgress = SurfaceScanProgress.fromJson({
+        'active': true,
+        'profile': profile,
+        'current': 0,
+        'total': 0,
+        'remaining': 0,
+      });
+    });
+    _startScanPolling(profile);
+
+    final error = await printer.startSurfaceScan(
+      xMin: math.min(xMin, xMax),
+      xMax: math.max(xMin, xMax),
+      yMin: math.min(yMin, yMax),
+      yMax: math.max(yMin, yMax),
+      spacing: spacing,
+      samples: samples,
+      scanZ: scanZ,
+      profile: profile,
+      result: _scanResultMethod,
+    );
+
+    if (!mounted) return;
+    if (error != null) {
+      _stopScanPolling();
+      setState(() {
+        _scanActive = false;
+        _scanError = error;
+      });
+      _showMessage(error, isError: true);
+      return;
+    }
+
+    await _refreshScanProgress(expectedProfile: profile);
+    if (!mounted) return;
+    final progress = _scanProgress;
+    if (!_scanActive) return;
+
+    if (progress == null || (!progress.active && !progress.complete)) {
+      final loaded = await _loadSurfaceScan(
+        profile: profile,
+        showMessage: false,
+        quietErrors: true,
+      );
+      if (!mounted) return;
+      if (!loaded) {
+        setState(() => _scanError = null);
+        return;
+      }
+      if (!mounted) return;
+      _stopScanPolling();
+      setState(() => _scanActive = false);
+      _showMessage('曲面扫描完成，已载入点云');
+    }
+  }
+
+  void _startScanPolling(String profile) {
+    _stopScanPolling();
+    _scanPollTimer = Timer.periodic(const Duration(milliseconds: 850), (_) {
+      _refreshScanProgress(expectedProfile: profile);
+    });
+  }
+
+  void _stopScanPolling() {
+    _scanPollTimer?.cancel();
+    _scanPollTimer = null;
+  }
+
+  Future<void> _refreshScanProgress({String? expectedProfile}) async {
+    final json = await context
+        .read<PrinterController>()
+        .fetchSurfaceScanProgress();
+    if (!mounted || json == null) return;
+
+    final progress = SurfaceScanProgress.fromJson(json);
+    setState(() {
+      _scanProgress = progress;
+      _scanError = null;
+    });
+
+    final sameProfile =
+        expectedProfile == null ||
+        progress.profile == null ||
+        progress.profile == expectedProfile;
+    if (_scanActive && sameProfile && progress.complete) {
+      final loaded = await _loadSurfaceScan(
+        profile: progress.profile ?? expectedProfile,
+        showMessage: false,
+      );
+      if (!mounted) return;
+      _stopScanPolling();
+      setState(() => _scanActive = false);
+      if (loaded) {
+        _showMessage('曲面扫描完成，已载入点云');
+      }
+    }
+  }
+
+  Future<void> _loadLatestSurfaceScan() async {
+    await _loadSurfaceScan(showMessage: true);
+  }
+
+  Future<void> _handleScanLoadSelection(String value) async {
+    if (value == 'latest') {
+      await _loadLatestSurfaceScan();
+    } else if (value == 'history') {
+      await _showScanListDialog();
+    }
+  }
+
+  Future<void> _showScanListDialog() async {
+    final printer = context.read<PrinterController>();
+    if (printer.phase != AppConnPhase.connected) {
+      _showMessage('需要先连接 Moonraker', isError: true);
+      return;
+    }
+
+    setState(() {
+      _loadingScanResult = true;
+      _scanError = null;
+    });
+
+    try {
+      final json = await printer.fetchSurfaceScanList();
+      if (!mounted) return;
+
+      final rawProfiles = json?['profiles'];
+      if (rawProfiles is! List || rawProfiles.isEmpty) {
+        setState(() => _loadingScanResult = false);
+        _showMessage('没有找到任何扫描结果', isError: true);
+        return;
+      }
+
+      final profiles =
+          rawProfiles
+              .whereType<Map>()
+              .map((p) => _ScanProfileInfo.fromJson(p.cast<String, dynamic>()))
+              .where((p) => p.profile.isNotEmpty)
+              .toList()
+            ..sort((a, b) => b.modified.compareTo(a.modified));
+
+      if (profiles.isEmpty) {
+        setState(() => _loadingScanResult = false);
+        _showMessage('没有找到可读取的扫描结果', isError: true);
+        return;
+      }
+
+      setState(() => _loadingScanResult = false);
+
+      if (!mounted) return;
+
+      final selected = await showDialog<_ScanProfileInfo>(
+        context: context,
+        builder: (context) => _ScanProfileDialog(profiles: profiles),
+      );
+
+      if (selected != null && mounted) {
+        await _loadSurfaceScan(profile: selected.profile, showMessage: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingScanResult = false;
+          _scanError = e.toString();
+        });
+        _showMessage('获取扫描列表失败: $e', isError: true);
+      }
+    }
+  }
+
+  Future<bool> _loadSurfaceScan({
+    String? profile,
+    required bool showMessage,
+    bool quietErrors = false,
+  }) async {
+    if (_loadingScanResult) return false;
+    setState(() {
+      _loadingScanResult = true;
+      if (!quietErrors) _scanError = null;
+    });
+
+    final json = await context.read<PrinterController>().fetchSurfaceScan(
+      profile: profile,
+    );
+    if (!mounted) return false;
+
+    if (json == null) {
+      setState(() {
+        _loadingScanResult = false;
+        if (!quietErrors) _scanError = '读取扫描结果失败';
+      });
+      if (showMessage && !quietErrors) {
+        _showMessage('读取扫描结果失败', isError: true);
+      }
+      return false;
+    }
+
+    try {
+      final result = SurfaceScanResult.fromJson(json);
+      setState(() {
+        _scanResult = result;
+        _loadingScanResult = false;
+        _previewTab = 1;
+        _registrationResult = null;
+        _registrationError = null;
+        _scanProfile.text = result.profile.isEmpty
+            ? _scanProfile.text
+            : result.profile;
+      });
+      if (showMessage) {
+        _showMessage('已载入扫描点云: ${result.profile}');
+      }
+      return true;
+    } catch (e) {
+      setState(() {
+        _loadingScanResult = false;
+        if (!quietErrors) _scanError = e.toString();
+      });
+      if (showMessage && !quietErrors) {
+        _showMessage('解析扫描结果失败: $e', isError: true);
+      }
+      return false;
+    }
+  }
+
+  Future<void> _selectBedFace() async {
+    final mesh = _mesh;
+    if (mesh == null) {
+      _showMessage('请先加载 STL 模型', isError: true);
+      return;
+    }
+
+    final selected = await showDialog<BedFaceDirection>(
+      context: context,
+      builder: (context) => BedFaceSelectorDialog(
+        mesh: mesh,
+        initialDirection: _bedFaceDirection,
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() {
+        _bedFaceDirection = selected;
+        _registrationResult = null; // 清除之前的配准结果
+        _registrationError = null;
+      });
+      _showMessage('已选择床面方向: ${selected.description}');
+    }
+  }
+
+  void _resetView() {
+    setState(() {
+      _rotationX = -0.72;
+      _rotationY = 0.0;
+      _rotationZ = -0.72;
+      _zoom = 1.0;
+      _scanZScale = 1.0;
+      _pan = Offset.zero;
+    });
+  }
+
+  Future<void> _registerSurface() async {
+    final mesh = _mesh;
+    final scan = _scanResult;
+    if (mesh == null || scan == null) {
+      _showMessage('Need both STL and scan point cloud', isError: true);
+      return;
+    }
+    if (scan.validPoints.length < 3) {
+      _showMessage('Point cloud needs at least 3 valid points', isError: true);
+      return;
+    }
+
+    setState(() {
+      _registering = true;
+      _registrationError = null;
+    });
+
+    try {
+      // 应用床面对齐变换
+      final alignTransform = _bedFaceDirection.getAlignmentTransform(
+        mesh.bounds,
+      );
+      final alignedMesh = mesh.transformed(alignTransform);
+
+      // 如果启用了手动姿态模式，应用手动yaw旋转
+      StlMesh finalMesh = alignedMesh;
+      Transform3D manualTransform = Transform3D.identity();
+
+      if (_manualPoseMode) {
+        final yawRadians = _manualYaw * math.pi / 180.0;
+
+        // 计算过滤后点云的中心（用于手动变换）
+        final validPoints = scan.validPoints;
+        final zValues = validPoints.map((p) => p.z ?? 0.0).toList()..sort();
+        final median = zValues.isNotEmpty ? zValues[zValues.length ~/ 2] : 0.0;
+        final p75 = zValues.isNotEmpty
+            ? zValues[(zValues.length * 3) ~/ 4]
+            : 0.0;
+        final zThreshold = median + (p75 - median) * 0.3;
+
+        // 过滤后的点
+        final filteredPoints = validPoints
+            .where((p) => (p.z ?? 0.0) > zThreshold)
+            .toList();
+        final useFiltered = filteredPoints.length >= 10;
+        final targetPoints = useFiltered ? filteredPoints : validPoints;
+
+        // 计算过滤后点云的中心
+        var sumX = 0.0, sumY = 0.0, sumZ = 0.0;
+        for (final p in targetPoints) {
+          sumX += p.x;
+          sumY += p.y;
+          sumZ += p.z ?? 0.0;
+        }
+        final filteredCenter = StlVector3(
+          sumX / targetPoints.length,
+          sumY / targetPoints.length,
+          sumZ / targetPoints.length,
+        );
+
+        debugPrint(
+          'Manual pose mode enabled: yaw = $_manualYaw degrees ($yawRadians radians)',
+        );
+        debugPrint(
+          'Aligned mesh center: ${alignedMesh.bounds.center.x}, ${alignedMesh.bounds.center.y}, ${alignedMesh.bounds.center.z}',
+        );
+        debugPrint(
+          'Original scan center: ${scan.bounds.center.x}, ${scan.bounds.center.y}, ${scan.bounds.center.z}',
+        );
+        debugPrint(
+          'Filtered scan center (${targetPoints.length} points, Z>${zThreshold.toStringAsFixed(1)}): ${filteredCenter.x}, ${filteredCenter.y}, ${filteredCenter.z}',
+        );
+
+        manualTransform = Transform3D.centeredYaw(
+          sourceCenter: alignedMesh.bounds.center,
+          targetCenter: filteredCenter, // 使用过滤后的中心！
+          yaw: yawRadians,
+        );
+        finalMesh = alignedMesh.transformed(manualTransform);
+        debugPrint(
+          'Manual transform applied, final mesh center: ${finalMesh.bounds.center.x}, ${finalMesh.bounds.center.y}, ${finalMesh.bounds.center.z}',
+        );
+      } else {
+        debugPrint('Manual pose mode disabled, using automatic registration');
+      }
+
+      // 执行配准
+      final result = const SurfaceRegistrationService().register(
+        mesh: finalMesh,
+        scan: scan,
+        options: SurfaceRegistrationOptions(
+          skipInitialSearch: _manualPoseMode, // 手动模式时跳过初始搜索
+          lockModelOrientation: true,
+        ),
+      );
+
+      debugPrint(
+        'Registration result: RMSE = ${result.rmse}, iterations = ${result.iterations}, matched pairs = ${result.matchedPairs}',
+      );
+
+      // 合并变换：最终变换 = 配准变换 * 手动变换 * 对齐变换
+      final combinedTransform = result.transform
+          .multiplied(manualTransform)
+          .multiplied(alignTransform);
+      final finalResult = SurfaceRegistrationResult(
+        initialTransform: result.initialTransform
+            .multiplied(manualTransform)
+            .multiplied(alignTransform),
+        transform: combinedTransform,
+        initialRmse: result.initialRmse,
+        rmse: result.rmse,
+        iterations: result.iterations,
+        matchedPairs: result.matchedPairs,
+        converged: result.converged,
+        thresholdMm: result.thresholdMm,
+        diagnostics: result.diagnostics,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _registrationResult = finalResult;
+        _registering = false;
+        _previewTab = 2; // 自动切换到配准结果标签页
+      });
+      _showMessage(finalResult.statusMessage, isError: !finalResult.passed);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _registrationError = e.toString();
+        _registering = false;
+      });
+      _showMessage('Registration failed: $e', isError: true);
+    }
+  }
+
+  void _setView(_PresetView view) {
+    setState(() {
+      switch (view) {
+        case _PresetView.isometric:
+          _rotationX = -0.72;
+          _rotationY = 0.0;
+          _rotationZ = -0.72;
+        case _PresetView.top:
+          _rotationX = 0;
+          _rotationY = 0;
+          _rotationZ = 0;
+        case _PresetView.front:
+          _rotationX = -math.pi / 2;
+          _rotationY = 0;
+          _rotationZ = 0;
+      }
+      _zoom = 1.0;
+      _pan = Offset.zero;
+    });
+  }
+
+  void _onScaleStart(ScaleStartDetails details) {
+    _gestureStartZoom = _zoom;
+    _gestureStartPan = _pan;
+    _gestureStartFocal = details.localFocalPoint;
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    if (!_hasActivePreview) return;
+
+    setState(() {
+      if (details.pointerCount > 1) {
+        _zoom = (_gestureStartZoom * details.scale).clamp(0.2, 8.0);
+        _pan = _gestureStartPan + details.localFocalPoint - _gestureStartFocal;
+      } else {
+        _rotationZ += details.focalPointDelta.dx * 0.01;
+        _rotationX = (_rotationX + details.focalPointDelta.dy * 0.01).clamp(
+          -math.pi,
+          math.pi,
+        );
+      }
+    });
+  }
+
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (!_hasActivePreview || event is! PointerScrollEvent) return;
+    GestureBinding.instance.pointerSignalResolver.register(event, (event) {
+      if (event is! PointerScrollEvent) return;
+      final factor = (1.0 - event.scrollDelta.dy * 0.001).clamp(0.75, 1.30);
+      setState(() {
+        _zoom = (_zoom * factor).clamp(0.2, 8.0).toDouble();
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 980;
+          if (isWide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: 360, child: _buildSidePanel(scrollable: true)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildPreviewPanel(fillHeight: true)),
+              ],
+            );
+          }
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildPreviewPanel(fillHeight: false),
+                const SizedBox(height: 16),
+                _buildSidePanel(scrollable: false),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSidePanel({required bool scrollable}) {
+    final content = Column(
+      children: [
+        _buildModelCard(),
+        _buildScanCard(),
+        _buildRegistrationCard(),
+        _buildGcodeCard(),
+      ],
+    );
+    return scrollable ? SingleChildScrollView(child: content) : content;
+  }
+
+  Widget _buildModelCard() {
+    return FluiddCard(
+      title: 'STL 模型',
+      scrollable: false,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.upload_file_outlined, size: 20),
+          tooltip: '导入 STL',
+          onPressed: _loading ? null : _pickStl,
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton.icon(
+            icon: _loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.upload_file, size: 18),
+            label: Text(_loading ? '正在读取...' : '选择 STL 文件'),
+            onPressed: _loading ? null : _pickStl,
+          ),
+          const SizedBox(height: 14),
+          _InfoRow(label: '文件', value: _meshName ?? '未选择'),
+          _InfoRow(label: '面片', value: _mesh?.faceCount.toString() ?? '--'),
+          _InfoRow(label: '顶点', value: _mesh?.vertexCount.toString() ?? '--'),
+          _InfoRow(label: '尺寸', value: _boundsText(_mesh)),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _error!,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanCard() {
+    final printer = context.watch<PrinterController>();
+    final canScan =
+        printer.phase == AppConnPhase.connected &&
+        printer.klippyReady &&
+        printer.isHomed &&
+        !_scanActive;
+    final progress = _scanProgress;
+
+    return FluiddCard(
+      title: '曲面扫描',
+      scrollable: false,
+      actions: [
+        IconButton(
+          icon: _loadingScanResult
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh, size: 20),
+          tooltip: '读取最近点云',
+          onPressed: _loadingScanResult ? null : _loadLatestSurfaceScan,
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _NumberField(label: 'X 起点', controller: _scanXMin),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _NumberField(label: 'X 终点', controller: _scanXMax),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _NumberField(label: 'Y 起点', controller: _scanYMin),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _NumberField(label: 'Y 终点', controller: _scanYMax),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _NumberField(label: '采样间距 mm', controller: _scanStep),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _NumberField(label: '扫描 Z mm', controller: _scanZ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _NumberField(label: '采样次数', controller: _scanSamples),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _ScanResultMethodField(
+                  value: _scanResultMethod,
+                  onChanged: (value) => setState(() {
+                    _scanResultMethod = value;
+                  }),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _TextField(label: '结果名称', controller: _scanProfile),
+          if (progress != null || _scanActive) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: progress?.hasWork == true ? progress!.percent : null,
+                backgroundColor: Colors.white12,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _scanStatusText(progress),
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (progress?.hasWork == true)
+                  Text(
+                    '${(progress!.percent * 100).toStringAsFixed(1)}%',
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+              ],
+            ),
+          ],
+          if (_scanResult != null) ...[
+            const SizedBox(height: 10),
+            _InfoRow(label: '点云', value: _scanResultStats(_scanResult!)),
+            _InfoRow(label: '高度', value: _scanZRangeText(_scanResult!)),
+          ],
+          if (_scanError != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _scanError!,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(child: _buildScanLoadMenu(filled: false)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  icon: _scanActive
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.radar, size: 18),
+                  label: Text(_scanActive ? '扫描中' : '开始扫描'),
+                  onPressed: canScan ? _startSurfaceScan : null,
+                ),
+              ),
+            ],
+          ),
+          if (!canScan && !_scanActive)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _scanUnavailableText(printer),
+                style: const TextStyle(color: Colors.white38, fontSize: 11),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanLoadMenu({required bool filled}) {
+    final icon = _loadingScanResult
+        ? const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.cloud_download_outlined, size: 18);
+    final button = filled
+        ? FilledButton.icon(
+            icon: icon,
+            label: const Text('读取点云'),
+            onPressed: () {},
+          )
+        : OutlinedButton.icon(
+            icon: icon,
+            label: const Text('读取点云'),
+            onPressed: () {},
+          );
+
+    return PopupMenuButton<String>(
+      enabled: !_loadingScanResult,
+      tooltip: '读取点云',
+      onSelected: _handleScanLoadSelection,
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: 'latest',
+          child: Row(
+            children: [
+              Icon(Icons.access_time, size: 16),
+              SizedBox(width: 8),
+              Text('读取最近'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'history',
+          child: Row(
+            children: [
+              Icon(Icons.history, size: 16),
+              SizedBox(width: 8),
+              Text('选择历史'),
+            ],
+          ),
+        ),
+      ],
+      child: IgnorePointer(child: button),
+    );
+  }
+
+  Widget _buildGcodeCard() {
+    return FluiddCard(
+      title: '曲面 GCode',
+      scrollable: false,
+      child: Column(
+        children: [
+          _NumberField(label: '贴合偏移 mm', controller: _fitOffset),
+          const SizedBox(height: 8),
+          _NumberField(label: '安全高度 mm', controller: _safeZ),
+          const SizedBox(height: 8),
+          _NumberField(label: '线间距 mm', controller: _lineSpacing),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.auto_fix_high, size: 18),
+                  label: const Text('生成'),
+                  onPressed: _mesh == null
+                      ? null
+                      : () => _showPending('曲面 GCode 生成'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                tooltip: '保存 GCode',
+                icon: const Icon(Icons.save_alt_outlined, size: 18),
+                onPressed: _mesh == null
+                    ? null
+                    : () => _showPending('GCode 保存'),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                tooltip: '上传 GCode',
+                icon: const Icon(Icons.cloud_upload_outlined, size: 18),
+                onPressed: _mesh == null
+                    ? null
+                    : () => _showPending('GCode 上传'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAngleButton(double angle) {
+    final isSelected = (_manualYaw - angle).abs() < 0.1;
+    return OutlinedButton(
+      onPressed: () {
+        setState(() {
+          _manualYaw = angle;
+          _registrationResult = null;
+        });
+      },
+      style: OutlinedButton.styleFrom(
+        backgroundColor: isSelected
+            ? const Color(0xFF3B82F6)
+            : Colors.transparent,
+        foregroundColor: isSelected ? Colors.white : const Color(0xFF60A5FA),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFF60A5FA),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(50, 32),
+      ),
+      child: Text(
+        angle == 0 ? '0°' : '${angle.toInt()}°',
+        style: const TextStyle(fontSize: 11),
+      ),
+    );
+  }
+
+  Widget _buildRegistrationCard() {
+    final mesh = _mesh;
+    final scan = _scanResult;
+    final canRegister =
+        mesh != null &&
+        scan != null &&
+        scan.validPoints.length >= 3 &&
+        !_registering;
+
+    return FluiddCard(
+      title: '配准结果',
+      scrollable: false,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.flip_camera_android, size: 20),
+          tooltip: '选择床面方向',
+          onPressed: _mesh == null ? null : _selectBedFace,
+        ),
+        IconButton(
+          icon: _registering
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.route_outlined, size: 20),
+          tooltip: '执行配准',
+          onPressed: canRegister ? _registerSurface : null,
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _InfoRow(label: '模型', value: mesh?.name ?? '--'),
+          _InfoRow(label: '点云', value: scan?.profile ?? '--'),
+          _InfoRow(
+            label: '床面方向',
+            value:
+                '${_bedFaceDirection.label} ${_bedFaceDirection.description}',
+          ),
+          const SizedBox(height: 8),
+          // 手动姿态调整
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _manualPoseMode
+                  ? const Color(0xFF1E3A5F)
+                  : const Color(0xFF1F2937),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: _manualPoseMode
+                    ? const Color(0xFF3B82F6)
+                    : Colors.white10,
+                width: _manualPoseMode ? 2 : 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.rotate_90_degrees_ccw,
+                      size: 16,
+                      color: _manualPoseMode
+                          ? const Color(0xFF60A5FA)
+                          : Colors.white60,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '手动姿态调整',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: _manualPoseMode,
+                      onChanged: (value) {
+                        setState(() {
+                          _manualPoseMode = value;
+                          if (!value) {
+                            _manualYaw = 0.0;
+                            // 清除配准结果，强制重新配准
+                            _registrationResult = null;
+                          }
+                        });
+                      },
+                      activeTrackColor: const Color(0xFF3B82F6),
+                    ),
+                  ],
+                ),
+                if (_manualPoseMode) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Text(
+                        'Yaw角度:',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Slider(
+                          value: _manualYaw,
+                          min: -180,
+                          max: 180,
+                          divisions: 360,
+                          label: '${_manualYaw.toStringAsFixed(1)}°',
+                          onChanged: (value) {
+                            setState(() {
+                              _manualYaw = value;
+                              // 清除配准结果，需要重新配准
+                              _registrationResult = null;
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 60,
+                        child: Text(
+                          '${_manualYaw.toStringAsFixed(1)}°',
+                          style: const TextStyle(
+                            color: Color(0xFF60A5FA),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildQuickAngleButton(-90),
+                      _buildQuickAngleButton(-45),
+                      _buildQuickAngleButton(0),
+                      _buildQuickAngleButton(45),
+                      _buildQuickAngleButton(90),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '提示: 调整后需重新点击"执行配准"按钮',
+                    style: TextStyle(
+                      color: Color(0xFF9CA3AF),
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          _InfoRow(
+            label: '状态',
+            value: _registrationResult == null
+                ? (_registering ? '配准中' : '未执行')
+                : (_registrationResult!.passed ? '通过' : '超限'),
+          ),
+          _InfoRow(
+            label: 'RMSE',
+            value: _registrationResult == null
+                ? '--'
+                : '${_registrationResult!.rmse.toStringAsFixed(3)} mm',
+          ),
+          _InfoRow(
+            label: '初值',
+            value: _registrationResult == null
+                ? '--'
+                : '${_registrationResult!.initialRmse.toStringAsFixed(3)} mm',
+          ),
+          _InfoRow(
+            label: '迭代',
+            value: _registrationResult?.iterations.toString() ?? '--',
+          ),
+          _InfoRow(
+            label: '匹配点',
+            value: _registrationResult?.matchedPairs.toString() ?? '--',
+          ),
+          if (_registrationResult != null) ...[
+            const SizedBox(height: 6),
+            _InfoRow(
+              label: '门限',
+              value:
+                  '${_registrationResult!.diagnostics.pairGateMm.toStringAsFixed(2)} mm',
+            ),
+            _InfoRow(
+              label: '初值方向',
+              value:
+                  '${_registrationResult!.diagnostics.bestInitialAxes} '
+                  '${_registrationResult!.diagnostics.bestInitialAngleDeg.toStringAsFixed(1)} deg',
+            ),
+            _InfoRow(
+              label: '近邻距',
+              value:
+                  '${_registrationResult!.diagnostics.ungatedNearestMinMm.toStringAsFixed(3)} / '
+                  '${_registrationResult!.diagnostics.ungatedNearestMeanMm.toStringAsFixed(3)} / '
+                  '${_registrationResult!.diagnostics.ungatedNearestMaxMm.toStringAsFixed(3)} mm',
+            ),
+            _InfoRow(
+              label: '模型采样',
+              value:
+                  '${_registrationResult!.diagnostics.modelSampleCount}/'
+                  '${_registrationResult!.diagnostics.totalTriangleCount}',
+            ),
+            _InfoRow(
+              label: '扫描采样',
+              value: _registrationResult!.diagnostics.scanSampleCount
+                  .toString(),
+            ),
+          ],
+          if (_registrationResult != null) ...[
+            const SizedBox(height: 8),
+            ..._registrationResult!.transform.formattedRows().map(
+              (row) => Text(
+                row,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
+          if (_registrationError != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _registrationError!,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            ),
+          ],
+          if (_registrationResult != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _registrationResult!.diagnostics.likelyCause,
+              style: const TextStyle(color: Colors.white54, fontSize: 11),
+            ),
+          ],
+          if (!canRegister && mesh != null && scan != null)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                '至少需要 3 个有效点且不能重复执行中',
+                style: TextStyle(color: Colors.white38, fontSize: 11),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewPanel({required bool fillHeight}) {
+    final panel = Card(
+      color: const Color(0xFF2C3034),
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildPreviewHeader(),
+          Expanded(child: _buildPreviewBody()),
+        ],
+      ),
+    );
+
+    if (fillHeight) return panel;
+    return SizedBox(height: 560, child: panel);
+  }
+
+  Widget _buildPreviewHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 10, 0),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '曲面预览',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              if (_previewTab == 0) ...[
+                _PreviewModeButton(
+                  icon: Icons.grid_on,
+                  tooltip: '网格',
+                  selected: _previewMode == SurfacePreviewMode.wireframe,
+                  onTap: () => setState(() {
+                    _previewMode = SurfacePreviewMode.wireframe;
+                  }),
+                ),
+                _PreviewModeButton(
+                  icon: Icons.view_in_ar_outlined,
+                  tooltip: '实体',
+                  selected: _previewMode == SurfacePreviewMode.shaded,
+                  onTap: () => setState(() {
+                    _previewMode = SurfacePreviewMode.shaded;
+                  }),
+                ),
+                _PreviewModeButton(
+                  icon: Icons.layers_outlined,
+                  tooltip: '网格实体',
+                  selected: _previewMode == SurfacePreviewMode.combined,
+                  onTap: () => setState(() {
+                    _previewMode = SurfacePreviewMode.combined;
+                  }),
+                ),
+              ] else if (_previewTab == 1) ...[
+                _PreviewModeButton(
+                  icon: Icons.polyline_outlined,
+                  tooltip: _showScanLines ? '隐藏点云连线' : '显示点云连线',
+                  selected: _showScanLines,
+                  onTap: () => setState(() => _showScanLines = !_showScanLines),
+                ),
+                _PreviewModeButton(
+                  icon: Icons.error_outline,
+                  tooltip: _showInvalidScanPoints ? '隐藏异常点' : '显示异常点',
+                  selected: _showInvalidScanPoints,
+                  onTap: () => setState(
+                    () => _showInvalidScanPoints = !_showInvalidScanPoints,
+                  ),
+                ),
+              ] else ...[
+                _PreviewModeButton(
+                  icon: Icons.grid_on,
+                  tooltip: '网格',
+                  selected: _previewMode == SurfacePreviewMode.wireframe,
+                  onTap: () => setState(() {
+                    _previewMode = SurfacePreviewMode.wireframe;
+                  }),
+                ),
+                _PreviewModeButton(
+                  icon: Icons.view_in_ar_outlined,
+                  tooltip: '实体',
+                  selected: _previewMode == SurfacePreviewMode.shaded,
+                  onTap: () => setState(() {
+                    _previewMode = SurfacePreviewMode.shaded;
+                  }),
+                ),
+                _PreviewModeButton(
+                  icon: Icons.layers_outlined,
+                  tooltip: '网格实体',
+                  selected: _previewMode == SurfacePreviewMode.combined,
+                  onTap: () => setState(() {
+                    _previewMode = SurfacePreviewMode.combined;
+                  }),
+                ),
+                const SizedBox(width: 4),
+                _PreviewModeButton(
+                  icon: Icons.grid_4x4,
+                  tooltip: _showBed ? '隐藏打印床' : '显示打印床',
+                  selected: _showBed,
+                  onTap: () => setState(() => _showBed = !_showBed),
+                ),
+                _PreviewModeButton(
+                  icon: Icons.view_in_ar_outlined,
+                  tooltip: _showRegisteredMesh ? '隐藏模型' : '显示模型',
+                  selected: _showRegisteredMesh,
+                  onTap: () => setState(
+                    () => _showRegisteredMesh = !_showRegisteredMesh,
+                  ),
+                ),
+                _PreviewModeButton(
+                  icon: Icons.scatter_plot,
+                  tooltip: _showRegisteredScan ? '隐藏点云' : '显示点云',
+                  selected: _showRegisteredScan,
+                  onTap: () => setState(
+                    () => _showRegisteredScan = !_showRegisteredScan,
+                  ),
+                ),
+              ],
+              const SizedBox(width: 6),
+              IconButton(
+                tooltip: _showBounds ? '隐藏包围盒' : '显示包围盒',
+                icon: Icon(
+                  Icons.crop_free,
+                  color: _showBounds ? Colors.blue : Colors.grey,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _showBounds = !_showBounds),
+              ),
+              IconButton(
+                tooltip: _showAxes ? '隐藏坐标轴' : '显示坐标轴',
+                icon: Icon(
+                  Icons.threed_rotation,
+                  color: _showAxes ? Colors.blue : Colors.grey,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _showAxes = !_showAxes),
+              ),
+              PopupMenuButton<_PresetView>(
+                tooltip: '视图方向',
+                icon: const Icon(Icons.camera_alt_outlined, color: Colors.grey),
+                onSelected: _setView,
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: _PresetView.isometric,
+                    child: Text('等轴测'),
+                  ),
+                  PopupMenuItem(value: _PresetView.top, child: Text('俯视')),
+                  PopupMenuItem(value: _PresetView.front, child: Text('正视')),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.grey, size: 20),
+                tooltip: '重置视图',
+                onPressed: _resetView,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _PreviewTab(
+                icon: Icons.view_in_ar_outlined,
+                label: 'STL 模型',
+                selected: _previewTab == 0,
+                onTap: () => setState(() => _previewTab = 0),
+              ),
+              const SizedBox(width: 4),
+              _PreviewTab(
+                icon: Icons.scatter_plot_outlined,
+                label: '扫描点云',
+                selected: _previewTab == 1,
+                onTap: () => setState(() => _previewTab = 1),
+              ),
+              const SizedBox(width: 4),
+              _PreviewTab(
+                icon: Icons.adjust_outlined,
+                label: '配准结果',
+                selected: _previewTab == 2,
+                onTap: () => setState(() => _previewTab = 2),
+                enabled: _registrationResult != null,
+              ),
+            ],
+          ),
+          if (_previewTab == 1) ...[
+            const SizedBox(height: 8),
+            _ZScaleControl(
+              value: _scanZScale,
+              onChanged: (value) => setState(() => _scanZScale = value),
+              onReset: () => setState(() => _scanZScale = 1.0),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewBody() {
+    final hasPreview = _hasActivePreview;
+
+    Widget previewWidget;
+    if (_previewTab == 0) {
+      previewWidget = SurfacePreview(
+        mesh: _mesh,
+        mode: _previewMode,
+        showBounds: _showBounds,
+        showAxes: _showAxes,
+        rotationX: _rotationX,
+        rotationY: _rotationY,
+        rotationZ: _rotationZ,
+        zoom: _zoom,
+        pan: _pan,
+      );
+    } else if (_previewTab == 1) {
+      previewWidget = PointCloudPreview(
+        result: _scanResult,
+        showBounds: _showBounds,
+        showAxes: _showAxes,
+        showInvalid: _showInvalidScanPoints,
+        showLines: _showScanLines,
+        rotationX: _rotationX,
+        rotationY: _rotationY,
+        rotationZ: _rotationZ,
+        zoom: _zoom,
+        zScale: _scanZScale,
+        pan: _pan,
+      );
+    } else {
+      previewWidget = RegistrationPreview(
+        mesh: _mesh,
+        scan: _scanResult,
+        registration: _registrationResult,
+        showBed: _showBed,
+        showMesh: _showRegisteredMesh,
+        showScan: _showRegisteredScan,
+        showAxes: _showAxes,
+        meshMode: _previewMode,
+        rotationX: _rotationX,
+        rotationY: _rotationY,
+        rotationZ: _rotationZ,
+        zoom: _zoom,
+        pan: _pan,
+      );
+    }
+
+    return ClipRect(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Listener(
+              onPointerSignal: _onPointerSignal,
+              onPointerMove: (event) {
+                if (!hasPreview) return;
+                final isPanButton =
+                    event.buttons == kSecondaryMouseButton ||
+                    event.buttons == kMiddleMouseButton;
+                if (isPanButton) {
+                  setState(() => _pan += event.delta);
+                }
+              },
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onScaleStart: _onScaleStart,
+                onScaleUpdate: _onScaleUpdate,
+                onDoubleTap: _resetView,
+                child: MouseRegion(
+                  cursor: !hasPreview
+                      ? SystemMouseCursors.basic
+                      : SystemMouseCursors.grab,
+                  child: previewWidget,
+                ),
+              ),
+            ),
+          ),
+          if (_previewTab == 0 && _mesh == null && !_loading)
+            Positioned.fill(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.view_in_ar_outlined,
+                      size: 64,
+                      color: Colors.blueGrey.shade300,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.upload_file, size: 18),
+                      label: const Text('导入 STL'),
+                      onPressed: _pickStl,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (_previewTab == 1 && _scanResult == null && !_loadingScanResult)
+            Positioned.fill(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.scatter_plot_outlined,
+                      size: 64,
+                      color: Colors.blueGrey.shade300,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildScanLoadMenu(filled: true),
+                  ],
+                ),
+              ),
+            ),
+          if (_previewTab == 2 && _registrationResult == null)
+            const Positioned.fill(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.adjust_outlined,
+                      size: 64,
+                      color: Color(0xFF6B7280),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      '请先执行配准',
+                      style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (_loading || _loadingScanResult)
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Color(0x66000000),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          if (_previewTab == 0 && _mesh != null)
+            Positioned(
+              left: 14,
+              bottom: 14,
+              child: _PreviewStats(mesh: _mesh!, zoom: _zoom),
+            ),
+          if (_previewTab == 1 && _scanResult != null)
+            Positioned(
+              left: 14,
+              bottom: 14,
+              child: _ScanPreviewStats(
+                result: _scanResult!,
+                zoom: _zoom,
+                zScale: _scanZScale,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _boundsText(StlMesh? mesh) {
+    if (mesh == null) return '--';
+    final b = mesh.bounds;
+    return '${b.width.toStringAsFixed(1)} x '
+        '${b.depth.toStringAsFixed(1)} x '
+        '${b.height.toStringAsFixed(1)} mm';
+  }
+
+  String _scanStatusText(SurfaceScanProgress? progress) {
+    if (progress == null) return _scanActive ? '正在等待扫描进度...' : '--';
+    if (progress.active) {
+      if (!progress.hasWork) return '扫描已启动，等待 Klipper 返回点数...';
+      return '扫描 ${progress.current}/${progress.total}，剩余 ${progress.remaining}';
+    }
+    if (progress.complete) {
+      return '扫描完成 ${progress.current}/${progress.total}';
+    }
+    return progress.profile == null ? '当前无活动扫描' : '最近扫描: ${progress.profile}';
+  }
+
+  String _scanUnavailableText(PrinterController printer) {
+    if (printer.phase != AppConnPhase.connected) return '需要先连接 Moonraker';
+    if (!printer.klippyReady) return 'Klipper 尚未就绪';
+    if (!printer.isHomed) return '扫描前需要先归零 X/Y/Z';
+    return '扫描暂不可用';
+  }
+
+  String _scanResultStats(SurfaceScanResult result) {
+    final summary = result.summary;
+    return '${summary.validCount}/${summary.pointCount} 有效'
+        '${summary.invalidCount > 0 ? '，${summary.invalidCount} 异常' : ''}';
+  }
+
+  String _scanZRangeText(SurfaceScanResult result) {
+    final min = result.summary.zMin;
+    final max = result.summary.zMax;
+    if (min == null || max == null) return '--';
+    return '${min.toStringAsFixed(2)} - ${max.toStringAsFixed(2)} mm';
+  }
+}
+
+enum _PresetView { isometric, top, front }
+
+int? _asInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString());
+}
+
+double? _asDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
+}
+
+class _NumberField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+
+  const _NumberField({required this.label, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(
+        decimal: true,
+        signed: true,
+      ),
+      style: const TextStyle(color: Colors.white, fontSize: 13),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+        filled: true,
+        fillColor: Colors.black26,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: const BorderSide(color: Colors.blue),
+        ),
+      ),
+    );
+  }
+}
+
+class _TextField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+
+  const _TextField({required this.label, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white, fontSize: 13),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+        filled: true,
+        fillColor: Colors.black26,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: const BorderSide(color: Colors.blue),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScanResultMethodField extends StatelessWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const _ScanResultMethodField({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      dropdownColor: const Color(0xFF2C3034),
+      style: const TextStyle(color: Colors.white, fontSize: 13),
+      decoration: InputDecoration(
+        labelText: '结果方法',
+        labelStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+        filled: true,
+        fillColor: Colors.black26,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: const BorderSide(color: Colors.blue),
+        ),
+      ),
+      items: const [
+        DropdownMenuItem(value: 'median', child: Text('中位数')),
+        DropdownMenuItem(value: 'average', child: Text('平均值')),
+        DropdownMenuItem(value: 'min', child: Text('最小值')),
+        DropdownMenuItem(value: 'max', child: Text('最大值')),
+      ],
+      onChanged: (next) {
+        if (next != null) onChanged(next);
+      },
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 48,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewModeButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PreviewModeButton({
+    required this.icon,
+    required this.tooltip,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        visualDensity: VisualDensity.compact,
+        icon: Icon(icon, color: selected ? Colors.blue : Colors.grey, size: 20),
+        onPressed: onTap,
+      ),
+    );
+  }
+}
+
+class _PreviewTab extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool enabled;
+
+  const _PreviewTab({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = selected
+        ? const Color(0xFF3A3F44)
+        : const Color(0xFF24282C);
+
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              height: 34,
+              padding: const EdgeInsets.symmetric(horizontal: 13),
+              decoration: BoxDecoration(
+                color: enabled ? backgroundColor : const Color(0xFF1C2024),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(5),
+                ),
+                border: Border.all(
+                  color: selected ? Colors.white12 : Colors.white10,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 16,
+                    color: enabled
+                        ? (selected ? Colors.blue : Colors.white54)
+                        : Colors.white24,
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: enabled
+                          ? (selected ? Colors.white : Colors.white60)
+                          : Colors.white30,
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              Positioned(
+                left: 1,
+                right: 1,
+                bottom: 0,
+                child: Container(height: 1, color: backgroundColor),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ZScaleControl extends StatelessWidget {
+  final double value;
+  final ValueChanged<double> onChanged;
+  final VoidCallback onReset;
+
+  const _ZScaleControl({
+    required this.value,
+    required this.onChanged,
+    required this.onReset,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF24282C),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+        child: Row(
+          children: [
+            const Icon(Icons.height, color: Colors.blue, size: 18),
+            const SizedBox(width: 8),
+            const Text(
+              'Z刻度',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 44,
+              child: Text(
+                '${value.toStringAsFixed(1)}x',
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 12,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 3,
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 12,
+                  ),
+                ),
+                child: Slider(
+                  min: 0.25,
+                  max: 6.0,
+                  divisions: 23,
+                  value: value.clamp(0.25, 6.0).toDouble(),
+                  onChanged: onChanged,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: '重置Z刻度',
+              icon: const Icon(Icons.restart_alt, size: 18),
+              color: Colors.white54,
+              visualDensity: VisualDensity.compact,
+              onPressed: onReset,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewStats extends StatelessWidget {
+  final StlMesh mesh;
+  final double zoom;
+
+  const _PreviewStats({required this.mesh, required this.zoom});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xEEFFFFFF),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFC5D0DB)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: DefaultTextStyle(
+          style: const TextStyle(
+            color: Color(0xFF2F3C4C),
+            fontSize: 11,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${mesh.faceCount} faces'),
+              const SizedBox(width: 12),
+              Text('Z ${mesh.bounds.height.toStringAsFixed(2)} mm'),
+              const SizedBox(width: 12),
+              Text('${zoom.toStringAsFixed(2)}x'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScanPreviewStats extends StatelessWidget {
+  final SurfaceScanResult result;
+  final double zoom;
+  final double zScale;
+
+  const _ScanPreviewStats({
+    required this.result,
+    required this.zoom,
+    required this.zScale,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = result.summary;
+    final zRange = summary.zRange?.toStringAsFixed(2) ?? '--';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xEEFFFFFF),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFC5D0DB)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: DefaultTextStyle(
+          style: const TextStyle(
+            color: Color(0xFF2F3C4C),
+            fontSize: 11,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${summary.validCount}/${summary.pointCount} 点'),
+              const SizedBox(width: 12),
+              Text('Z 范围 $zRange mm'),
+              const SizedBox(width: 12),
+              Text('Z ${zScale.toStringAsFixed(1)}x'),
+              const SizedBox(width: 12),
+              Text('${zoom.toStringAsFixed(2)}x'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScanProfileInfo {
+  final String profile;
+  final int pointCount;
+  final int invalidCount;
+  final double modified;
+  final String? jsonPath;
+  final String? csvPath;
+
+  _ScanProfileInfo({
+    required this.profile,
+    required this.pointCount,
+    required this.invalidCount,
+    required this.modified,
+    required this.jsonPath,
+    required this.csvPath,
+  });
+
+  factory _ScanProfileInfo.fromJson(Map<String, dynamic> json) {
+    return _ScanProfileInfo(
+      profile: json['profile']?.toString() ?? '',
+      pointCount: _asInt(json['point_count']) ?? 0,
+      invalidCount: _asInt(json['invalid_count']) ?? 0,
+      modified: _asDouble(json['modified']) ?? 0,
+      jsonPath: json['json_path']?.toString(),
+      csvPath: json['csv_path']?.toString(),
+    );
+  }
+
+  String get formattedTime {
+    if (modified <= 0) return '--';
+    final date = DateTime.fromMillisecondsSinceEpoch((modified * 1000).round());
+    return '${date.month}/${date.day} '
+        '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String get fileHint {
+    final path = jsonPath ?? csvPath;
+    if (path == null || path.isEmpty) return '';
+    return path.split(RegExp(r'[/\\]')).last;
+  }
+}
+
+class _ScanProfileDialog extends StatelessWidget {
+  final List<_ScanProfileInfo> profiles;
+
+  const _ScanProfileDialog({required this.profiles});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF2C3034),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.white10)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.history, color: Colors.blue, size: 20),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '选择扫描点云',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '${profiles.length} 个历史文件',
+                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    color: Colors.white60,
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: profiles.length,
+                itemBuilder: (context, index) {
+                  final info = profiles[index];
+                  return ListTile(
+                    dense: true,
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.shade800,
+                      radius: 16,
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      info.profile,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Wrap(
+                      spacing: 8,
+                      runSpacing: 2,
+                      children: [
+                        Text(
+                          info.formattedTime,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          '${info.pointCount} 点',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (info.invalidCount > 0) ...[
+                          Text(
+                            '${info.invalidCount} 异常',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                        if (info.fileHint.isNotEmpty)
+                          Text(
+                            info.fileHint,
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                    onTap: () => Navigator.pop(context, info),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

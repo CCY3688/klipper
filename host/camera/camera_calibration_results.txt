@@ -1,0 +1,26 @@
+==================================================
+         相机标定参数导出结果 (Camera Calibration)  
+==================================================
+
+[图像分辨率 Image Size (Height, Width)]
+480 x 640 像素
+
+[物理焦距 Focal Length (fx, fy)]
+fx = 871.9173, fy = 871.3739
+
+[主点坐标 Principal Point (cx, cy)]
+cx = 309.6717, cy = 242.0567
+
+[内参矩阵 Intrinsic Matrix (K)]
+  871.9173   0.0000   0.0000
+  0.0000   871.3739   0.0000
+  309.6717   242.0567   1.0000
+
+[径向畸变系数 Radial Distortion (k1, k2, k3)]
+k1 = 0.042534, k2 = -0.095590
+
+[切向畸变系数 Tangential Distortion (p1, p2)]
+p1 = 0.000000, p2 = 0.000000
+
+[标定质量评估 Calibration Quality]
+总体平均重投影误差 (Mean Reprojection Error): 0.2151 像素

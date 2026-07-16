@@ -1,0 +1,62 @@
+{
+  "method": "stage2_error_grid_summary",
+  "sample_count": 150,
+  "valid_sample_count": 144,
+  "z_levels_mm": [
+    55.0,
+    65.0,
+    75.0
+  ],
+  "rms_xy_error_mm": 3.09537241564496,
+  "mean_abs_error_mm": [
+    2.4533744066204775,
+    1.139468835453214,
+    1.4044763734567258
+  ],
+  "max_abs_error_mm": [
+    4.695206480005766,
+    2.4810274951843,
+    3.8599670958427623
+  ],
+  "max_xy_error_mm": 4.81976970240105,
+  "mean_z_error_mm": 0.8790523563036078,
+  "layer_stats": [
+    {
+      "z_mm": 55.0,
+      "valid_sample_count": 50,
+      "rms_xy_error_mm": 3.2514032692303947,
+      "mean_abs_xy_error_mm": [
+        2.5672922953364257,
+        1.2342007097471877
+      ],
+      "max_xy_error_mm": 4.802610197452133,
+      "mean_z_error_mm": 0.4892965913136527
+    },
+    {
+      "z_mm": 65.0,
+      "valid_sample_count": 48,
+      "rms_xy_error_mm": 3.0628374316581186,
+      "mean_abs_xy_error_mm": [
+        2.448548167743588,
+        1.1017065236333472
+      ],
+      "max_xy_error_mm": 4.81976970240105,
+      "mean_z_error_mm": 0.7646307131736432
+    },
+    {
+      "z_mm": 75.0,
+      "valid_sample_count": 46,
+      "rms_xy_error_mm": 2.9519474229818603,
+      "mean_abs_xy_error_mm": [
+        2.334586689887725,
+        1.0759035583370138
+      ],
+      "max_xy_error_mm": 4.565219593999836,
+      "mean_z_error_mm": 1.4220964241239569
+    }
+  ],
+  "created_at": 1782974017.3546531,
+  "samples_csv": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage2_error_grid\\stage2_error_grid_samples.csv",
+  "summary_image": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage2_error_grid\\stage2_error_grid_summary.png",
+  "capture_contact_sheet": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage2_error_grid\\stage2_error_grid_contact_sheet.jpg"
+}

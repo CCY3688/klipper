@@ -1,0 +1,196 @@
+{
+  "method": "commanded_points_2d_orthogonal_plus_z_offset",
+  "source": "P_machine ~= Axy * P_board_up + [tx, ty, tz]",
+  "xy_transform": "orthogonal",
+  "xy_handedness": "mirrored",
+  "xy_determinant": -1.0,
+  "board_to_machine_axis_mapping": [
+    "Board X -> +Machine Y",
+    "Board Y -> +Machine X"
+  ],
+  "machine_to_board_axis_mapping": [
+    "Machine X -> +Board Y",
+    "Machine Y -> +Board X"
+  ],
+  "board_origin": "center",
+  "valid_sample_count": 5,
+  "yaw_rad": 1.48461353582443,
+  "yaw_deg": 85.06208981073408,
+  "tx_mm": -6.330199041206712,
+  "ty_mm": 3.3458584549787647,
+  "tz_mm": -67.17043468656547,
+  "T_machine_from_board_up": [
+    [
+      0.08607614385200502,
+      0.9962885613413258,
+      0.0,
+      -6.330199041206712
+    ],
+    [
+      0.996288561341326,
+      -0.0860761438520052,
+      0.0,
+      3.3458584549787647
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -67.17043468656547
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "rms_error_mm": 4.078658224506581,
+  "mean_abs_error_mm": [
+    1.8038778781363007,
+    1.5496019911765528,
+    1.7633319290149359
+  ],
+  "max_abs_error_mm": [
+    4.493452639445337,
+    3.8740049779413823,
+    3.5158683879029127
+  ],
+  "residuals": [
+    {
+      "sample_id": "0",
+      "name": "center",
+      "cmd_machine_mm": [
+        0.0,
+        0.0,
+        75.0
+      ],
+      "board_up_mm": [
+        -2.539217238099257,
+        6.5568583912822795,
+        145.0588521952475
+      ],
+      "estimated_machine_mm": [
+        -0.016242055895412832,
+        0.2516762797945198,
+        77.88841750868204
+      ],
+      "residual_mm": [
+        -0.016242055895412832,
+        0.2516762797945198,
+        2.888417508682039
+      ],
+      "residual_norm_mm": 2.89940691498311
+    },
+    {
+      "sample_id": "1",
+      "name": "x_plus",
+      "cmd_machine_mm": [
+        40.0,
+        0.0,
+        75.0
+      ],
+      "board_up_mm": [
+        0.6010955082859546,
+        41.94066662982185,
+        143.25533451584633
+      ],
+      "estimated_machine_mm": [
+        35.50654736055466,
+        0.33463218008017215,
+        76.08489982928086
+      ],
+      "residual_mm": [
+        -4.493452639445337,
+        0.33463218008017215,
+        1.0848998292808574
+      ],
+      "residual_norm_mm": 4.634663197952696
+    },
+    {
+      "sample_id": "2",
+      "name": "y_plus",
+      "cmd_machine_mm": [
+        0.0,
+        40.0,
+        75.0
+      ],
+      "board_up_mm": [
+        33.240986000102566,
+        3.920686236940801,
+        142.60544717113993
+      ],
+      "estimated_machine_mm": [
+        0.437191701993088,
+        36.12599502205862,
+        75.43501248457446
+      ],
+      "residual_mm": [
+        0.437191701993088,
+        -3.8740049779413823,
+        0.4350124845744574
+      ],
+      "residual_norm_mm": 3.922790717734234
+    },
+    {
+      "sample_id": "3",
+      "name": "x_minus",
+      "cmd_machine_mm": [
+        -40.0,
+        0.0,
+        75.0
+      ],
+      "board_up_mm": [
+        -5.768630357837354,
+        -29.445823338288864,
+        141.27797325193106
+      ],
+      "estimated_machine_mm": [
+        -36.16327746893161,
+        0.13322094036637244,
+        74.10753856536559
+      ],
+      "residual_mm": [
+        3.8367225310683892,
+        0.13322094036637244,
+        -0.8924614346344129
+      ],
+      "residual_norm_mm": 3.9414052077488355
+    },
+    {
+      "sample_id": "4",
+      "name": "y_minus",
+      "cmd_machine_mm": [
+        0.0,
+        -40.0,
+        75.0
+      ],
+      "board_up_mm": [
+        -39.47704082885076,
+        10.00112952748032,
+        138.65456629866256
+      ],
+      "estimated_machine_mm": [
+        0.2357804622792754,
+        -36.84552442229968,
+        71.48413161209709
+      ],
+      "residual_mm": [
+        0.2357804622792754,
+        3.1544755777003175,
+        -3.5158683879029127
+      ],
+      "residual_norm_mm": 4.729443848673479
+    }
+  ],
+  "created_at": 1782958405.2486572,
+  "board_origin_note": "ChArUco center; legacy corner-origin CSV samples are shifted before fitting",
+  "charuco_center_offset_from_corner_mm": [
+    56.0,
+    56.0,
+    0.0
+  ],
+  "summary_image": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage0_machine_frame\\stage0_coordinate_summary.png",
+  "photo_overlay_image": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage0_machine_frame\\stage0_photo_overlay.png",
+  "capture_contact_sheet": "D:\\ccy\\Desktop\\Delta_Robot\\1 writer_bot\\flutter\\1.0\\write_bot\\02_visual\\stage0_machine_frame\\stage0_capture_contact_sheet.jpg"
+}

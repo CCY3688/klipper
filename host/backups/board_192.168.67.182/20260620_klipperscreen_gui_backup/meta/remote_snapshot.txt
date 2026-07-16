@@ -1,0 +1,279 @@
+﻿date=2026-06-20T20:26:35+08:00
+kernel=Linux umeko-device 6.7.5-rv2-umeko-msm8953+ #7 SMP PREEMPT Fri Feb 23 19:56:25 CST 2024 aarch64 aarch64 aarch64 GNU/Linux
+
+klipperscreen_head=4395424fb09c43cdbfbf674140d7221f61b43d68
+
+klipperscreen_status_begin
+ D styles/colorized/images/battery-0.svg
+ D styles/colorized/images/battery-100.svg
+ D styles/colorized/images/battery-25.svg
+ D styles/colorized/images/battery-50.svg
+ D styles/colorized/images/battery-75.svg
+ D styles/colorized/images/battery-charging.svg
+ D styles/colorized/images/battery-unknown.svg
+ M styles/colorized/images/bed-level-b-l.svg
+ M styles/colorized/images/bed-level-b-m.svg
+ M styles/colorized/images/bed-level-b-r.svg
+ D styles/colorized/images/bed-level-center.svg
+ M styles/colorized/images/bed-level-l-m.svg
+ M styles/colorized/images/bed-level-r-m.svg
+ M styles/colorized/images/bed-level-t-l.svg
+ M styles/colorized/images/bed-level-t-m.svg
+ M styles/colorized/images/bed-level-t-r.svg
+ D styles/colorized/images/ccw.svg
+ D styles/colorized/images/cw.svg
+ D styles/colorized/images/lock.svg
+ D styles/colorized/images/notification_important.svg
+ D styles/colorized/images/notifications.svg
+ D styles/colorized/images/notifications_active.svg
+ D styles/colorized/images/printer.svg
+ D styles/colorized/images/wifi_excellent.svg
+ D styles/colorized/images/wifi_fair.svg
+ D styles/colorized/images/wifi_good.svg
+ D styles/colorized/images/wifi_weak.svg
+ M styles/colorized/images/z-closer.svg
+ M styles/colorized/images/z-farther.svg
+ M styles/colorized/style.css
+ D styles/material-dark/images/battery-0.svg
+ D styles/material-dark/images/battery-100.svg
+ D styles/material-dark/images/battery-25.svg
+ D styles/material-dark/images/battery-50.svg
+ D styles/material-dark/images/battery-75.svg
+ D styles/material-dark/images/battery-charging.svg
+ D styles/material-dark/images/battery-unknown.svg
+ D styles/material-dark/images/bed-level-center.svg
+ D styles/material-dark/images/ccw.svg
+ D styles/material-dark/images/cw.svg
+ M styles/material-dark/images/emergency.svg
+ M styles/material-dark/images/info.svg
+ D styles/material-dark/images/lock.svg
+ D styles/material-dark/images/notification_important.svg
+ D styles/material-dark/images/notifications.svg
+ D styles/material-dark/images/notifications_active.svg
+ D styles/material-dark/images/printer.svg
+ M styles/material-dark/images/warning.svg
+ D styles/material-dark/images/wifi_excellent.svg
+ D styles/material-dark/images/wifi_fair.svg
+ D styles/material-dark/images/wifi_good.svg
+ D styles/material-dark/images/wifi_weak.svg
+ M styles/material-dark/style.css
+ D styles/material-darker/images/battery-0.svg
+ D styles/material-darker/images/battery-100.svg
+ D styles/material-darker/images/battery-25.svg
+ D styles/material-darker/images/battery-50.svg
+ D styles/material-darker/images/battery-75.svg
+ D styles/material-darker/images/battery-charging.svg
+ D styles/material-darker/images/battery-unknown.svg
+ D styles/material-darker/images/bed-level-center.svg
+ D styles/material-darker/images/ccw.svg
+ D styles/material-darker/images/cw.svg
+ M styles/material-darker/images/emergency.svg
+ M styles/material-darker/images/info.svg
+ D styles/material-darker/images/lock.svg
+ D styles/material-darker/images/notification_important.svg
+ D styles/material-darker/images/notifications.svg
+ D styles/material-darker/images/notifications_active.svg
+ D styles/material-darker/images/printer.svg
+ M styles/material-darker/images/warning.svg
+ D styles/material-darker/images/wifi_excellent.svg
+ D styles/material-darker/images/wifi_fair.svg
+ D styles/material-darker/images/wifi_good.svg
+ D styles/material-darker/images/wifi_weak.svg
+ M styles/material-darker/style.css
+ D styles/material-light/images/battery-0.svg
+ D styles/material-light/images/battery-100.svg
+ D styles/material-light/images/battery-25.svg
+ D styles/material-light/images/battery-50.svg
+ D styles/material-light/images/battery-75.svg
+ D styles/material-light/images/battery-charging.svg
+ D styles/material-light/images/battery-unknown.svg
+ D styles/material-light/images/bed-level-center.svg
+ D styles/material-light/images/ccw.svg
+ D styles/material-light/images/cw.svg
+ M styles/material-light/images/info.svg
+ D styles/material-light/images/lock.svg
+ D styles/material-light/images/notification_important.svg
+ D styles/material-light/images/notifications.svg
+ D styles/material-light/images/notifications_active.svg
+ D styles/material-light/images/printer.svg
+ M styles/material-light/images/warning.svg
+ D styles/material-light/images/wifi_excellent.svg
+ D styles/material-light/images/wifi_fair.svg
+ D styles/material-light/images/wifi_good.svg
+ D styles/material-light/images/wifi_weak.svg
+ M styles/material-light/style.css
+ D styles/z-bolt/images/battery-0.svg
+ D styles/z-bolt/images/battery-100.svg
+ D styles/z-bolt/images/battery-25.svg
+ D styles/z-bolt/images/battery-50.svg
+ D styles/z-bolt/images/battery-75.svg
+ D styles/z-bolt/images/battery-charging.svg
+ D styles/z-bolt/images/battery-unknown.svg
+ M styles/z-bolt/images/bed-level-b-l.svg
+ M styles/z-bolt/images/bed-level-b-m.svg
+ M styles/z-bolt/images/bed-level-b-r.svg
+ D styles/z-bolt/images/bed-level-center.svg
+ M styles/z-bolt/images/bed-level-l-m.svg
+ M styles/z-bolt/images/bed-level-r-m.svg
+ M styles/z-bolt/images/bed-level-t-l.svg
+ M styles/z-bolt/images/bed-level-t-m.svg
+ M styles/z-bolt/images/bed-level-t-r.svg
+ D styles/z-bolt/images/ccw.svg
+ M styles/z-bolt/images/complete.svg
+ D styles/z-bolt/images/cw.svg
+ D styles/z-bolt/images/lock.svg
+ D styles/z-bolt/images/notification_important.svg
+ D styles/z-bolt/images/notifications.svg
+ D styles/z-bolt/images/notifications_active.svg
+ D styles/z-bolt/images/printer.svg
+ D styles/z-bolt/images/wifi_excellent.svg
+ D styles/z-bolt/images/wifi_fair.svg
+ D styles/z-bolt/images/wifi_good.svg
+ D styles/z-bolt/images/wifi_weak.svg
+ M styles/z-bolt/images/z-closer.svg
+ M styles/z-bolt/images/z-farther.svg
+ M styles/z-bolt/style.css
+?? styles/colorized/images/print.svg
+?? styles/material-dark/images/print.svg
+?? styles/material-darker/images/print.svg
+?? styles/material-light/images/print.svg
+?? styles/z-bolt/images/print.svg
+klipperscreen_status_end
+
+fluidd_listing_begin
+assets/af-C3wrt4fc.js
+assets/ar-D8jgiXiO.js
+assets/codicon-B16ygVZF.ttf
+assets/cs-C5qHYNqo.js
+assets/css-D1nB4Vcj.js
+assets/cssMode-BjKkDMgm.js
+assets/de-BKegOcB2.js
+assets/DeviceCamera-D9KxbG-X.js
+assets/es-C8Nj4nr1.js
+assets/fr-6fG1-t2l.js
+assets/gcode.tmLanguage-CxxTzjZ-.js
+assets/HlsstreamCamera-CzDInSo6.js
+assets/hu-DwRVG2g-.js
+assets/IframeCamera-Out3flux.js
+assets/index-DmW-YI4h.js
+assets/index-DP7RxHdC.css
+assets/IpstreamCamera-CDMrB5ts.js
+assets/it-DCuJnOpP.js
+assets/ja-CHUix0s8.js
+assets/jsonMode-CnJ-Y_zm.js
+assets/klipper-config.tmLanguage-DHe00u4k.js
+assets/ko-Um7lniiS.js
+assets/log.tmLanguage-DH-qwE--.js
+assets/markdown-7fQo6M4U.js
+assets/MjpegstreamerAdaptiveCamera-B5-qOeNM.js
+assets/MjpegstreamerCamera-C2c8PRbM.js
+assets/nl-BmDVJDtO.js
+assets/onigasm-kQxuTr47.wasm
+assets/parseGcode.worker-DKc0-WBC.js
+assets/pl-D4TjrBmR.js
+assets/pt-DZHW0mef.js
+assets/qr-scanner-worker.min-D85Z9gVD.js
+assets/raleway-cyrillic-400-normal-_3x-kIQx.woff
+assets/raleway-cyrillic-400-normal-5e4zmbXM.woff2
+assets/raleway-cyrillic-ext-400-normal-Ce31ewm7.woff
+assets/raleway-cyrillic-ext-400-normal-zbv6uFvq.woff2
+assets/raleway-latin-400-normal-2IY77EiR.woff2
+assets/raleway-latin-400-normal-CCdtiDxY.woff
+assets/raleway-latin-ext-400-normal-Bo7RAUwH.woff
+assets/raleway-latin-ext-400-normal-BPsnCyNw.woff2
+assets/raleway-vietnamese-400-normal-CTw6K1Xj.woff2
+assets/raleway-vietnamese-400-normal-Dnv8EMCX.woff
+assets/roboto-cyrillic-300-normal-D6mjswgs.woff2
+assets/roboto-cyrillic-300-normal-UX5PCucy.woff
+assets/roboto-cyrillic-400-normal-DCQqOlfN.woff
+assets/roboto-cyrillic-400-normal-DVDTZtmW.woff2
+assets/roboto-cyrillic-500-normal-DAkZhMOh.woff2
+assets/roboto-cyrillic-500-normal-QpWeYsca.woff
+assets/roboto-cyrillic-700-normal-B5ZBKWCH.woff2
+assets/roboto-cyrillic-700-normal-DAIxw5xX.woff
+assets/roboto-cyrillic-ext-300-normal-C7AGhuC_.woff
+assets/roboto-cyrillic-ext-300-normal-TzZWIuiO.woff2
+assets/roboto-cyrillic-ext-400-normal-DORK9bGA.woff2
+assets/roboto-cyrillic-ext-400-normal--KougVX-.woff
+assets/roboto-cyrillic-ext-500-normal-G9W8hgzQ.woff2
+assets/roboto-cyrillic-ext-500-normal-sraxM_lR.woff
+assets/roboto-cyrillic-ext-700-normal-CsrCEJIc.woff2
+assets/roboto-cyrillic-ext-700-normal-dDOtDc5i.woff
+assets/roboto-greek-300-normal-Dgbe-dnN.woff
+assets/roboto-greek-300-normal-ndiuWqED.woff2
+assets/roboto-greek-400-normal-BnGNaKeW.woff
+assets/roboto-greek-400-normal-BRWHCUYo.woff2
+assets/roboto-greek-500-normal-CpESfwfG.woff2
+assets/roboto-greek-500-normal-CVjdsdX9.woff
+assets/roboto-greek-700-normal-Cc2Tq8FV.woff2
+assets/roboto-greek-700-normal-CjuTpGfE.woff
+assets/roboto-latin-300-normal-lq7MgJXa.woff
+assets/roboto-latin-300-normal-ThHrQhYb.woff2
+assets/roboto-latin-400-normal-BU1SoK4h.woff
+assets/roboto-latin-400-normal-mTIRXP6Y.woff2
+assets/roboto-latin-500-normal-Dcm-rhWF.woff
+assets/roboto-latin-500-normal-Dxdx3aXO.woff2
+assets/roboto-latin-700-normal-Bh431LEL.woff
+assets/roboto-latin-700-normal-CeM5gOv8.woff2
+assets/roboto-latin-ext-300-normal-CaUuWeqj.woff
+assets/roboto-latin-ext-300-normal-DEsNdRC-.woff2
+assets/roboto-latin-ext-400-normal-4bLplyDh.woff2
+assets/roboto-latin-ext-400-normal-DloBNwoc.woff
+assets/roboto-latin-ext-500-normal-B9pAx_JH.woff
+assets/roboto-latin-ext-500-normal-BWKy6SgX.woff2
+assets/roboto-latin-ext-700-normal-BYGCo3Go.woff2
+assets/roboto-latin-ext-700-normal-DwUXTeTv.woff
+assets/roboto-vietnamese-300-normal-CnPrVvBs.woff2
+assets/roboto-vietnamese-300-normal-DOxDZ6bW.woff
+assets/roboto-vietnamese-400-normal-BkEBOAV9.woff
+assets/roboto-vietnamese-400-normal-kCRe3VZk.woff2
+assets/roboto-vietnamese-500-normal-Bwg8Dbh6.woff
+assets/roboto-vietnamese-500-normal-CcijQRVW.woff2
+assets/roboto-vietnamese-700-normal-Mc0c6qif.woff
+assets/roboto-vietnamese-700-normal-SekShQfT.woff2
+assets/ru-DEdEyIyb.js
+assets/setupMonaco-BKOGaDZG.js
+assets/setupMonaco-BVY6-XjM.css
+assets/setupMonaco-CNW7_xyO.css
+assets/setupMonaco.features-PBGRyQVn.js
+assets/sl-eI6rbRsD.js
+assets/tr-Bg73Z7FG.js
+assets/uk-DtXlsayT.js
+assets/virtual_pwa-register-BOZOt-ql.js
+assets/vue-echarts-chunk-DiTBPS2C.js
+assets/WebrtcCamerastreamerCamera-CHWRcg1B.js
+assets/WebrtcGo2RtcCamera-Bo4sq3Sv.js
+assets/WebrtcMediamtxCamera-D57Lm7MO.js
+assets/workbox-window.prod.es5-D5gOYdM7.js
+assets/zh-CN-BCXSBre_.js
+assets/zh-HK-Dw5DMSUJ.js
+config.json
+editor.theme.json
+favicon.ico
+index.html
+logo_annex.svg
+logo_btt.svg
+logo_eva.svg
+logo_fluidd.svg
+logo_hevort.svg
+logo_kingroon.svg
+logo_klipper.svg
+logo_ldo.svg
+logo_peopoly.svg
+logo_prusa.svg
+logo_qidi.svg
+logo_ratrig.svg
+logo_siboor.svg
+logo_snakeoil.svg
+logo_voron.svg
+logo_vzbot.svg
+logo_zerog.svg
+manifest.webmanifest
+monacoeditorwork/css.worker.bundle.js
+monacoeditorwork/editor.worker.bundle.js
+monacoeditorwork/json.worker.bundle.js
+release_info.json
+robots.txt
+sw.js
+.version
+fluidd_listing_end
