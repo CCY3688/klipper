@@ -222,6 +222,8 @@ class GcodeExporter {
     _emitPenUp(line, opt, zOrigin);
     line('M400');
     line('G28 ; auto home after print');
+    line('M400');
+    line('G28 ; repeat home after print');
     if (opt.addComments) line('; End');
 
     return sb.toString();

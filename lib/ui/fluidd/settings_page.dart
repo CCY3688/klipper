@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../state/printer_controller.dart';
 import '../../state/settings_controller.dart';
+import '../../state/navigation_controller.dart';
 import '../fluidd/widgets/fluidd_card.dart';
 
 /// 配置页面 —— 参考 fluidd Settings.vue + ToolheadSettings.vue
@@ -22,10 +23,51 @@ class SettingsPage extends StatelessWidget {
               _ConnectionInfoCard(),
               _MotionCard(),
               _WritingCard(),
+              _SidebarVisibilityCard(),
               _AppCard(),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SidebarVisibilityCard extends StatelessWidget {
+  const _SidebarVisibilityCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsController>();
+
+    return FluiddCard(
+      title: '侧边栏显示',
+      child: Column(
+        children: [
+          for (var i = 0; i < sidebarItemDefinitions.length; i++) ...[
+            if (i > 0) const Divider(color: Colors.white12, height: 1),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(
+                sidebarItemDefinitions[i].label,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              value:
+                  settings.sidebarVisibility[sidebarItemDefinitions[i].tab] ??
+                  true,
+              activeColor: Colors.blue,
+              onChanged: (value) {
+                if (value != null) {
+                  settings.setSidebarVisible(
+                    sidebarItemDefinitions[i].tab,
+                    value,
+                  );
+                }
+              },
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -47,11 +89,18 @@ class _ConnectionInfoCard extends StatelessWidget {
       title: '连接信息',
       child: Column(
         children: [
-          _InfoRow(label: '状态', value: c.phase.name.toUpperCase(), valueColor: stateColor),
+          _InfoRow(
+            label: '状态',
+            value: c.phase.name.toUpperCase(),
+            valueColor: stateColor,
+          ),
           const Divider(color: Colors.white12, height: 20),
           _InfoRow(label: 'Klippy', value: c.klippyState),
           const Divider(color: Colors.white12, height: 20),
-          _InfoRow(label: 'Moonraker 版本', value: c.moonrakerVersion.isEmpty ? '—' : c.moonrakerVersion),
+          _InfoRow(
+            label: 'Moonraker 版本',
+            value: c.moonrakerVersion.isEmpty ? '—' : c.moonrakerVersion,
+          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -60,8 +109,15 @@ class _ConnectionInfoCard extends StatelessWidget {
                 c.disconnect();
                 Navigator.of(context).pop(); // 返回 ConnectionPage
               },
-              icon: const Icon(Icons.power_settings_new, size: 16, color: Colors.redAccent),
-              label: const Text('断开连接 / 修改地址', style: TextStyle(color: Colors.redAccent)),
+              icon: const Icon(
+                Icons.power_settings_new,
+                size: 16,
+                color: Colors.redAccent,
+              ),
+              label: const Text(
+                '断开连接 / 修改地址',
+                style: TextStyle(color: Colors.redAccent),
+              ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.redAccent),
               ),
@@ -210,7 +266,10 @@ class _InfoRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
         ),
         Text(
           value,
@@ -247,7 +306,10 @@ class _SwitchRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              Text(
+                label,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
               if (subtitle != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
@@ -357,7 +419,10 @@ class _NumericRowState extends State<_NumericRow> {
                 suffixText: widget.unit,
                 suffixStyle: const TextStyle(color: Colors.grey, fontSize: 12),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 8,
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.blue.shade700),
                   borderRadius: BorderRadius.circular(4),

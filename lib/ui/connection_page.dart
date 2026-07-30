@@ -5,6 +5,8 @@ import '../core/config_store.dart';
 import '../core/moonraker_config.dart';
 import '../data/moonraker/moonraker_repository.dart';
 import '../state/printer_controller.dart';
+import '../state/navigation_controller.dart';
+import '../state/camera_viewer_controller.dart';
 import 'fluidd/dashboard_page.dart';
 
 class ConnectionPage extends StatefulWidget {
@@ -66,8 +68,10 @@ class _ConnectionPageState extends State<ConnectionPage> {
       );
 
       final controller = context.read<PrinterController>();
+      final cameraController = context.read<CameraViewerController>();
       await controller.connect(config, profile: _profile);
       await ConfigStore().save(config, _profile);
+      await cameraController.restartCameraServiceIfRunning();
 
       if (!mounted) return;
       Navigator.of(
@@ -78,6 +82,13 @@ class _ConnectionPageState extends State<ConnectionPage> {
     } finally {
       setState(() => _busy = false);
     }
+  }
+
+  void _openOfflineSimulation() {
+    context.read<NavigationController>().switchTo(SidebarTab.simulation);
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const DashboardPage()));
   }
 
   @override
@@ -126,6 +137,15 @@ class _ConnectionPageState extends State<ConnectionPage> {
               child: ElevatedButton(
                 onPressed: _busy ? null : _connect,
                 child: Text(_busy ? '连接中...' : '连接'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : _openOfflineSimulation,
+                icon: const Icon(Icons.precision_manufacturing),
+                label: const Text('离线仿真验证'),
               ),
             ),
           ],

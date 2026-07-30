@@ -1,11 +1,11 @@
 {
-    "name": "klipper",
-    "short_name": "klipper",
+    "name": "智绘随形",
+    "short_name": "智绘随形",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "智绘随形 - Delta机器人书写控制系统",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

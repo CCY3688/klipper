@@ -1,9 +1,0 @@
-{
-  "type": "surface_bed_z_first_layer_calibration",
-  "source": "moonraker_current_position",
-  "created_at": "2026-07-05T15:15:48.424922",
-  "touch_machine_z_mm": -29.99999999999992,
-  "touch_surface_height_mm": 0.0,
-  "bed_z_mm": -29.99999999999992,
-  "formula": "bed_z_mm = touch_machine_z_mm - touch_surface_height_mm"
-}

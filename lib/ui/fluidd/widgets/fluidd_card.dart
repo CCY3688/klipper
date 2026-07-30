@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
-class FluiddCard extends StatelessWidget {
+class FluiddCard extends StatefulWidget {
   final String title;
   final String? subtitle;
   final Widget child;
   final List<Widget>? actions;
   final bool scrollable;
+  final bool collapsible;
+  final bool initiallyExpanded;
 
   const FluiddCard({
     super.key,
@@ -14,13 +16,20 @@ class FluiddCard extends StatelessWidget {
     required this.child,
     this.actions,
     this.scrollable = true,
+    this.collapsible = false,
+    this.initiallyExpanded = true,
   });
+
+  @override
+  State<FluiddCard> createState() => _FluiddCardState();
+}
+
+class _FluiddCardState extends State<FluiddCard> {
+  late bool _expanded = widget.initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    // Header row — shared between scrollable and non-scrollable paths
     final header = Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
@@ -28,39 +37,54 @@ class FluiddCard extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (widget.collapsible)
+            InkWell(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Icon(
+                _expanded ? Icons.expand_less : Icons.expand_more,
+                color: Colors.grey.shade400,
+              ),
+            ),
           Expanded(
-            child: Row(
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(width: 8),
+            child: InkWell(
+              onTap: widget.collapsible
+                  ? () => setState(() => _expanded = !_expanded)
+                  : null,
+              child: Row(
+                children: [
                   Text(
-                    subtitle!,
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 11,
-                      fontWeight: FontWeight.normal,
+                    widget.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                  if (widget.subtitle != null) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        widget.subtitle!,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 11,
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-          if (actions != null) ...actions!,
+          if (widget.actions != null) ...widget.actions!,
         ],
       ),
     );
 
-    // Body widget
     final body = Padding(
       padding: const EdgeInsets.all(16),
-      child: child,
+      child: widget.child,
     );
 
     return Card(
@@ -74,7 +98,10 @@ class FluiddCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           header,
-          if (scrollable) Flexible(child: SingleChildScrollView(child: body)) else body,
+          if (!widget.collapsible || _expanded)
+            widget.scrollable
+                ? Flexible(child: SingleChildScrollView(child: body))
+                : body,
         ],
       ),
     );

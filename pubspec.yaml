@@ -57,6 +57,7 @@ dependencies:
   
   # 集合工具
   collection: ^1.18.0
+  flutter_libserialport: ^0.6.0
 
 dev_dependencies:
   flutter_test:
@@ -85,7 +86,6 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
   assets:
-    - assets/fonts/demo_stroke_font_zh.json
     - assets/fonts/makemeahanzi_standard.json
     - assets/fonts/hershey_simplex_latin.json
   # An image asset can refer to one or more resolution-specific "variants", see

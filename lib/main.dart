@@ -9,6 +9,7 @@ import 'state/settings_controller.dart';
 import 'state/camera_viewer_controller.dart';
 import 'state/parameter_calibration_controller.dart';
 import 'state/user_font_controller.dart';
+import 'state/printcart_controller.dart';
 import 'ui/connection_page.dart';
 
 void main() {
@@ -22,6 +23,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => CameraViewerController()),
         ChangeNotifierProvider(create: (_) => ParameterCalibrationController()),
         ChangeNotifierProvider(create: (_) => UserFontController()),
+        ChangeNotifierProvider(create: (_) => PrintcartController()),
       ],
       //将控制器 PrinterController 和 NavigationController "挂"在了整个 App 的顶层，任何页面都可以通过 Provider 访问它们。
       child: const MyApp(),
@@ -36,7 +38,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Delta Writer Client',
+      title: '智绘随形',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         //useMaterial3: true,

@@ -235,29 +235,8 @@ class _WritingPageState extends State<WritingPage>
       _generateToolPath();
     } catch (e) {
       if (!mounted) return;
-      // 如果完整字库加载失败（例如尚未生成），回退到 Demo 字库
-      try {
-        final demoFont = await StrokeFont.loadFromAsset(
-          'assets/fonts/demo_stroke_font_zh.json',
-        );
-        StrokeFont font = demoFont;
-        try {
-          final latinFont = await _loadLatinFallbackFont();
-          font = StrokeFont.merge([demoFont, latinFont]);
-        } catch (_) {}
-        if (!mounted) return;
-        setState(() {
-          _font = font;
-        });
-        if (mounted) {
-          context.read<UserFontController>().setStandardFont(font);
-        }
-        _generateToolPath();
-      } catch (e2) {
-        if (!mounted) return;
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.showSnackBar(SnackBar(content: Text('字库加载失败: $e2')));
-      }
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(SnackBar(content: Text('字库加载失败: $e')));
     }
   }
 

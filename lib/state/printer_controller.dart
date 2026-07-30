@@ -17,6 +17,20 @@ enum AppConnPhase {
   error,
 }
 
+class GcodeUploadStartResult {
+  const GcodeUploadStartResult({
+    required this.remotePath,
+    required this.uploaded,
+    required this.started,
+    this.error,
+  });
+
+  final String? remotePath;
+  final bool uploaded;
+  final bool started;
+  final String? error;
+}
+
 class PrinterController extends ChangeNotifier {
   MoonrakerRepository? _repo;
 
@@ -452,9 +466,10 @@ class PrinterController extends ChangeNotifier {
     await refreshStatusSnapshot();
   }
 
-  Future<void> refreshStatusSnapshot() async {
+  /// Queries the current status snapshot. Returns false when the query fails.
+  Future<bool> refreshStatusSnapshot() async {
     final repo = _repo;
-    if (repo == null) return;
+    if (repo == null) return false;
 
     try {
       final objects = await repo.buildSubscriptionObjects(profile);
@@ -462,9 +477,11 @@ class PrinterController extends ChangeNotifier {
       status = PrinterStatus.fromSnapshot(snap);
       _log(LogLevel.debug, 'STATUS', 'refreshed homed_axes=${homedAxes ?? ''}');
       notifyListeners();
+      return true;
     } catch (e) {
       _log(LogLevel.error, 'STATUS', 'Refresh failed: $e');
       notifyListeners();
+      return false;
     }
   }
 
@@ -508,6 +525,58 @@ class PrinterController extends ChangeNotifier {
       lastError = e.toString();
       notifyListeners();
       return false;
+    }
+  }
+
+  Future<GcodeUploadStartResult> uploadAndStartGcode({
+    required String filename,
+    required String gcode,
+  }) async {
+    final repo = _repo;
+    if (repo == null) {
+      lastError = 'Not connected to Moonraker';
+      notifyListeners();
+      return GcodeUploadStartResult(
+        remotePath: null,
+        uploaded: false,
+        started: false,
+        error: lastError,
+      );
+    }
+
+    String remotePath;
+    try {
+      remotePath = await repo.uploadGcodeString(
+        filename: filename,
+        gcode: gcode,
+      );
+    } catch (e) {
+      lastError = e.toString();
+      notifyListeners();
+      return GcodeUploadStartResult(
+        remotePath: null,
+        uploaded: false,
+        started: false,
+        error: lastError,
+      );
+    }
+
+    try {
+      await repo.startPrintUploaded(remotePath);
+      return GcodeUploadStartResult(
+        remotePath: remotePath,
+        uploaded: true,
+        started: true,
+      );
+    } catch (e) {
+      lastError = e.toString();
+      notifyListeners();
+      return GcodeUploadStartResult(
+        remotePath: remotePath,
+        uploaded: true,
+        started: false,
+        error: lastError,
+      );
     }
   }
 

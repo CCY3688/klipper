@@ -4,14 +4,15 @@ import 'package:provider/provider.dart';
 import '../../state/navigation_controller.dart';
 import '../../state/printer_controller.dart';
 import '../calibration/parameter_calibration_page.dart';
+import '../coating/coating_page.dart';
 import '../emm/emm_replay_page.dart';
+import '../simulation/simulation_page.dart';
 import '../surface/surface_page.dart';
 import '../writing/user_font_page.dart';
 import '../writing/writing_page.dart';
 import 'configure_page.dart';
 import 'panels/camera_panel.dart';
 import 'panels/console_panel.dart';
-import 'panels/laser_panel.dart';
 import 'panels/move_panel.dart';
 import 'panels/status_panel.dart';
 import 'panels/tasks_panel.dart';
@@ -172,6 +173,10 @@ class DashboardPage extends StatelessWidget {
         return 'Delta Writer - 控制面板';
       case SidebarTab.motionReplay:
         return 'Delta Writer - 运动重现';
+      case SidebarTab.coating:
+        return 'Delta Writer - 喷涂';
+      case SidebarTab.simulation:
+        return 'Delta Writer - 仿真验证';
       case SidebarTab.fontWriting:
         return 'Delta Writer - 激光';
       case SidebarTab.surface:
@@ -195,6 +200,10 @@ class DashboardPage extends StatelessWidget {
         return _buildDashboardContent();
       case SidebarTab.motionReplay:
         return const EmmReplayPage();
+      case SidebarTab.coating:
+        return const CoatingPage();
+      case SidebarTab.simulation:
+        return const SimulationPage();
       case SidebarTab.fontWriting:
         return const WritingPage();
       case SidebarTab.surface:
@@ -248,7 +257,6 @@ class DashboardPage extends StatelessWidget {
                       if (showKlippyCard) const KlippyStatusCard(),
                       const StatusPanel(),
                       const MovePanel(),
-                      const LaserPanel(),
                       const CameraPanel(),
                     ],
                   ),
@@ -266,7 +274,6 @@ class DashboardPage extends StatelessWidget {
               if (showKlippyCard) const KlippyStatusCard(),
               const StatusPanel(),
               const MovePanel(),
-              const LaserPanel(),
               const CameraPanel(),
               const ConsolePanel(),
             ],

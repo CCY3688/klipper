@@ -8,7 +8,7 @@ import paramiko
 from flask import Flask, Response, render_template_string, request
 
 
-HOST = os.getenv("CAMERA_SSH_HOST", "192.168.67.182")
+HOST = os.getenv("CAMERA_SSH_HOST", "192.168.149.182")
 USER = os.getenv("CAMERA_SSH_USER", "umeko")
 PASSWORD = os.getenv("CAMERA_SSH_PASSWORD", "1234")
 DEVICE = os.getenv("CAMERA_DEVICE", "")
@@ -32,6 +32,10 @@ DIRECT_CAPTURE_TIMEOUT = float(os.getenv("CAMERA_DIRECT_CAPTURE_TIMEOUT", "8.0")
 DIRECT_CAPTURE_FRAMES = int(os.getenv("CAMERA_DIRECT_CAPTURE_FRAMES", "1"))
 DIRECT_CAPTURE_RELEASE_TIMEOUT = float(os.getenv("CAMERA_DIRECT_CAPTURE_RELEASE_TIMEOUT", "3.0"))
 DIRECT_CAPTURE_RETRIES = int(os.getenv("CAMERA_DIRECT_CAPTURE_RETRIES", "2"))
+SSH_CONNECT_TIMEOUT = float(os.getenv("CAMERA_SSH_CONNECT_TIMEOUT", "5.0"))
+SSH_BANNER_TIMEOUT = float(os.getenv("CAMERA_SSH_BANNER_TIMEOUT", "5.0"))
+RECONNECT_INITIAL_DELAY = float(os.getenv("CAMERA_RECONNECT_INITIAL_DELAY", "1.0"))
+RECONNECT_MAX_DELAY = float(os.getenv("CAMERA_RECONNECT_MAX_DELAY", "15.0"))
 
 app = Flask(__name__)
 
@@ -128,14 +132,26 @@ PAGE = """
 def open_ssh_client():
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(
-        HOST,
-        username=USER,
-        password=PASSWORD,
-        timeout=10,
-        look_for_keys=False,
-        allow_agent=False,
-    )
+    try:
+        client.connect(
+            HOST,
+            username=USER,
+            password=PASSWORD,
+            timeout=SSH_CONNECT_TIMEOUT,
+            banner_timeout=SSH_BANNER_TIMEOUT,
+            auth_timeout=SSH_CONNECT_TIMEOUT,
+            look_for_keys=False,
+            allow_agent=False,
+        )
+    except (socket.timeout, TimeoutError) as exc:
+        client.close()
+        raise RuntimeError(
+            f"SSH connection to {HOST}:22 timed out after {SSH_CONNECT_TIMEOUT:.1f}s; "
+            "check the board power, network address, and SSH service"
+        ) from exc
+    except OSError as exc:
+        client.close()
+        raise RuntimeError(f"SSH connection to {HOST}:22 failed: {exc}") from exc
     return client
 
 
@@ -334,6 +350,8 @@ class CameraHub:
         self.frame_id = 0
         self.last_frame_at = None
         self.last_error = None
+        self.reconnect_delay = 0.0
+        self.next_reconnect_at = None
         self.frame_times = deque(maxlen=60)
         self.device = DEVICE
 
@@ -350,6 +368,16 @@ class CameraHub:
             self.frame = None
             self.last_error = str(error)
             self.new_frame.notify_all()
+
+    def _set_reconnect_state(self, delay):
+        with self.lock:
+            self.reconnect_delay = delay
+            self.next_reconnect_at = time.time() + delay
+
+    def _clear_reconnect_state(self):
+        with self.lock:
+            self.reconnect_delay = 0.0
+            self.next_reconnect_at = None
 
     def _set_frame(self, frame):
         with self.lock:
@@ -389,6 +417,7 @@ class CameraHub:
 
     def _run(self):
         first_start = True
+        reconnect_delay = max(RECONNECT_INITIAL_DELAY, 0.1)
         while True:
             client = None
             channel = None
@@ -398,6 +427,7 @@ class CameraHub:
                         self.new_frame.wait_for(lambda: not self.suspend_stream, timeout=0.5)
                         continue
                 client = open_ssh_client()
+                self._clear_reconnect_state()
                 cleanup_remote_camera(client)
                 if first_start:
                     reset_usb_camera(client)
@@ -424,7 +454,10 @@ class CameraHub:
             except Exception as exc:
                 self._set_error(exc)
                 print(f"camera hub error: {exc}", flush=True)
-                time.sleep(2.0)
+                delay = min(reconnect_delay, max(RECONNECT_MAX_DELAY, 0.1))
+                self._set_reconnect_state(delay)
+                time.sleep(delay)
+                reconnect_delay = min(delay * 2.0, max(RECONNECT_MAX_DELAY, 0.1))
             finally:
                 if channel is not None:
                     try:
@@ -438,6 +471,8 @@ class CameraHub:
                     except Exception:
                         pass
                     client.close()
+            if client is not None:
+                reconnect_delay = max(RECONNECT_INITIAL_DELAY, 0.1)
 
     def _read_frames(self, channel):
         buffer = bytearray()
@@ -618,6 +653,9 @@ class CameraHub:
                 "direct_capture_frames": DIRECT_CAPTURE_FRAMES,
                 "direct_capture_release_timeout_seconds": DIRECT_CAPTURE_RELEASE_TIMEOUT,
                 "direct_capture_retries": DIRECT_CAPTURE_RETRIES,
+                "ssh_connect_timeout_seconds": SSH_CONNECT_TIMEOUT,
+                "reconnect_delay_seconds": round(self.reconnect_delay, 2),
+                "next_reconnect_at": self.next_reconnect_at,
                 "frame_id": self.frame_id,
                 "frame_age_seconds": age,
                 "max_frame_age_seconds": round(max_frame_age, 2),

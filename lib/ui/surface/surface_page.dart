@@ -17,7 +17,48 @@ import '../fluidd/widgets/fluidd_card.dart';
 import 'dxf_toolpath.dart';
 import 'stl_mesh.dart';
 import 'stl_parser.dart';
+import 'surface_motion_preflight.dart';
+import 'surface_orientation_gcode.dart';
 import 'surface_preview.dart';
+import 'surface_tool_orientation.dart';
+
+class _SurfaceBedZCalibrationRecord {
+  const _SurfaceBedZCalibrationRecord({
+    required this.touchZ,
+    required this.bedZ,
+    required this.calibratedAt,
+    required this.source,
+  });
+
+  final double? touchZ;
+  final double bedZ;
+  final DateTime? calibratedAt;
+  final String? source;
+
+  Map<String, Object?> toJson() => {
+    'source': source,
+    'created_at': calibratedAt?.toIso8601String(),
+    'touch_machine_z_mm': touchZ,
+    'reference_surface_height_mm': 0.0,
+    'bed_z_mm': bedZ,
+  };
+
+  static _SurfaceBedZCalibrationRecord? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final bedZ = (value['bed_z_mm'] as num?)?.toDouble();
+    if (bedZ == null || !bedZ.isFinite) return null;
+    final touchZ = (value['touch_machine_z_mm'] as num?)?.toDouble();
+    final createdAtText = value['created_at'] as String?;
+    return _SurfaceBedZCalibrationRecord(
+      touchZ: touchZ != null && touchZ.isFinite ? touchZ : null,
+      bedZ: bedZ,
+      calibratedAt: createdAtText == null
+          ? null
+          : DateTime.tryParse(createdAtText),
+      source: value['source'] as String?,
+    );
+  }
+}
 
 class SurfacePage extends StatefulWidget {
   const SurfacePage({super.key});
@@ -55,6 +96,8 @@ class _SurfacePageState extends State<SurfacePage> {
       'surface.paste_test.stop_dwell_ms';
   static const String _kSurfacePasteStartDwellMs =
       'surface.paste_test.start_dwell_ms';
+  static const String _kSurfacePasteReturnDwellMs =
+      'surface.paste_test.return_dwell_ms';
 
   StlMesh? _mesh;
   String? _meshName;
@@ -82,6 +125,7 @@ class _SurfacePageState extends State<SurfacePage> {
   double _localizationOpacity = 0.86;
   String? _localizationResultPath;
   String? _localizationError;
+  Timer? _localizationAutosaveTimer;
   _SurfacePattern _surfacePattern = _SurfacePattern.line;
   _SurfaceTrajectorySource _surfaceTrajectorySource =
       _SurfaceTrajectorySource.pattern;
@@ -97,6 +141,9 @@ class _SurfacePageState extends State<SurfacePage> {
   double _surfacePatternRotationDeg = 0.0;
   double _surfaceClearanceMm = 3.0;
   double _surfaceSampleStepMm = 2.0;
+  static const double _surfaceBedZSameToolheadToleranceMm = 0.01;
+  final Map<SurfaceBedZToolheadKind, _SurfaceBedZCalibrationRecord>
+  _surfaceBedZCalibrations = {};
   double _surfaceBedZ = _defaultSurfaceBedZ;
   double? _surfaceBedZCalibrationTouchZ;
   DateTime? _surfaceBedZCalibrationAt;
@@ -108,11 +155,15 @@ class _SurfacePageState extends State<SurfacePage> {
   double _surfaceWorkSpeedMmPerS = 20.0;
   double _surfaceSmoothStepMm = 0.8;
   double _surfaceSmoothMaxZStepMm = 0.20;
+  SurfaceToolOrientationConfig _surfaceToolOrientation =
+      const SurfaceToolOrientationConfig();
+  SurfaceToolOrientationSummary? _surfaceToolOrientationSummary;
   List<_SurfaceToolPoint> _surfaceTrajectory = const [];
   List<_SurfaceToolPoint> _surfaceMotionTrajectory = const [];
   String? _surfaceTrajectoryError;
   String? _surfaceMotionError;
   bool _surfaceOneClickStarting = false;
+  bool _surfaceHomingStatusRefreshing = false;
   String? _surfaceOneClickStatus;
   bool _surfacePasteTestStarting = false;
   String? _surfacePasteTestStatus;
@@ -126,6 +177,7 @@ class _SurfacePageState extends State<SurfacePage> {
   double _surfacePasteStopRetractRateUlPerS = 120.0;
   double _surfacePasteStopDwellMs = 300.0;
   double _surfacePasteStartDwellMs = 0.0;
+  double _surfacePasteReturnDwellMs = 0.0;
   String? _surfaceTrajectoryPath;
   String? _surfaceGcodePath;
   double _verificationSettleSeconds = 1.0;
@@ -139,6 +191,10 @@ class _SurfacePageState extends State<SurfacePage> {
   bool _applySurfaceCommandCorrection = false;
   bool _showGcodeTrajectory = true;
   bool _showGcodeZMap = true;
+  bool _interpolateGcodeZMapVertices = true;
+  bool _showToolReachabilityOverlay = false;
+  _SurfaceReachabilityOverlay? _surfaceReachabilityOverlay;
+  _SurfaceReachabilityOverlayKey? _surfaceReachabilityOverlayKey;
   _SurfaceCommandCorrection? _surfaceCommandCorrection;
   bool _surfaceFilesLoading = false;
   String? _surfaceFilesError;
@@ -174,6 +230,7 @@ class _SurfacePageState extends State<SurfacePage> {
 
   @override
   void dispose() {
+    _localizationAutosaveTimer?.cancel();
     _photoTransformController.dispose();
     _localizationTransformController.dispose();
     _trajectoryTransformController?.dispose();
@@ -212,6 +269,9 @@ class _SurfacePageState extends State<SurfacePage> {
           sp.getDouble(_kSurfacePasteStopDwellMs) ?? _surfacePasteStopDwellMs;
       _surfacePasteStartDwellMs =
           sp.getDouble(_kSurfacePasteStartDwellMs) ?? _surfacePasteStartDwellMs;
+      _surfacePasteReturnDwellMs =
+          sp.getDouble(_kSurfacePasteReturnDwellMs) ??
+          _surfacePasteReturnDwellMs;
     });
   }
 
@@ -239,6 +299,7 @@ class _SurfacePageState extends State<SurfacePage> {
     );
     await sp.setDouble(_kSurfacePasteStopDwellMs, _surfacePasteStopDwellMs);
     await sp.setDouble(_kSurfacePasteStartDwellMs, _surfacePasteStartDwellMs);
+    await sp.setDouble(_kSurfacePasteReturnDwellMs, _surfacePasteReturnDwellMs);
   }
 
   void _setSurfacePasteSetting(void Function() update) {
@@ -478,6 +539,16 @@ class _SurfacePageState extends State<SurfacePage> {
       _localizationOffsetPx += Offset(dx, dy);
       _localizationResultPath = null;
     });
+    _scheduleLocalizationAutosave();
+  }
+
+  void _scheduleLocalizationAutosave() {
+    _localizationAutosaveTimer?.cancel();
+    _localizationAutosaveTimer = Timer(const Duration(milliseconds: 700), () {
+      if (mounted && _localizationReady) {
+        unawaited(_saveLocalizationResult());
+      }
+    });
   }
 
   void _toggleAlignmentHandleLock(_AlignmentHandleId handle) {
@@ -532,6 +603,7 @@ class _SurfacePageState extends State<SurfacePage> {
       }
       _localizationResultPath = null;
     });
+    _scheduleLocalizationAutosave();
   }
 
   Map<_AlignmentHandleId, Offset> _alignmentHandleDeltas(StlMesh mesh) {
@@ -1491,17 +1563,19 @@ class _SurfacePageState extends State<SurfacePage> {
         final local = sample.point;
         final u = center.dx + local.dx;
         final v = center.dy + local.dy;
-        final surfaceHeight = _sampleSurfaceHeight(mesh, basis, u, v);
-        if (surfaceHeight == null) {
+        final sampledSurface = _sampleSurface(mesh, basis, u, v);
+        if (sampledSurface == null) {
           missingSamples++;
           continue;
         }
+        final surfaceHeight = sampledSurface.height;
 
         points.add(
           _SurfaceToolPoint(
             localX: local.dx,
             localY: local.dy,
             surfaceHeight: surfaceHeight - minHeight,
+            surfaceNormal: sampledSurface.normal,
             machineX: double.nan,
             machineY: double.nan,
             machineZ:
@@ -1528,6 +1602,10 @@ class _SurfacePageState extends State<SurfacePage> {
     List<_SurfaceToolPoint> calibratedPoints;
     try {
       calibratedPoints = await _calibrateSurfaceTrajectoryMachinePoints(points);
+      calibratedPoints = _attachSurfaceToolPoses(calibratedPoints);
+      _surfaceToolOrientationSummary = _summarizeSurfaceToolOrientation(
+        calibratedPoints,
+      );
     } catch (error) {
       setState(() {
         _surfaceTrajectory = const [];
@@ -1558,6 +1636,242 @@ class _SurfacePageState extends State<SurfacePage> {
           : null;
       _workspaceView = 3;
     });
+  }
+
+  StlVector3 _surfaceNormalInTrajectoryFrame(StlVector3 normal) {
+    final radians = _localizationYawDeg * math.pi / 180.0;
+    final cosine = math.cos(radians);
+    final sine = math.sin(radians);
+    return StlVector3(
+      normal.x * cosine - normal.y * sine,
+      normal.x * sine + normal.y * cosine,
+      normal.z,
+    ).normalized();
+  }
+
+  _SurfaceReachabilityOverlay? _reachabilityOverlayForPreview(StlMesh mesh) {
+    if (!_showToolReachabilityOverlay ||
+        _surfaceToolOrientation.mode != SurfaceToolPoseMode.normalFollow) {
+      return null;
+    }
+    final key = _SurfaceReachabilityOverlayKey(
+      mesh: mesh,
+      contactFace: _contactFace,
+      localizationYawDeg: _localizationYawDeg,
+      config: _surfaceToolOrientation,
+    );
+    if (_surfaceReachabilityOverlayKey?.matches(key) == true) {
+      return _surfaceReachabilityOverlay;
+    }
+
+    final basis = _projectionBasis;
+    final center = basis.project(mesh.bounds.center);
+    final triangles = <_SurfaceReachabilityTriangle>[];
+    for (final triangle in mesh.sampledTriangles(4000)) {
+      if (!_isVisibleHeightTriangle(mesh, basis, triangle)) continue;
+      final normal = _surfaceNormalInTrajectoryFrame(
+        basis.projectNormal(triangle.normal),
+      );
+      final toolAxis = SurfaceToolPose.toolAxisFromOutwardNormal(normal);
+      final pose = SurfaceToolPose.fromOutwardNormal(
+        normal,
+        _surfaceToolOrientation,
+      );
+      final horizontal = math.sqrt(
+        toolAxis.x * toolAxis.x + toolAxis.y * toolAxis.y,
+      );
+      final status = !pose.isValid
+          ? _SurfaceReachabilityStatus.unreachable
+          : horizontal <= 1e-7
+          ? _SurfaceReachabilityStatus.yawSingular
+          : _SurfaceReachabilityStatus.reachable;
+      Offset local(StlVector3 point) {
+        final projected = basis.project(point);
+        return Offset(projected.dx - center.dx, projected.dy - center.dy);
+      }
+
+      triangles.add(
+        _SurfaceReachabilityTriangle(
+          a: local(triangle.a),
+          b: local(triangle.b),
+          c: local(triangle.c),
+          status: status,
+        ),
+      );
+    }
+    final overlay = _SurfaceReachabilityOverlay(triangles);
+    _surfaceReachabilityOverlayKey = key;
+    _surfaceReachabilityOverlay = overlay;
+    return overlay;
+  }
+
+  List<_SurfaceToolPoint> _attachSurfaceToolPoses(
+    List<_SurfaceToolPoint> points,
+  ) {
+    final config = _surfaceToolOrientation;
+    if (config.mode == SurfaceToolPoseMode.xyzOnly) {
+      return points
+          .map(
+            (point) => point.copyWith(
+              machineX: point.referenceMachineX ?? point.machineX,
+              machineY: point.referenceMachineY ?? point.machineY,
+              machineZ: point.referenceMachineZ ?? point.machineZ,
+            ),
+          )
+          .toList(growable: false);
+    }
+    var previousWorldYawDeg = 0.0;
+    return points
+        .map((point) {
+          final pose = switch (config.mode) {
+            SurfaceToolPoseMode.xyzOnly => null,
+            SurfaceToolPoseMode.fixed => SurfaceToolPose.fixed(config),
+            SurfaceToolPoseMode.normalFollow =>
+              point.surfaceNormal == null
+                  ? const SurfaceToolPose(
+                      yawServoDeg: double.nan,
+                      pitchServoDeg: double.nan,
+                      error: '轨迹点缺少曲面法线。',
+                    )
+                  : SurfaceToolPose.fromOutwardNormal(
+                      _surfaceNormalInTrajectoryFrame(point.surfaceNormal!),
+                      config,
+                      fallbackWorldYawDeg: previousWorldYawDeg,
+                    ),
+          };
+          if (pose?.isValid == true && pose!.worldYawDeg != null) {
+            previousWorldYawDeg = pose.worldYawDeg!;
+          }
+          final offset =
+              config.mode == SurfaceToolPoseMode.normalFollow &&
+                  pose?.isValid == true &&
+                  (config.tipLengthMm != 0 || config.tipLateralOffsetMm != 0)
+              ? surfaceToolTipCompensationOffset(pose!, config)
+              : const StlVector3(0, 0, 0);
+          final referenceX = point.referenceMachineX ?? point.machineX;
+          final referenceY = point.referenceMachineY ?? point.machineY;
+          final referenceZ = point.referenceMachineZ ?? point.machineZ;
+          final machineX = referenceX + offset.x;
+          final machineY = referenceY + offset.y;
+          final machineZ = referenceZ + offset.z;
+          if (!machineX.isFinite || !machineY.isFinite || !machineZ.isFinite) {
+            throw StateError('针尖几何补偿生成了无效的机器坐标。');
+          }
+          return point.copyWith(
+            toolPose: pose,
+            machineX: machineX,
+            machineY: machineY,
+            machineZ: machineZ,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  SurfaceToolOrientationSummary _summarizeSurfaceToolOrientation(
+    List<_SurfaceToolPoint> points,
+  ) => summarizeSurfaceToolPoses(
+    points.where((point) => !point.travel).map((point) => point.toolPose),
+    _surfaceToolOrientation,
+  );
+
+  void _showSurfaceToolPoseDiagnostics() {
+    final trajectory = _exportTrajectory;
+    const maximumRows = 250;
+    final visiblePoints = trajectory.take(maximumRows).toList(growable: false);
+    String number(double? value) =>
+        value == null ? '-' : value.toStringAsFixed(2);
+    String vector(StlVector3? value) => value == null
+        ? '-'
+        : '(${number(value.x)}, ${number(value.y)}, ${number(value.z)})';
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('姿态计算明细'),
+        content: SizedBox(
+          width: 1120,
+          height: 520,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('工具轴 = 投影/定位后的曲面外法线；竖直工具轴沿用上一点 Yaw。'),
+              const SizedBox(height: 8),
+              if (trajectory.length > maximumRows)
+                Text(
+                  '窗口显示前 $maximumRows/${trajectory.length} 点；导出 CSV 可查看完整明细。',
+                ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columnSpacing: 18,
+                      headingTextStyle: const TextStyle(fontSize: 12),
+                      dataTextStyle: const TextStyle(fontSize: 11),
+                      columns: const [
+                        DataColumn(label: Text('#')),
+                        DataColumn(label: Text('移动')),
+                        DataColumn(label: Text('STL 外法线')),
+                        DataColumn(label: Text('轨迹坐标法线')),
+                        DataColumn(label: Text('工具轴')),
+                        DataColumn(label: Text('世界 Y/P')),
+                        DataColumn(label: Text('舵机 Y/P')),
+                        DataColumn(label: Text('状态')),
+                      ],
+                      rows: List<DataRow>.generate(visiblePoints.length, (
+                        index,
+                      ) {
+                        final point = visiblePoints[index];
+                        final frameNormal = point.surfaceNormal == null
+                            ? null
+                            : _surfaceNormalInTrajectoryFrame(
+                                point.surfaceNormal!,
+                              );
+                        final toolAxis = frameNormal == null
+                            ? null
+                            : SurfaceToolPose.toolAxisFromOutwardNormal(
+                                frameNormal,
+                              );
+                        final pose = point.toolPose;
+                        return DataRow(
+                          cells: [
+                            DataCell(Text('$index')),
+                            DataCell(Text(point.travel ? '空移' : '工作')),
+                            DataCell(Text(vector(point.surfaceNormal))),
+                            DataCell(Text(vector(frameNormal))),
+                            DataCell(Text(vector(toolAxis))),
+                            DataCell(
+                              Text(
+                                '${number(pose?.worldYawDeg)} / ${number(pose?.worldPitchDeg)}',
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                '${number(pose?.yawServoDeg)} / ${number(pose?.pitchServoDeg)}',
+                              ),
+                            ),
+                            DataCell(
+                              Text(pose?.error ?? (pose == null ? '-' : 'ok')),
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<List<_SurfaceToolPoint>> _calibrateSurfaceTrajectoryMachinePoints(
@@ -1664,6 +1978,7 @@ class _SurfacePageState extends State<SurfacePage> {
 
       // Sample STL height at the correct projected position
       double correctedSurfaceHeight = point.surfaceHeight;
+      StlVector3? correctedSurfaceNormal = point.surfaceNormal;
       if (mesh != null && imagePx.dx.isFinite && imagePx.dy.isFinite) {
         // Convert image px back to local mm using the inverse transformation
         final localFromImage = _imagePixelToLocalMm(
@@ -1675,9 +1990,10 @@ class _SurfacePageState extends State<SurfacePage> {
         );
         final u = center.dx + localFromImage.dx;
         final v = center.dy + localFromImage.dy;
-        final sampledHeight = _sampleSurfaceHeight(mesh, basis, u, v);
-        if (sampledHeight != null) {
-          correctedSurfaceHeight = sampledHeight - minHeight;
+        final sampledSurface = _sampleSurface(mesh, basis, u, v);
+        if (sampledSurface != null) {
+          correctedSurfaceHeight = sampledSurface.height - minHeight;
+          correctedSurfaceNormal = sampledSurface.normal;
         }
       }
 
@@ -1696,6 +2012,9 @@ class _SurfacePageState extends State<SurfacePage> {
           machineX: correctedMachineX,
           machineY: correctedMachineY,
           machineZ: correctedMachineZ,
+          referenceMachineX: correctedMachineX,
+          referenceMachineY: correctedMachineY,
+          referenceMachineZ: correctedMachineZ,
           targetMachineX: targetMachineX,
           targetMachineY: targetMachineY,
           targetMachineZ: targetMachineZ,
@@ -1704,6 +2023,7 @@ class _SurfacePageState extends State<SurfacePage> {
           targetBoardX: _jsonDouble(item['board_x_mm'], double.nan),
           targetBoardY: _jsonDouble(item['board_y_mm'], double.nan),
           targetBoardZ: _jsonDouble(item['board_z_mm'], double.nan),
+          surfaceNormal: correctedSurfaceNormal,
         ),
       );
     }
@@ -1762,10 +2082,11 @@ class _SurfacePageState extends State<SurfacePage> {
       }
     }
 
+    final motionTrajectory = _attachSurfaceToolPoses(smoothed);
     setState(() {
       _surfaceSmoothStepMm = step;
       _surfaceSmoothMaxZStepMm = maxZStep;
-      _surfaceMotionTrajectory = smoothed;
+      _surfaceMotionTrajectory = motionTrajectory;
       _surfaceGcodePath = null;
       _surfaceMotionError = smoothed.length < _surfaceTrajectory.length
           ? '平滑轨迹生成异常，请重新生成基础轨迹。'
@@ -1796,9 +2117,14 @@ class _SurfacePageState extends State<SurfacePage> {
       localX: lerp(a.localX, b.localX),
       localY: lerp(a.localY, b.localY),
       surfaceHeight: lerp(a.surfaceHeight, b.surfaceHeight),
+      surfaceNormal: _lerpNormal(a.surfaceNormal, b.surfaceNormal, t),
+      toolPose: _interpolateToolPose(a.toolPose, b.toolPose, t),
       machineX: lerp(a.machineX, b.machineX),
       machineY: lerp(a.machineY, b.machineY),
       machineZ: lerp(a.machineZ, b.machineZ),
+      referenceMachineX: lerpNullable(a.referenceMachineX, b.referenceMachineX),
+      referenceMachineY: lerpNullable(a.referenceMachineY, b.referenceMachineY),
+      referenceMachineZ: lerpNullable(a.referenceMachineZ, b.referenceMachineZ),
       targetMachineX: lerpNullable(a.targetMachineX, b.targetMachineX),
       targetMachineY: lerpNullable(a.targetMachineY, b.targetMachineY),
       targetMachineZ: lerpNullable(a.targetMachineZ, b.targetMachineZ),
@@ -1815,6 +2141,34 @@ class _SurfacePageState extends State<SurfacePage> {
       segmentIndex: b.segmentIndex,
       sampleIndexInPolyline: sampleIndexInPolyline,
       isControlPoint: isControlPoint,
+    );
+  }
+
+  StlVector3? _lerpNormal(StlVector3? a, StlVector3? b, double t) {
+    if (a == null || b == null) return null;
+    return StlVector3(
+      a.x + (b.x - a.x) * t,
+      a.y + (b.y - a.y) * t,
+      a.z + (b.z - a.z) * t,
+    ).normalized();
+  }
+
+  SurfaceToolPose? _interpolateToolPose(
+    SurfaceToolPose? a,
+    SurfaceToolPose? b,
+    double t,
+  ) {
+    if (a == null || b == null || !a.isValid || !b.isValid) return null;
+    double lerp(double x, double y) => x + (y - x) * t;
+    return SurfaceToolPose(
+      worldYawDeg: a.worldYawDeg != null && b.worldYawDeg != null
+          ? lerp(a.worldYawDeg!, b.worldYawDeg!)
+          : null,
+      worldPitchDeg: a.worldPitchDeg != null && b.worldPitchDeg != null
+          ? lerp(a.worldPitchDeg!, b.worldPitchDeg!)
+          : null,
+      yawServoDeg: lerp(a.yawServoDeg, b.yawServoDeg),
+      pitchServoDeg: lerp(a.pitchServoDeg, b.pitchServoDeg),
     );
   }
 
@@ -1921,6 +2275,83 @@ class _SurfacePageState extends State<SurfacePage> {
     }
   }
 
+  SurfaceMotionPreflight _surfaceMotionPreflight(PrinterController printer) {
+    final trajectory = _exportTrajectory;
+    final hasFiniteCoordinates =
+        trajectory.isNotEmpty &&
+        trajectory.every(
+          (point) =>
+              point.machineX.isFinite &&
+              point.machineY.isFinite &&
+              point.machineZ.isFinite,
+        );
+    final orientationSummary = _summarizeSurfaceToolOrientation(trajectory);
+    return SurfaceMotionPreflight(
+      moonrakerConnected: printer.repo != null,
+      klippyReady: printer.klippyReady,
+      klippyStateMessage: printer.klippyStateMessage,
+      printState: printer.printState.toLowerCase(),
+      sdIsActive: printer.sdIsActive,
+      isHomed: printer.isHomed,
+      hasTrajectory: hasFiniteCoordinates,
+      hasActiveBedZCalibration: _activeSurfaceBedZCalibration != null,
+      bedZToolheadWarning: _surfaceBedZToolheadWarning,
+      orientationSummary: orientationSummary,
+    );
+  }
+
+  bool _canOneClickStart({
+    required PrinterController printer,
+    required bool ready,
+    required bool localized,
+    required bool sourceReady,
+  }) {
+    if (_surfaceOneClickStarting) return false;
+    if (_surfaceTrajectory.isEmpty) return ready && localized && sourceReady;
+    return _surfaceMotionPreflight(printer).canStart;
+  }
+
+  /// Reads homed_axes from Moonraker so homing done on the controller screen
+  /// is reflected before enabling one-click motion.
+  Future<void> _refreshSurfaceHomingStatus() async {
+    if (_surfaceHomingStatusRefreshing) return;
+    final printer = context.read<PrinterController>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (printer.repo == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Moonraker 未连接，无法查询归零状态')),
+      );
+      return;
+    }
+
+    setState(() => _surfaceHomingStatusRefreshing = true);
+    try {
+      final refreshed = await printer.refreshStatusSnapshot();
+      if (!mounted) return;
+      if (!refreshed) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('归零状态查询失败，请检查 Moonraker 连接')),
+        );
+        return;
+      }
+      final axes = printer.homedAxes ?? '';
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            printer.isHomed
+                ? '已从下位机同步归零状态（homed_axes: $axes）'
+                : '下位机当前未完成 XYZ 归零（homed_axes: ${axes.isEmpty ? '无' : axes}）',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _surfaceHomingStatusRefreshing = false);
+      }
+    }
+  }
+
   Future<void> _startSurfaceMotionOneClick() async {
     if (_surfaceOneClickStarting) return;
     final printer = context.read<PrinterController>();
@@ -1941,21 +2372,6 @@ class _SurfacePageState extends State<SurfacePage> {
       await printer.refreshAllStatus();
       if (!mounted) return;
 
-      final klippyState = printer.klippyState.toLowerCase();
-      final hasKnownKlippyError =
-          klippyState == 'error' || klippyState == 'shutdown';
-      if (hasKnownKlippyError ||
-          (printer.serverInfo != null && !printer.klippyReady)) {
-        throw StateError('Klipper 当前未就绪：${printer.klippyStateMessage}');
-      }
-
-      final printState = printer.printState.toLowerCase();
-      if (printer.sdIsActive ||
-          printState == 'printing' ||
-          printState == 'paused') {
-        throw StateError('打印机当前正在执行任务：${printer.printState}');
-      }
-
       if (_surfaceTrajectory.isEmpty) {
         await _generateSurfaceTrajectory();
         if (!mounted) return;
@@ -1971,6 +2387,11 @@ class _SurfacePageState extends State<SurfacePage> {
         throw StateError(_surfaceMotionError ?? '平滑运动轨迹生成失败。');
       }
 
+      final preflight = _surfaceMotionPreflight(printer);
+      if (!preflight.canStart) {
+        throw StateError(preflight.blockingReason!);
+      }
+
       final path = await _writeSurfaceTrajectoryFile(extension: 'gcode');
       final gcode = await _surfaceTrajectoryToGcode();
       final stamp = DateTime.now().millisecondsSinceEpoch;
@@ -1982,22 +2403,36 @@ class _SurfacePageState extends State<SurfacePage> {
         _surfaceOneClickStatus = '正在上传并启动：$filename';
       });
 
-      final remotePath = await printer.uploadGcode(
+      final result = await printer.uploadAndStartGcode(
         filename: filename,
         gcode: gcode,
-        startAfterUpload: true,
       );
-      if (remotePath == null) {
-        throw StateError(printer.lastError ?? '上传或启动失败。');
+      if (!result.uploaded) {
+        throw StateError(result.error ?? '上传失败。');
+      }
+      if (!result.started) {
+        throw StateError(
+          'G-code 已上传至 ${result.remotePath}，但启动失败：${result.error ?? '未知错误'}',
+        );
       }
 
+      await printer.refreshAllStatus();
       if (!mounted) return;
+      final started = printer.printState.toLowerCase() == 'printing';
       setState(() {
-        _surfaceOneClickStatus = '已启动：$remotePath';
+        _surfaceOneClickStatus = started
+            ? '已启动：${result.remotePath}'
+            : '启动命令已发送：${result.remotePath}；等待打印机状态更新。';
         _surfaceTrajectoryError = null;
       });
       unawaited(_refreshSurfaceFiles());
-      messenger.showSnackBar(SnackBar(content: Text('已启动曲面运动：$remotePath')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            started ? '已启动曲面运动：${result.remotePath}' : '启动命令已发送，等待打印机状态更新。',
+          ),
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -2025,6 +2460,9 @@ class _SurfacePageState extends State<SurfacePage> {
     });
 
     try {
+      if (_surfaceToolOrientation.mode != SurfaceToolPoseMode.xyzOnly) {
+        throw StateError('工具姿态 G-code 仅支持预览与导出；请保持“仅 XYZ（兼容模式）”后再一键启动。');
+      }
       if (printer.repo == null) {
         throw StateError('Moonraker 未连接，请先连接打印机。');
       }
@@ -2405,6 +2843,7 @@ class _SurfacePageState extends State<SurfacePage> {
     }
     return switch (_surfacePattern) {
       _SurfacePattern.line => 2,
+      _SurfacePattern.semicircle => 3,
       _SurfacePattern.rectangle => 4,
       _SurfacePattern.cross => 4,
     };
@@ -2601,13 +3040,20 @@ class _SurfacePageState extends State<SurfacePage> {
 
   String _surfaceTrajectoryToCsv() {
     final trajectory = _exportTrajectory;
+    String poseValue(double? value) => value?.toStringAsFixed(3) ?? '';
     final buffer = StringBuffer()
       ..writeln(
-        'index,source,polyline_index,segment_index,control_point,travel,local_x_mm,local_y_mm,surface_height_mm,machine_x_mm,machine_y_mm,machine_z_mm,image_x_px,image_y_px,board_x_mm,board_y_mm,board_z_mm,clearance_mm',
+        'index,source,polyline_index,segment_index,control_point,travel,local_x_mm,local_y_mm,surface_height_mm,normal_x,normal_y,normal_z,trajectory_normal_x,trajectory_normal_y,trajectory_normal_z,tool_axis_x,tool_axis_y,tool_axis_z,world_yaw_deg,world_pitch_deg,yaw_servo_deg,pitch_servo_deg,pose_status,machine_x_mm,machine_y_mm,machine_z_mm,image_x_px,image_y_px,board_x_mm,board_y_mm,board_z_mm,clearance_mm',
       );
     final source = _surfaceMotionTrajectory.isNotEmpty ? 'smoothed' : 'base';
     for (var i = 0; i < trajectory.length; i++) {
       final point = trajectory[i];
+      final trajectoryNormal = point.surfaceNormal == null
+          ? null
+          : _surfaceNormalInTrajectoryFrame(point.surfaceNormal!);
+      final toolAxis = trajectoryNormal == null
+          ? null
+          : SurfaceToolPose.toolAxisFromOutwardNormal(trajectoryNormal);
       buffer.writeln(
         [
           i,
@@ -2619,6 +3065,20 @@ class _SurfacePageState extends State<SurfacePage> {
           point.localX.toStringAsFixed(4),
           point.localY.toStringAsFixed(4),
           point.surfaceHeight.toStringAsFixed(4),
+          poseValue(point.surfaceNormal?.x),
+          poseValue(point.surfaceNormal?.y),
+          poseValue(point.surfaceNormal?.z),
+          poseValue(trajectoryNormal?.x),
+          poseValue(trajectoryNormal?.y),
+          poseValue(trajectoryNormal?.z),
+          poseValue(toolAxis?.x),
+          poseValue(toolAxis?.y),
+          poseValue(toolAxis?.z),
+          poseValue(point.toolPose?.worldYawDeg),
+          poseValue(point.toolPose?.worldPitchDeg),
+          poseValue(point.toolPose?.yawServoDeg),
+          poseValue(point.toolPose?.pitchServoDeg),
+          point.toolPose?.error ?? (point.toolPose == null ? '' : 'ok'),
           point.machineX.toStringAsFixed(4),
           point.machineY.toStringAsFixed(4),
           point.machineZ.toStringAsFixed(4),
@@ -2645,7 +3105,13 @@ class _SurfacePageState extends State<SurfacePage> {
         '${generatedAt.hour.toString().padLeft(2, '0')}:'
         '${generatedAt.minute.toString().padLeft(2, '0')}:'
         '${generatedAt.second.toString().padLeft(2, '0')}';
-    final buffer = StringBuffer()
+    final orientation = _surfaceToolOrientation;
+    final orientationSummary = _summarizeSurfaceToolOrientation(trajectory);
+    if (orientation.mode != SurfaceToolPoseMode.xyzOnly &&
+        !orientationSummary.canExport) {
+      throw StateError('工具姿态校验未通过：${orientationSummary.errors.join('；')}');
+    }
+    final header = StringBuffer()
       ..writeln('; generated by PrusaSlicer 2.7.0 on $slicerTimestamp')
       ..writeln('; Surface constant-distance motion path')
       ..writeln(
@@ -2659,22 +3125,40 @@ class _SurfacePageState extends State<SurfacePage> {
         '; Motion: ${_surfaceMotionTrajectory.isNotEmpty ? 'smoothed' : 'base'}',
       )
       ..writeln('; Points: ${trajectory.length}')
+      ..writeln('; Tool pose: ${orientation.mode.label}')
+      ..writeln(
+        '; Tool axis points opposite the STL outward normal when enabled.',
+      )
+      ..writeln('; Verify Klipper [servo] configuration before execution.')
       ..writeln('G21')
       ..writeln('G90');
-    for (final point in trajectory) {
-      final speed = point.travel
-          ? _surfaceTravelSpeedMmPerS
-          : _surfaceWorkSpeedMmPerS;
-      buffer.writeln(
-        'G1 X${point.machineX.toStringAsFixed(3)} '
-        'Y${point.machineY.toStringAsFixed(3)} '
-        'Z${point.machineZ.toStringAsFixed(3)} '
-        'F${(speed * 60).toStringAsFixed(0)}',
-      );
-    }
-    buffer.writeln('M400');
-    buffer.writeln('G28 ; auto home after print');
-    return buffer.toString();
+    final result = buildSurfaceOrientationGcode(
+      points: trajectory
+          .map(
+            (point) => SurfaceOrientationGcodePoint(
+              x: point.machineX,
+              y: point.machineY,
+              z: point.machineZ,
+              speedMmPerS: point.travel
+                  ? _surfaceTravelSpeedMmPerS
+                  : _surfaceWorkSpeedMmPerS,
+              travel: point.travel,
+              pose: point.toolPose,
+            ),
+          )
+          .toList(growable: false),
+      config: orientation,
+      header: header.toString(),
+    );
+    final defaultPoseGcode = orientation.mode == SurfaceToolPoseMode.xyzOnly
+        ? ''
+        : buildDefaultSurfaceToolPoseGcode(settleMs: orientation.settleMs);
+    return '${result.gcode}M400\n'
+        'G28 ; auto home after print\n'
+        'M400\n'
+        'G28 ; repeat home after print\n'
+        'M400\n'
+        '$defaultPoseGcode';
   }
 
   Future<String> _surfaceTrajectoryToPasteTestGcode() async {
@@ -2708,8 +3192,12 @@ class _SurfacePageState extends State<SurfacePage> {
         .clamp(0.0, _surfacePastePrimeRetractMaxUl)
         .toDouble();
     final stopDwellMs = _surfacePasteStopDwellMs.clamp(0.0, 3000.0).toDouble();
-    final startDwellMs =
-        _surfacePasteStartDwellMs.clamp(0.0, 10000.0).toDouble();
+    final startDwellMs = _surfacePasteStartDwellMs
+        .clamp(0.0, 10000.0)
+        .toDouble();
+    final returnDwellMs = _surfacePasteReturnDwellMs
+        .clamp(0.0, 10000.0)
+        .toDouble();
     final segmentPasteRateUlPerS = ulPerMm * workSpeedMmPerS;
     final primeRateUlPerS = _surfacePasteStartPrimeRateUlPerS
         .clamp(0.5, 300.0)
@@ -2760,9 +3248,8 @@ class _SurfacePageState extends State<SurfacePage> {
       ..writeln(
         '; Stop retract rate: ${retractRateUlPerS.toStringAsFixed(3)} uL/s',
       )
-      ..writeln(
-        '; Start dwell: ${startDwellMs.toStringAsFixed(0)} ms',
-      )
+      ..writeln('; Start dwell: ${startDwellMs.toStringAsFixed(0)} ms')
+      ..writeln('; Return dwell: ${returnDwellMs.toStringAsFixed(0)} ms')
       ..writeln('G21')
       ..writeln('G90')
       ..writeln('M400')
@@ -2968,8 +3455,14 @@ class _SurfacePageState extends State<SurfacePage> {
       ..writeln('; Start boost volume: ${boostVolumeUl.toStringAsFixed(3)} uL')
       ..writeln('; Coast length: ${coastLengthMm.toStringAsFixed(3)} mm')
       ..writeln('PASTE_STATUS')
+      ..writeln('M400');
+    if (returnDwellMs > 0.0) {
+      buffer.writeln('G4 P${returnDwellMs.round()} ; return dwell delay');
+    }
+    buffer
+      ..writeln('G28 ; auto home after print')
       ..writeln('M400')
-      ..writeln('G28 ; auto home after print');
+      ..writeln('G28 ; repeat home after print');
     return buffer.toString();
   }
 
@@ -3614,13 +4107,13 @@ class _SurfacePageState extends State<SurfacePage> {
     return result;
   }
 
-  double? _sampleSurfaceHeight(
+  _SurfaceSample? _sampleSurface(
     StlMesh mesh,
     _ProjectionBasis basis,
     double u,
     double v,
   ) {
-    double? topHeight;
+    _SurfaceSample? top;
     for (final triangle in mesh.triangles) {
       final a = basis.project(triangle.a);
       final b = basis.project(triangle.b);
@@ -3631,9 +4124,14 @@ class _SurfacePageState extends State<SurfacePage> {
           weights[0] * basis.heightValue(triangle.a) +
           weights[1] * basis.heightValue(triangle.b) +
           weights[2] * basis.heightValue(triangle.c);
-      topHeight = topHeight == null ? height : math.max(topHeight, height);
+      if (top == null || height > top.height) {
+        top = _SurfaceSample(
+          height: height,
+          normal: basis.projectNormal(triangle.normal),
+        );
+      }
     }
-    return topHeight;
+    return top;
   }
 
   List<double>? _barycentricWeights(
@@ -3770,6 +4268,7 @@ class _SurfacePageState extends State<SurfacePage> {
     );
     return FluiddCard(
       title: '曲面文件',
+      collapsible: true,
       scrollable: false,
       actions: [
         IconButton(
@@ -3828,7 +4327,7 @@ class _SurfacePageState extends State<SurfacePage> {
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         childrenPadding: EdgeInsets.zero,
-        initiallyExpanded: group.items.isNotEmpty,
+        initiallyExpanded: false,
         leading: const Icon(Icons.folder, size: 20),
         title: Text(group.location.label),
         subtitle: Text(
@@ -3962,6 +4461,7 @@ class _SurfacePageState extends State<SurfacePage> {
 
     return FluiddCard(
       title: 'STL 模型',
+      collapsible: true,
       scrollable: false,
       actions: [
         IconButton(
@@ -4099,6 +4599,7 @@ class _SurfacePageState extends State<SurfacePage> {
 
     return FluiddCard(
       title: '工件拍照',
+      collapsible: true,
       subtitle: hasPhoto ? 'Photo captured' : 'Move platform away first',
       scrollable: false,
       actions: [
@@ -4195,6 +4696,7 @@ class _SurfacePageState extends State<SurfacePage> {
 
     return FluiddCard(
       title: '人工辅助定位',
+      collapsible: true,
       subtitle: ready ? '可以开始对齐' : '等待 STL 和照片',
       scrollable: false,
       actions: [
@@ -4254,14 +4756,17 @@ class _SurfacePageState extends State<SurfacePage> {
               const SizedBox(width: 8),
               OutlinedButton.icon(
                 onPressed: ready
-                    ? () => setState(() {
-                        _localizationYawDeg =
-                            (_localizationYawDeg + 180.0) % 360.0;
-                        if (_localizationYawDeg > 180.0) {
-                          _localizationYawDeg -= 360.0;
-                        }
-                        _localizationResultPath = null;
-                      })
+                    ? () {
+                        setState(() {
+                          _localizationYawDeg =
+                              (_localizationYawDeg + 180.0) % 360.0;
+                          if (_localizationYawDeg > 180.0) {
+                            _localizationYawDeg -= 360.0;
+                          }
+                          _localizationResultPath = null;
+                        });
+                        _scheduleLocalizationAutosave();
+                      }
                     : null,
                 icon: const Icon(Icons.rotate_90_degrees_ccw),
                 label: const Text('180度'),
@@ -4313,6 +4818,7 @@ class _SurfacePageState extends State<SurfacePage> {
                 _localizationOffsetPx = Offset(value, _localizationOffsetPx.dy);
                 _localizationResultPath = null;
               });
+              _scheduleLocalizationAutosave();
             },
           ),
           _buildLabeledSlider(
@@ -4327,6 +4833,7 @@ class _SurfacePageState extends State<SurfacePage> {
                 _localizationOffsetPx = Offset(_localizationOffsetPx.dx, value);
                 _localizationResultPath = null;
               });
+              _scheduleLocalizationAutosave();
             },
           ),
           _buildLabeledSlider(
@@ -4341,6 +4848,7 @@ class _SurfacePageState extends State<SurfacePage> {
                 _localizationYawDeg = value;
                 _localizationResultPath = null;
               });
+              _scheduleLocalizationAutosave();
             },
           ),
           _buildLabeledSlider(
@@ -4355,6 +4863,7 @@ class _SurfacePageState extends State<SurfacePage> {
                 _localizationScalePxPerMm = value;
                 _localizationResultPath = null;
               });
+              _scheduleLocalizationAutosave();
             },
           ),
           _buildLabeledSlider(
@@ -4504,9 +5013,13 @@ class _SurfacePageState extends State<SurfacePage> {
     final angleLabel = usingDxfSource ? 'DXF角度' : '图案角度';
     final centerXLabel = usingDxfSource ? 'DXF中心 X' : '图案中心 X';
     final centerYLabel = usingDxfSource ? 'DXF中心 Y' : '图案中心 Y';
-    final canOneClickStart =
-        !_surfaceOneClickStarting &&
-        (_surfaceTrajectory.isNotEmpty || (ready && localized && sourceReady));
+    final printer = context.watch<PrinterController>();
+    final canOneClickStart = _canOneClickStart(
+      printer: printer,
+      ready: ready,
+      localized: localized,
+      sourceReady: sourceReady,
+    );
     final canPasteTestStart =
         !_surfacePasteTestStarting &&
         !_surfaceOneClickStarting &&
@@ -4519,6 +5032,7 @@ class _SurfacePageState extends State<SurfacePage> {
 
     return FluiddCard(
       title: '曲面恒距轨迹',
+      collapsible: true,
       subtitle: _surfaceTrajectory.isEmpty ? '生成验证路径' : '轨迹已生成',
       scrollable: false,
       actions: [
@@ -4767,6 +5281,8 @@ class _SurfacePageState extends State<SurfacePage> {
               ),
             ],
           ),
+          _buildSurfaceToolOrientationPanel(ready: ready),
+          const SizedBox(height: 8),
           _buildSurfaceBedZCalibrationPanel(ready: ready),
           Row(
             children: [
@@ -4880,242 +5396,294 @@ class _SurfacePageState extends State<SurfacePage> {
               icon: const Icon(Icons.ssid_chart),
               label: const Text('生成平滑运动轨迹'),
             ),
+            if (_surfaceTrajectory.isNotEmpty && !canOneClickStart) ...[
+              const SizedBox(height: 8),
+              _MessageBox(
+                message:
+                    _surfaceMotionPreflight(printer).blockingReason ??
+                    '当前条件不满足一键启动。',
+                isError: true,
+              ),
+            ],
             const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: canOneClickStart ? _startSurfaceMotionOneClick : null,
-              icon: _surfaceOneClickStarting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.play_arrow),
-              label: Text(_surfaceOneClickStarting ? '正在启动...' : '一键启动平滑运动'),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: canOneClickStart
+                        ? _startSurfaceMotionOneClick
+                        : null,
+                    icon: _surfaceOneClickStarting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.play_arrow),
+                    label: Text(
+                      _surfaceOneClickStarting ? '正在启动...' : '一键启动平滑运动',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: '查询下位机归零状态',
+                  onPressed: _surfaceHomingStatusRefreshing
+                      ? null
+                      : _refreshSurfaceHomingStatus,
+                  icon: _surfaceHomingStatusRefreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-            Text('锡膏同步测试', style: TextStyle(color: Colors.grey.shade300)),
-            const SizedBox(height: 8),
-            Row(
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('锡膏同步测试'),
               children: [
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '锡膏量',
-                    value: _surfacePasteUlPerMm.clamp(0.01, 5.0).toDouble(),
-                    min: 0.01,
-                    max: 5.0,
-                    unit: 'uL/mm',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteUlPerMm = value,
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '锡膏量',
+                        value: _surfacePasteUlPerMm.clamp(0.01, 5.0).toDouble(),
+                        min: 0.01,
+                        max: 5.0,
+                        unit: 'uL/mm',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteUlPerMm = value,
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '起始预压',
+                        value: _surfacePasteStartPrimeUl
+                            .clamp(0.0, _surfacePastePrimeRetractMaxUl)
+                            .toDouble(),
+                        min: 0.0,
+                        max: _surfacePastePrimeRetractMaxUl,
+                        unit: 'uL',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteStartPrimeUl = value,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '停胶回抽',
+                        value: _surfacePasteStopRetractUl
+                            .clamp(0.0, _surfacePastePrimeRetractMaxUl)
+                            .toDouble(),
+                        min: 0.0,
+                        max: _surfacePastePrimeRetractMaxUl,
+                        unit: 'uL',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteStopRetractUl = value,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '预压速度',
+                        value: _surfacePasteStartPrimeRateUlPerS
+                            .clamp(0.5, 300.0)
+                            .toDouble(),
+                        min: 0.5,
+                        max: 300.0,
+                        unit: 'uL/s',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteStartPrimeRateUlPerS = value,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '回抽速度',
+                        value: _surfacePasteStopRetractRateUlPerS
+                            .clamp(0.5, 300.0)
+                            .toDouble(),
+                        min: 0.5,
+                        max: 300.0,
+                        unit: 'uL/s',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteStopRetractRateUlPerS = value,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '前段补偿',
+                        value: _surfacePasteStartBoostUl
+                            .clamp(0.0, 100.0)
+                            .toDouble(),
+                        min: 0.0,
+                        max: 100.0,
+                        unit: 'uL',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteStartBoostUl = value,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '补偿长度',
+                        value: _surfacePasteStartBoostDistanceMm
+                            .clamp(0.0, 100.0)
+                            .toDouble(),
+                        min: 0.0,
+                        max: 100.0,
+                        unit: 'mm',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteStartBoostDistanceMm = value,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '提前停胶',
+                        value: _surfacePasteCoastDistanceMm
+                            .clamp(0.0, 100.0)
+                            .toDouble(),
+                        min: 0.0,
+                        max: 100.0,
+                        unit: 'mm',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteCoastDistanceMm = value,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '停胶等待',
+                        value: _surfacePasteStopDwellMs
+                            .clamp(0.0, 3000.0)
+                            .toDouble(),
+                        min: 0.0,
+                        max: 3000.0,
+                        unit: 'ms',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteStopDwellMs = value,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '起始等待',
+                        value: _surfacePasteStartDwellMs
+                            .clamp(0.0, 10000.0)
+                            .toDouble(),
+                        min: 0.0,
+                        max: 10000.0,
+                        unit: 'ms',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteStartDwellMs = value,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '归程等待时间',
+                        value: _surfacePasteReturnDwellMs
+                            .clamp(0.0, 10000.0)
+                            .toDouble(),
+                        min: 0.0,
+                        max: 10000.0,
+                        unit: 'ms',
+                        enabled: !_surfacePasteTestStarting,
+                        onChanged: (value) => _setSurfacePasteSetting(
+                          () => _surfacePasteReturnDwellMs = value,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                _InfoRow(
+                  label: '工作段估算速率',
+                  value: '${_fmt(pastePreviewRate.toDouble())} uL/s',
+                ),
+                FilledButton.icon(
+                  onPressed: canPasteTestStart
+                      ? _startSurfacePasteTestOneClick
+                      : null,
+                  icon: _surfacePasteTestStarting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.science_outlined),
+                  label: Text(
+                    _surfacePasteTestStarting ? '正在启动测试...' : '测试轨迹 + 锡膏',
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '起始预压',
-                    value: _surfacePasteStartPrimeUl
-                        .clamp(0.0, _surfacePastePrimeRetractMaxUl)
-                        .toDouble(),
-                    min: 0.0,
-                    max: _surfacePastePrimeRetractMaxUl,
-                    unit: 'uL',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteStartPrimeUl = value,
-                    ),
+                if (hasSmoothMotion) ...[
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    label: '平滑点',
+                    value: '${_surfaceMotionTrajectory.length}',
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '停胶回抽',
-                    value: _surfacePasteStopRetractUl
-                        .clamp(0.0, _surfacePastePrimeRetractMaxUl)
-                        .toDouble(),
-                    min: 0.0,
-                    max: _surfacePastePrimeRetractMaxUl,
-                    unit: 'uL',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteStopRetractUl = value,
-                    ),
+                  _InfoRow(
+                    label: '平滑 Z 范围',
+                    value:
+                        '${_fmt(motionStats.minZ)} .. ${_fmt(motionStats.maxZ)} mm',
                   ),
-                ),
+                ],
+                if (_surfaceMotionError != null) ...[
+                  const SizedBox(height: 8),
+                  _MessageBox(message: _surfaceMotionError!, isError: true),
+                ],
+                if (_surfaceOneClickStatus != null) ...[
+                  const SizedBox(height: 8),
+                  _MessageBox(message: _surfaceOneClickStatus!),
+                ],
+                if (_surfacePasteTestStatus != null) ...[
+                  const SizedBox(height: 8),
+                  _MessageBox(message: _surfacePasteTestStatus!),
+                ],
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '预压速度',
-                    value: _surfacePasteStartPrimeRateUlPerS
-                        .clamp(0.5, 300.0)
-                        .toDouble(),
-                    min: 0.5,
-                    max: 300.0,
-                    unit: 'uL/s',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteStartPrimeRateUlPerS = value,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '回抽速度',
-                    value: _surfacePasteStopRetractRateUlPerS
-                        .clamp(0.5, 300.0)
-                        .toDouble(),
-                    min: 0.5,
-                    max: 300.0,
-                    unit: 'uL/s',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteStopRetractRateUlPerS = value,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '前段补偿',
-                    value: _surfacePasteStartBoostUl
-                        .clamp(0.0, 100.0)
-                        .toDouble(),
-                    min: 0.0,
-                    max: 100.0,
-                    unit: 'uL',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteStartBoostUl = value,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '补偿长度',
-                    value: _surfacePasteStartBoostDistanceMm
-                        .clamp(0.0, 100.0)
-                        .toDouble(),
-                    min: 0.0,
-                    max: 100.0,
-                    unit: 'mm',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteStartBoostDistanceMm = value,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '提前停胶',
-                    value: _surfacePasteCoastDistanceMm
-                        .clamp(0.0, 100.0)
-                        .toDouble(),
-                    min: 0.0,
-                    max: 100.0,
-                    unit: 'mm',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteCoastDistanceMm = value,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '停胶等待',
-                    value: _surfacePasteStopDwellMs
-                        .clamp(0.0, 3000.0)
-                        .toDouble(),
-                    min: 0.0,
-                    max: 3000.0,
-                    unit: 'ms',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteStopDwellMs = value,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '起始等待',
-                    value: _surfacePasteStartDwellMs
-                        .clamp(0.0, 10000.0)
-                        .toDouble(),
-                    min: 0.0,
-                    max: 10000.0,
-                    unit: 'ms',
-                    enabled: !_surfacePasteTestStarting,
-                    onChanged: (value) => _setSurfacePasteSetting(
-                      () => _surfacePasteStartDwellMs = value,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Expanded(child: SizedBox.shrink()),
-              ],
-            ),
-            _InfoRow(
-              label: '工作段估算速率',
-              value: '${_fmt(pastePreviewRate.toDouble())} uL/s',
-            ),
-            FilledButton.icon(
-              onPressed: canPasteTestStart
-                  ? _startSurfacePasteTestOneClick
-                  : null,
-              icon: _surfacePasteTestStarting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.science_outlined),
-              label: Text(
-                _surfacePasteTestStarting ? '正在启动测试...' : '测试轨迹 + 锡膏',
-              ),
-            ),
-            if (hasSmoothMotion) ...[
-              const SizedBox(height: 8),
-              _InfoRow(
-                label: '平滑点',
-                value: '${_surfaceMotionTrajectory.length}',
-              ),
-              _InfoRow(
-                label: '平滑 Z 范围',
-                value:
-                    '${_fmt(motionStats.minZ)} .. ${_fmt(motionStats.maxZ)} mm',
-              ),
-            ],
-            if (_surfaceMotionError != null) ...[
-              const SizedBox(height: 8),
-              _MessageBox(message: _surfaceMotionError!, isError: true),
-            ],
-            if (_surfaceOneClickStatus != null) ...[
-              const SizedBox(height: 8),
-              _MessageBox(message: _surfaceOneClickStatus!),
-            ],
-            if (_surfacePasteTestStatus != null) ...[
-              const SizedBox(height: 8),
-              _MessageBox(message: _surfacePasteTestStatus!),
-            ],
             const SizedBox(height: 10),
             Row(
               children: [
@@ -5137,107 +5705,119 @@ class _SurfacePageState extends State<SurfacePage> {
               ],
             ),
             const SizedBox(height: 12),
-            Text('可选点位抽检抓拍', style: TextStyle(color: Colors.grey.shade300)),
-            _InfoRow(
-              label: '抓拍点',
-              value:
-                  '$verificationKeyPointCount 个验证点 ($_surfaceTrajectorySourceLabel)',
-            ),
-            Row(
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('可选点位抽检抓拍'),
               children: [
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '验证间距',
-                    value: _verificationSpacingMm.clamp(1.0, 100.0).toDouble(),
-                    min: 1,
-                    max: 100,
-                    unit: 'mm',
-                    enabled: !_verificationRunning,
-                    onChanged: (value) =>
-                        setState(() => _verificationSpacingMm = value),
-                  ),
+                _InfoRow(
+                  label: '抓拍点',
+                  value:
+                      '$verificationKeyPointCount 个验证点 ($_surfaceTrajectorySourceLabel)',
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '最大抓拍数',
-                    value: _verificationMaxCaptures.clamp(3, 200).toDouble(),
-                    min: 3,
-                    max: 200,
-                    unit: '',
-                    enabled: !_verificationRunning,
-                    onChanged: (value) => setState(
-                      () => _verificationMaxCaptures = value.round().clamp(
-                        3,
-                        200,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '验证间距',
+                        value: _verificationSpacingMm
+                            .clamp(1.0, 100.0)
+                            .toDouble(),
+                        min: 1,
+                        max: 100,
+                        unit: 'mm',
+                        enabled: !_verificationRunning,
+                        onChanged: (value) =>
+                            setState(() => _verificationSpacingMm = value),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '最大抓拍数',
+                        value: _verificationMaxCaptures
+                            .clamp(3, 200)
+                            .toDouble(),
+                        min: 3,
+                        max: 200,
+                        unit: '',
+                        enabled: !_verificationRunning,
+                        onChanged: (value) => setState(
+                          () => _verificationMaxCaptures = value.round().clamp(
+                            3,
+                            200,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTrajectoryNumberInput(
+                        label: '稳定等待',
+                        value: _verificationSettleSeconds
+                            .clamp(0.0, 5.0)
+                            .toDouble(),
+                        min: 0,
+                        max: 5,
+                        unit: 's',
+                        enabled: !_verificationRunning,
+                        onChanged: (value) =>
+                            setState(() => _verificationSettleSeconds = value),
+                      ),
+                    ),
+                  ],
+                ),
+                FilledButton.icon(
+                  onPressed: _verificationRunning || _surfaceTrajectory.isEmpty
+                      ? null
+                      : _runTrajectoryCaptureVerification,
+                  icon: _verificationRunning
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.camera_enhance_outlined),
+                  label: Text(
+                    _verificationRunning
+                        ? '抓拍中 $_verificationProgress/$verificationKeyPointCount'
+                        : '移动抽检并识别照片轨迹',
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTrajectoryNumberInput(
-                    label: '稳定等待',
-                    value: _verificationSettleSeconds
-                        .clamp(0.0, 5.0)
-                        .toDouble(),
-                    min: 0,
-                    max: 5,
-                    unit: 's',
-                    enabled: !_verificationRunning,
-                    onChanged: (value) =>
-                        setState(() => _verificationSettleSeconds = value),
+                if (_actualVerificationTrajectoryPoints().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(
+                      () => _showActualVerificationTrajectory =
+                          !_showActualVerificationTrajectory,
+                    ),
+                    icon: Icon(
+                      _showActualVerificationTrajectory
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    label: Text(
+                      _showActualVerificationTrajectory
+                          ? '隐藏照片识别轨迹'
+                          : '显示照片识别轨迹',
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    label: '照片识别轨迹',
+                    value:
+                        '${_actualVerificationTrajectoryPoints().length} 个识别点',
+                  ),
+                ],
+                if (_verificationResult != null &&
+                    _actualVerificationTrajectoryPoints().isEmpty) ...[
+                  const SizedBox(height: 8),
+                  const _MessageBox(
+                    message:
+                        'Captured photos were saved, but this manifest has no detected actual points, so the green actual trajectory is not drawn.',
+                  ),
+                ],
               ],
             ),
-            FilledButton.icon(
-              onPressed: _verificationRunning || _surfaceTrajectory.isEmpty
-                  ? null
-                  : _runTrajectoryCaptureVerification,
-              icon: _verificationRunning
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.camera_enhance_outlined),
-              label: Text(
-                _verificationRunning
-                    ? '抓拍中 $_verificationProgress/$verificationKeyPointCount'
-                    : '移动抽检并识别照片轨迹',
-              ),
-            ),
-            if (_actualVerificationTrajectoryPoints().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => setState(
-                  () => _showActualVerificationTrajectory =
-                      !_showActualVerificationTrajectory,
-                ),
-                icon: Icon(
-                  _showActualVerificationTrajectory
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                ),
-                label: Text(
-                  _showActualVerificationTrajectory ? '隐藏照片识别轨迹' : '显示照片识别轨迹',
-                ),
-              ),
-              const SizedBox(height: 8),
-              _InfoRow(
-                label: '照片识别轨迹',
-                value: '${_actualVerificationTrajectoryPoints().length} 个识别点',
-              ),
-            ],
-            if (_verificationResult != null &&
-                _actualVerificationTrajectoryPoints().isEmpty) ...[
-              const SizedBox(height: 8),
-              const _MessageBox(
-                message:
-                    'Captured photos were saved, but this manifest has no detected actual points, so the green actual trajectory is not drawn.',
-              ),
-            ],
           ],
           if (_surfaceTrajectoryPath != null) ...[
             const SizedBox(height: 8),
@@ -5409,6 +5989,38 @@ class _SurfacePageState extends State<SurfacePage> {
     return '(${_fmt(correction.dx)}, ${_fmt(correction.dy)}, ${_fmt(correction.dz)}) mm$suffix';
   }
 
+  SurfaceBedZToolheadKind get _surfaceBedZToolheadKind =>
+      _surfaceToolOrientation.mode.bedZToolheadKind;
+
+  _SurfaceBedZCalibrationRecord? get _activeSurfaceBedZCalibration =>
+      _surfaceBedZCalibrations[_surfaceBedZToolheadKind];
+
+  String? get _surfaceBedZToolheadWarning {
+    final active = _activeSurfaceBedZCalibration;
+    if (_surfaceBedZToolheadKind == SurfaceBedZToolheadKind.dualServo) {
+      if (active == null) {
+        return '当前为双自由度舵机工具头，必须重新标定第一层 Z 基准；不能沿用单针头“仅 XYZ”标定。';
+      }
+      final xyzOnly = _surfaceBedZCalibrations[SurfaceBedZToolheadKind.xyzOnly];
+      if (xyzOnly != null &&
+          surfaceBedZNeedsRecalibration(
+            xyzOnly.bedZ,
+            active.bedZ,
+            toleranceMm: _surfaceBedZSameToolheadToleranceMm,
+          )) {
+        return '双自由度舵机工具头的床面 Z 与单针头“仅 XYZ”标定相同（误差不超过 ${_fmt(_surfaceBedZSameToolheadToleranceMm)} mm）。请确认已安装舵机工具头并重新标定。';
+      }
+    }
+    return null;
+  }
+
+  void _activateSurfaceBedZCalibrationForCurrentToolhead() {
+    final calibration = _activeSurfaceBedZCalibration;
+    _surfaceBedZ = calibration?.bedZ ?? _defaultSurfaceBedZ;
+    _surfaceBedZCalibrationTouchZ = calibration?.touchZ;
+    _surfaceBedZCalibrationAt = calibration?.calibratedAt;
+  }
+
   Future<void> _recordSurfaceBedZFromCurrentPosition() async {
     if (_surfaceBedZCalibrationBusy) {
       return;
@@ -5470,22 +6082,26 @@ class _SurfacePageState extends State<SurfacePage> {
     }
 
     final calibratedAt = DateTime.now();
+    final toolheadKind = _surfaceBedZToolheadKind;
+    final calibration = _SurfaceBedZCalibrationRecord(
+      touchZ: measuredTouchZ,
+      bedZ: calibratedBedZ,
+      calibratedAt: calibratedAt,
+      source: source,
+    );
     setState(() {
-      _surfaceBedZCalibrationTouchZ = measuredTouchZ;
-      _surfaceBedZCalibrationAt = calibratedAt;
-      _surfaceBedZ = calibratedBedZ;
+      _surfaceBedZCalibrations[toolheadKind] = calibration;
+      _activateSurfaceBedZCalibrationForCurrentToolhead();
       _surfaceBedZCalibrationError = null;
-      _surfaceBedZCalibrationMessage = '已应用：床面 Z = ${_fmt(calibratedBedZ)} mm';
+      _surfaceBedZCalibrationMessage =
+          '已应用 ${toolheadKind.label}：床面 Z = ${_fmt(calibratedBedZ)} mm';
       _clearGeneratedSurfaceTrajectory();
     });
 
     try {
       final path = await _writeSurfaceBedZCalibrationFile(
-        touchZ: measuredTouchZ,
-        surfaceHeight: 0.0,
-        bedZ: calibratedBedZ,
-        calibratedAt: calibratedAt,
-        source: source,
+        activeToolheadKind: toolheadKind,
+        calibration: calibration,
       );
       if (!mounted) {
         return;
@@ -5493,7 +6109,7 @@ class _SurfacePageState extends State<SurfacePage> {
       setState(() {
         _surfaceBedZCalibrationPath = path;
         _surfaceBedZCalibrationMessage =
-            '已应用并保存：床面 Z = ${_fmt(calibratedBedZ)} mm';
+            '已应用并保存 ${toolheadKind.label}：床面 Z = ${_fmt(calibratedBedZ)} mm';
       });
     } catch (error) {
       if (!mounted) {
@@ -5527,29 +6143,44 @@ class _SurfacePageState extends State<SurfacePage> {
         throw const FormatException('标定文件格式不是 JSON 对象。');
       }
 
-      final bedZ = (decoded['bed_z_mm'] as num?)?.toDouble();
-      if (bedZ == null || !bedZ.isFinite) {
-        throw const FormatException('标定文件缺少有效的 bed_z_mm。');
+      final calibrations =
+          <SurfaceBedZToolheadKind, _SurfaceBedZCalibrationRecord>{};
+      final savedCalibrations = decoded['calibrations'];
+      if (savedCalibrations is Map) {
+        for (final toolheadKind in SurfaceBedZToolheadKind.values) {
+          final calibration = _SurfaceBedZCalibrationRecord.fromJson(
+            savedCalibrations[toolheadKind.storageKey],
+          );
+          if (calibration != null) {
+            calibrations[toolheadKind] = calibration;
+          }
+        }
       }
 
-      final touchZ = (decoded['touch_machine_z_mm'] as num?)?.toDouble();
-      final createdAtText = decoded['created_at'] as String?;
-      final createdAt = createdAtText == null
-          ? null
-          : DateTime.tryParse(createdAtText);
+      if (calibrations.isEmpty) {
+        final legacyCalibration = _SurfaceBedZCalibrationRecord.fromJson(
+          decoded,
+        );
+        if (legacyCalibration == null) {
+          throw const FormatException('标定文件缺少有效的 bed_z_mm。');
+        }
+        calibrations[SurfaceBedZToolheadKind.xyzOnly] = legacyCalibration;
+      }
 
       if (!mounted) {
         return;
       }
       setState(() {
-        _surfaceBedZ = bedZ;
-        _surfaceBedZCalibrationTouchZ = touchZ != null && touchZ.isFinite
-            ? touchZ
-            : null;
-        _surfaceBedZCalibrationAt = createdAt;
+        _surfaceBedZCalibrations
+          ..clear()
+          ..addAll(calibrations);
+        _activateSurfaceBedZCalibrationForCurrentToolhead();
         _surfaceBedZCalibrationPath = file.path;
         _surfaceBedZCalibrationError = null;
-        _surfaceBedZCalibrationMessage = '已加载保存的床面 Z：${_fmt(bedZ)} mm';
+        final active = _activeSurfaceBedZCalibration;
+        _surfaceBedZCalibrationMessage = active == null
+            ? '已加载单针头“仅 XYZ”标定；双自由度舵机工具头需要重新标定。'
+            : '已加载 ${_surfaceBedZToolheadKind.label}：床面 Z = ${_fmt(active.bedZ)} mm';
       });
     } catch (error) {
       if (!mounted) {
@@ -5564,28 +6195,277 @@ class _SurfacePageState extends State<SurfacePage> {
   }
 
   Future<String> _writeSurfaceBedZCalibrationFile({
-    required double touchZ,
-    required double surfaceHeight,
-    required double bedZ,
-    required DateTime calibratedAt,
-    required String source,
+    required SurfaceBedZToolheadKind activeToolheadKind,
+    required _SurfaceBedZCalibrationRecord calibration,
   }) async {
     final file = _surfaceBedZCalibrationFile();
     await file.parent.create(recursive: true);
+    final calibrations =
+        Map<SurfaceBedZToolheadKind, _SurfaceBedZCalibrationRecord>.from(
+          _surfaceBedZCalibrations,
+        )..[activeToolheadKind] = calibration;
     final payload = <String, Object?>{
       'type': 'surface_bed_z_first_layer_calibration',
-      'source': source,
-      'created_at': calibratedAt.toIso8601String(),
-      'touch_machine_z_mm': touchZ,
-      'reference_surface_height_mm': surfaceHeight,
-      'bed_z_mm': bedZ,
+      'version': 2,
+      ...calibration.toJson(),
+      'toolhead_kind': activeToolheadKind.storageKey,
       'formula': 'bed_z_mm = touch_machine_z_mm for model bed plane z=0',
+      'calibrations': {
+        for (final entry in calibrations.entries)
+          entry.key.storageKey: entry.value.toJson(),
+      },
     };
     await file.writeAsString(
       const JsonEncoder.withIndent('  ').convert(payload),
       flush: true,
     );
     return file.path;
+  }
+
+  Widget _buildSurfaceToolOrientationPanel({required bool ready}) {
+    final config = _surfaceToolOrientation;
+    final summary =
+        _surfaceToolOrientationSummary ??
+        (_surfaceTrajectory.isEmpty
+            ? null
+            : _summarizeSurfaceToolOrientation(_exportTrajectory));
+    void update(SurfaceToolOrientationConfig next) {
+      final toolheadChanged =
+          next.mode.bedZToolheadKind !=
+          _surfaceToolOrientation.mode.bedZToolheadKind;
+      setState(() {
+        _surfaceToolOrientation = next;
+        if (toolheadChanged) {
+          _activateSurfaceBedZCalibrationForCurrentToolhead();
+          _surfaceBedZCalibrationError = null;
+          _surfaceBedZCalibrationMessage = null;
+        }
+        if (_surfaceTrajectory.isNotEmpty) {
+          _surfaceTrajectory = _attachSurfaceToolPoses(_surfaceTrajectory);
+          _surfaceMotionTrajectory = const [];
+          _surfaceToolOrientationSummary = _summarizeSurfaceToolOrientation(
+            _surfaceTrajectory,
+          );
+        }
+        _surfaceGcodePath = null;
+      });
+    }
+
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      title: const Text('工具姿态'),
+      subtitle: Text(config.mode.label),
+      children: [
+        DropdownButtonFormField<SurfaceToolPoseMode>(
+          initialValue: config.mode,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: '姿态模式',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+          items: SurfaceToolPoseMode.values
+              .map(
+                (mode) => DropdownMenuItem<SurfaceToolPoseMode>(
+                  value: mode,
+                  child: Text(mode.label, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: ready
+              ? (mode) {
+                  if (mode != null) update(config.copyWith(mode: mode));
+                }
+              : null,
+        ),
+        const SizedBox(height: 8),
+        const _MessageBox(
+          message:
+              'Pitch：80° 工具水平，50° 上抬限位，180° 竖直向下；Yaw：30° 工具朝 +X（上臂 A）。姿态导出仅供审阅，勿在未校准舵机前执行。',
+        ),
+        if (config.mode == SurfaceToolPoseMode.fixed) ...[
+          Row(
+            children: [
+              Expanded(
+                child: _buildTrajectoryNumberInput(
+                  label: '固定 Yaw',
+                  value: config.fixedYawServoDeg,
+                  min: 0,
+                  max: 180,
+                  unit: 'deg',
+                  enabled: ready,
+                  onChanged: (value) =>
+                      update(config.copyWith(fixedYawServoDeg: value)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTrajectoryNumberInput(
+                  label: '固定 Pitch',
+                  value: config.fixedPitchServoDeg,
+                  min: 50,
+                  max: 180,
+                  unit: 'deg',
+                  enabled: ready,
+                  onChanged: (value) =>
+                      update(config.copyWith(fixedPitchServoDeg: value)),
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (config.mode == SurfaceToolPoseMode.normalFollow) ...[
+          Row(
+            children: [
+              Expanded(
+                child: _buildTrajectoryNumberInput(
+                  label: 'Yaw 偏置',
+                  value: config.yawOffsetDeg,
+                  min: -180,
+                  max: 180,
+                  unit: 'deg',
+                  enabled: ready,
+                  onChanged: (value) =>
+                      update(config.copyWith(yawOffsetDeg: value)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTrajectoryNumberInput(
+                  label: 'Pitch 偏置',
+                  value: config.pitchOffsetDeg,
+                  min: -90,
+                  max: 90,
+                  unit: 'deg',
+                  enabled: ready,
+                  onChanged: (value) =>
+                      update(config.copyWith(pitchOffsetDeg: value)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTrajectoryNumberInput(
+                  label: 'L：俯仰轴至针尖',
+                  value: config.tipLengthMm,
+                  min: 0,
+                  max: 100,
+                  unit: 'mm',
+                  enabled: ready,
+                  onChanged: (value) =>
+                      update(config.copyWith(tipLengthMm: value)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTrajectoryNumberInput(
+                  label: 'e：针尖横向偏心',
+                  value: config.tipLateralOffsetMm,
+                  min: -30,
+                  max: 30,
+                  unit: 'mm',
+                  enabled: ready,
+                  onChanged: (value) =>
+                      update(config.copyWith(tipLateralOffsetMm: value)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const _MessageBox(
+            message:
+                '针尖补偿零位：针尖竖直向下、Yaw 朝 +X（Yaw 30° / Pitch 180°）。双舵机床面 Z 标定须在该姿态完成；e 的正负用于选择俯仰摆动平面两侧。',
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('反向 Yaw'),
+            value: config.reverseYaw,
+            onChanged: ready
+                ? (value) => update(config.copyWith(reverseYaw: value))
+                : null,
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('反向 Pitch'),
+            value: config.reversePitch,
+            onChanged: ready
+                ? (value) => update(config.copyWith(reversePitch: value))
+                : null,
+          ),
+        ],
+        if (config.mode != SurfaceToolPoseMode.xyzOnly) ...[
+          Row(
+            children: [
+              Expanded(
+                child: _buildTrajectoryNumberInput(
+                  label: '姿态死区',
+                  value: config.deadbandDeg,
+                  min: 0,
+                  max: 20,
+                  unit: 'deg',
+                  enabled: ready,
+                  onChanged: (value) =>
+                      update(config.copyWith(deadbandDeg: value)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTrajectoryNumberInput(
+                  label: '最大变化',
+                  value: config.maxStepDeg,
+                  min: 1,
+                  max: 90,
+                  unit: 'deg',
+                  enabled: ready,
+                  onChanged: (value) =>
+                      update(config.copyWith(maxStepDeg: value)),
+                ),
+              ),
+            ],
+          ),
+          _buildTrajectoryNumberInput(
+            label: '舵机稳定时间',
+            value: config.settleMs.toDouble(),
+            min: 0,
+            max: 5000,
+            unit: 'ms',
+            enabled: ready,
+            onChanged: (value) =>
+                update(config.copyWith(settleMs: value.round())),
+          ),
+          if (summary != null) ...[
+            _InfoRow(
+              label: '姿态工作点',
+              value:
+                  '${summary.valid}/${summary.total} 有效；${summary.updates} 次调整',
+            ),
+            _InfoRow(
+              label: 'Yaw 范围',
+              value:
+                  '${_fmt(summary.minYawServoDeg ?? 0)}° – ${_fmt(summary.maxYawServoDeg ?? 0)}°',
+            ),
+            _InfoRow(
+              label: 'Pitch 范围',
+              value:
+                  '${_fmt(summary.minPitchServoDeg ?? 0)}° – ${_fmt(summary.maxPitchServoDeg ?? 0)}°',
+            ),
+            OutlinedButton.icon(
+              onPressed: _showSurfaceToolPoseDiagnostics,
+              icon: const Icon(Icons.table_chart_outlined),
+              label: const Text('查看姿态计算'),
+            ),
+            if (!summary.canExport)
+              _MessageBox(
+                message: '姿态 G-code 已阻止导出：${summary.errors.join('；')}',
+                isError: true,
+              ),
+          ],
+        ],
+      ],
+    );
   }
 
   Widget _buildSurfaceBedZCalibrationPanel({required bool ready}) {
@@ -5641,6 +6521,11 @@ class _SurfacePageState extends State<SurfacePage> {
             label: '机器Z',
             value: currentZ == null ? '未读取' : '${_fmt(currentZ)} mm',
           ),
+          _InfoRow(label: '工具头', value: _surfaceBedZToolheadKind.label),
+          _InfoRow(
+            label: '标定状态',
+            value: _activeSurfaceBedZCalibration == null ? '未标定' : '已标定',
+          ),
           _InfoRow(
             label: '触碰Z',
             value: _surfaceBedZCalibrationTouchZ == null
@@ -5669,9 +6554,13 @@ class _SurfacePageState extends State<SurfacePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '床面Z = 针尖刚好触碰床面时的机器Z；STL曲面高度仍由模型和视觉定位决定。',
+            '床面Z = 当前工具头的针尖刚好触碰床面时的机器Z。单针头“仅 XYZ”和双自由度舵机工具头必须分别标定；STL曲面高度仍由模型和视觉定位决定。',
             style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
           ),
+          if (_surfaceBedZToolheadWarning case final warning?) ...[
+            const SizedBox(height: 8),
+            _MessageBox(message: warning, isError: true),
+          ],
           if (!connected) ...[
             const SizedBox(height: 8),
             _MessageBox(message: 'Moonraker 未连接，暂不能读取当前 Z。', isError: true),
@@ -6175,6 +7064,23 @@ class _SurfacePageState extends State<SurfacePage> {
                   icon: const Icon(Icons.zoom_out),
                 ),
                 IconButton(
+                  tooltip: _interpolateGcodeZMapVertices
+                      ? 'Height rendering: vertex gradient (cone)'
+                      : 'Height rendering: face height (wing)',
+                  onPressed: ready
+                      ? () => setState(
+                          () => _interpolateGcodeZMapVertices =
+                              !_interpolateGcodeZMapVertices,
+                        )
+                      : null,
+                  icon: Icon(
+                    Icons.gradient,
+                    color: _interpolateGcodeZMapVertices
+                        ? const Color(0xFFFFD54F)
+                        : Colors.grey.shade400,
+                  ),
+                ),
+                IconButton(
                   tooltip: '放大视图',
                   onPressed: ready ? () => _zoomLocalizationView(1.25) : null,
                   icon: const Icon(Icons.zoom_in),
@@ -6255,6 +7161,8 @@ class _SurfacePageState extends State<SurfacePage> {
                                             opacity: _localizationOpacity,
                                             showHeightMap:
                                                 _showLocalizationHeightMap,
+                                            interpolateHeightVertices:
+                                                _interpolateGcodeZMapVertices,
                                             showMesh: _showLocalizationMesh,
                                             showAxes: _showLocalizationAxes,
                                             showBounds: _showLocalizationBounds,
@@ -6317,14 +7225,16 @@ class _SurfacePageState extends State<SurfacePage> {
 
   Widget _buildTrajectoryPreviewCard(BuildContext context) {
     final theme = Theme.of(context);
+    final printer = context.watch<PrinterController>();
     final mesh = _mesh;
     final ready = mesh != null && !mesh.isEmpty;
     final sourceReady = _surfaceTrajectorySourceReady;
-    final canOneClickStart =
-        ready &&
-        !_surfaceOneClickStarting &&
-        (_surfaceTrajectory.isNotEmpty ||
-            (_localizationResultPath != null && sourceReady));
+    final canOneClickStart = _canOneClickStart(
+      printer: printer,
+      ready: ready,
+      localized: _localizationResultPath != null,
+      sourceReady: sourceReady,
+    );
     final exportTrajectory = _exportTrajectory;
     final stats = _SurfaceTrajectoryStats.fromPoints(exportTrajectory);
     final trajectoryModeLabel = _surfaceMotionTrajectory.isNotEmpty
@@ -6352,6 +7262,12 @@ class _SurfacePageState extends State<SurfacePage> {
     final photoBytes = _workpiecePhotoBytes;
     final imageSize = _workpieceImageSize;
     final photoReady = photoBytes != null && imageSize != null;
+    final reachabilityOverlay = ready
+        ? _reachabilityOverlayForPreview(mesh)
+        : null;
+    final reachabilityOverlayEnabled =
+        ready &&
+        _surfaceToolOrientation.mode == SurfaceToolPoseMode.normalFollow;
     final trajectoryLegendLabel = actualTrajectory.isNotEmpty
         ? photoReady
               ? '黄色：规划轨迹 | 绿色：照片识别像素轨迹'
@@ -6378,118 +7294,172 @@ class _SurfacePageState extends State<SurfacePage> {
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Colors.white10)),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Text(
                     '曲面恒距轨迹预览',
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: Colors.blue,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                _buildWorkspaceSwitcher(),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: '生成轨迹',
-                  onPressed: ready && sourceReady
-                      ? _generateSurfaceTrajectory
-                      : null,
-                  icon: const Icon(Icons.route_outlined),
-                ),
-                IconButton(
-                  tooltip: '导出 CSV',
-                  onPressed: _surfaceTrajectory.isEmpty
-                      ? null
-                      : _exportSurfaceTrajectoryCsv,
-                  icon: const Icon(Icons.table_chart_outlined),
-                ),
-                IconButton(
-                  tooltip: '导出 G-code',
-                  onPressed: _surfaceTrajectory.isEmpty
-                      ? null
-                      : _exportSurfaceTrajectoryGcode,
-                  icon: const Icon(Icons.data_object),
-                ),
-                IconButton(
-                  tooltip: '一键启动平滑运动',
-                  onPressed: canOneClickStart
-                      ? _startSurfaceMotionOneClick
-                      : null,
-                  icon: _surfaceOneClickStarting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.play_arrow),
-                ),
-                IconButton(
-                  tooltip: _showGcodeTrajectory
-                      ? '隐藏 G-code 轨迹'
-                      : '显示 G-code 轨迹',
-                  onPressed: _surfaceTrajectory.isEmpty
-                      ? null
-                      : () => setState(
-                          () => _showGcodeTrajectory = !_showGcodeTrajectory,
-                        ),
-                  icon: Icon(
-                    Icons.code,
-                    color: generatedGcodeTrajectory.isNotEmpty
-                        ? const Color(0xFF26C6DA)
+                  const SizedBox(width: 16),
+                  _buildWorkspaceSwitcher(),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: '生成轨迹',
+                    onPressed: ready && sourceReady
+                        ? _generateSurfaceTrajectory
                         : null,
+                    icon: const Icon(Icons.route_outlined),
                   ),
-                ),
-                IconButton(
-                  tooltip: _showGcodeZMap ? '隐藏 G-code Z 云图' : '显示 G-code Z 云图',
-                  onPressed: _surfaceTrajectory.isEmpty
-                      ? null
-                      : () => setState(() => _showGcodeZMap = !_showGcodeZMap),
-                  icon: Icon(
-                    Icons.terrain_outlined,
-                    color: showGcodeZMap ? const Color(0xFFFFD54F) : null,
+                  IconButton(
+                    tooltip: '导出 CSV',
+                    onPressed: _surfaceTrajectory.isEmpty
+                        ? null
+                        : _exportSurfaceTrajectoryCsv,
+                    icon: const Icon(Icons.table_chart_outlined),
                   ),
-                ),
-                IconButton(
-                  tooltip: _showActualVerificationTrajectory
-                      ? '隐藏照片识别轨迹'
-                      : '显示照片识别轨迹',
-                  onPressed: detectedVerificationPoints.isEmpty
-                      ? null
-                      : () => setState(
-                          () => _showActualVerificationTrajectory =
-                              !_showActualVerificationTrajectory,
-                        ),
-                  icon: Icon(
-                    _showActualVerificationTrajectory
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: actualTrajectory.isNotEmpty
-                        ? const Color(0xFF45C486)
+                  IconButton(
+                    tooltip: '导出 G-code',
+                    onPressed: _surfaceTrajectory.isEmpty
+                        ? null
+                        : _exportSurfaceTrajectoryGcode,
+                    icon: const Icon(Icons.data_object),
+                  ),
+                  IconButton(
+                    tooltip: '一键启动平滑运动',
+                    onPressed: canOneClickStart
+                        ? _startSurfaceMotionOneClick
                         : null,
+                    icon: _surfaceOneClickStarting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.play_arrow),
                   ),
-                ),
-                IconButton(
-                  tooltip: '缩小视图',
-                  onPressed: photoReady ? () => _zoomTrajectoryView(0.8) : null,
-                  icon: const Icon(Icons.zoom_out),
-                ),
-                IconButton(
-                  tooltip: '放大视图',
-                  onPressed: photoReady
-                      ? () => _zoomTrajectoryView(1.25)
-                      : null,
-                  icon: const Icon(Icons.zoom_in),
-                ),
-                IconButton(
-                  tooltip: '重置视图',
-                  onPressed: photoReady
-                      ? () => _trajectoryController.value = Matrix4.identity()
-                      : null,
-                  icon: const Icon(Icons.center_focus_strong),
-                ),
-              ],
+                  IconButton(
+                    tooltip: '查询下位机归零状态',
+                    onPressed: _surfaceHomingStatusRefreshing
+                        ? null
+                        : _refreshSurfaceHomingStatus,
+                    icon: _surfaceHomingStatusRefreshing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh),
+                  ),
+                  IconButton(
+                    tooltip: _showGcodeTrajectory
+                        ? '隐藏 G-code 轨迹'
+                        : '显示 G-code 轨迹',
+                    onPressed: _surfaceTrajectory.isEmpty
+                        ? null
+                        : () => setState(
+                            () => _showGcodeTrajectory = !_showGcodeTrajectory,
+                          ),
+                    icon: Icon(
+                      Icons.code,
+                      color: generatedGcodeTrajectory.isNotEmpty
+                          ? const Color(0xFF26C6DA)
+                          : null,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: _showGcodeZMap
+                        ? '隐藏 G-code Z 云图'
+                        : '显示 G-code Z 云图',
+                    onPressed: _surfaceTrajectory.isEmpty
+                        ? null
+                        : () =>
+                              setState(() => _showGcodeZMap = !_showGcodeZMap),
+                    icon: Icon(
+                      Icons.terrain_outlined,
+                      color: showGcodeZMap ? const Color(0xFFFFD54F) : null,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: _showActualVerificationTrajectory
+                        ? '隐藏照片识别轨迹'
+                        : '显示照片识别轨迹',
+                    onPressed: detectedVerificationPoints.isEmpty
+                        ? null
+                        : () => setState(
+                            () => _showActualVerificationTrajectory =
+                                !_showActualVerificationTrajectory,
+                          ),
+                    icon: Icon(
+                      _showActualVerificationTrajectory
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: actualTrajectory.isNotEmpty
+                          ? const Color(0xFF45C486)
+                          : null,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: _showToolReachabilityOverlay
+                        ? '隐藏工具姿态可达区域'
+                        : '显示工具姿态可达区域',
+                    onPressed: !reachabilityOverlayEnabled
+                        ? null
+                        : () => setState(
+                            () => _showToolReachabilityOverlay =
+                                !_showToolReachabilityOverlay,
+                          ),
+                    icon: Icon(
+                      Icons.layers_outlined,
+                      color: _showToolReachabilityOverlay
+                          ? const Color(0xFF66BB6A)
+                          : null,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '缩小视图',
+                    onPressed: photoReady
+                        ? () => _zoomTrajectoryView(0.8)
+                        : null,
+                    icon: const Icon(Icons.zoom_out),
+                  ),
+                  IconButton(
+                    tooltip: _interpolateGcodeZMapVertices
+                        ? 'Height rendering: vertex gradient (cone)'
+                        : 'Height rendering: face height (wing)',
+                    onPressed: _surfaceTrajectory.isEmpty
+                        ? null
+                        : () => setState(
+                            () => _interpolateGcodeZMapVertices =
+                                !_interpolateGcodeZMapVertices,
+                          ),
+                    icon: Icon(
+                      Icons.gradient,
+                      color: _interpolateGcodeZMapVertices
+                          ? const Color(0xFFFFD54F)
+                          : Colors.grey.shade400,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '放大视图',
+                    onPressed: photoReady
+                        ? () => _zoomTrajectoryView(1.25)
+                        : null,
+                    icon: const Icon(Icons.zoom_in),
+                  ),
+                  IconButton(
+                    tooltip: '重置视图',
+                    onPressed: photoReady
+                        ? () => _trajectoryController.value = Matrix4.identity()
+                        : null,
+                    icon: const Icon(Icons.center_focus_strong),
+                  ),
+                ],
+              ),
             ),
           ),
           Expanded(
@@ -6520,9 +7490,12 @@ class _SurfacePageState extends State<SurfacePage> {
                         plannedImageTrajectory: plannedImageTrajectory,
                         gcodeTrajectory: generatedGcodeTrajectory,
                         showGcodeZMap: showGcodeZMap,
+                        interpolateGcodeZMapVertices:
+                            _interpolateGcodeZMapVertices,
                         gcodeZMapCorrection: gcodeZMapCorrection,
                         gcodeZMapTransform: gcodeZMapTransform,
                         guidePolylines: guidePolylines,
+                        reachabilityOverlay: reachabilityOverlay,
                       )
                     else
                       CustomPaint(
@@ -6533,6 +7506,8 @@ class _SurfacePageState extends State<SurfacePage> {
                           gcodeTrajectory: generatedGcodeTrajectory,
                           actualTrajectory: actualTrajectory,
                           showGcodeZMap: showGcodeZMap,
+                          interpolateGcodeZMapVertices:
+                              _interpolateGcodeZMapVertices,
                           bedZ: _surfaceBedZ,
                           clearanceMm: _surfaceClearanceMm,
                           gcodeZMapCorrection: gcodeZMapCorrection,
@@ -6542,6 +7517,7 @@ class _SurfacePageState extends State<SurfacePage> {
                           patternCenterLocal: _surfacePatternCenterLocal,
                           patternRotationDeg: _surfacePatternRotationDeg,
                           guidePolylines: guidePolylines,
+                          reachabilityOverlay: reachabilityOverlay,
                         ),
                       ),
                     if (ready && _surfaceTrajectory.isEmpty)
@@ -6611,6 +7587,15 @@ class _SurfacePageState extends State<SurfacePage> {
                           color: Color(0xFFFFD54F),
                         ),
                       ),
+                    if (reachabilityOverlay != null)
+                      Positioned(
+                        left: 12,
+                        bottom: 12,
+                        child: const _PreviewBadge(
+                          label: '姿态可达区：绿=可达，橙=超限，灰=Yaw 奇异',
+                          color: Color(0xFF66BB6A),
+                        ),
+                      ),
                     if (_surfaceTrajectoryError != null)
                       Positioned(
                         right: 12,
@@ -6641,9 +7626,11 @@ class _SurfacePageState extends State<SurfacePage> {
     required List<_PlannedImageTrajectoryPoint> plannedImageTrajectory,
     required List<_GcodeTrajectoryPoint> gcodeTrajectory,
     required bool showGcodeZMap,
+    required bool interpolateGcodeZMapVertices,
     required _SurfaceCommandCorrection? gcodeZMapCorrection,
     required _LocalToMachineTransform? gcodeZMapTransform,
     required List<List<Offset>> guidePolylines,
+    required _SurfaceReachabilityOverlay? reachabilityOverlay,
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -6682,6 +7669,7 @@ class _SurfacePageState extends State<SurfacePage> {
                       scalePxPerMm: _localizationScalePxPerMm,
                       opacity: 0.38,
                       showHeightMap: _showLocalizationHeightMap,
+                      interpolateHeightVertices: interpolateGcodeZMapVertices,
                       showMesh: _showLocalizationMesh,
                       showAxes: _showLocalizationAxes,
                       showBounds: _showLocalizationBounds,
@@ -6702,6 +7690,8 @@ class _SurfacePageState extends State<SurfacePage> {
                       actualTrajectory: actualTrajectory,
                       plannedImageTrajectory: plannedImageTrajectory,
                       showGcodeZMap: showGcodeZMap,
+                      interpolateGcodeZMapVertices:
+                          interpolateGcodeZMapVertices,
                       bedZ: _surfaceBedZ,
                       clearanceMm: _surfaceClearanceMm,
                       gcodeZMapCorrection: gcodeZMapCorrection,
@@ -6711,6 +7701,7 @@ class _SurfacePageState extends State<SurfacePage> {
                       patternCenterLocal: _surfacePatternCenterLocal,
                       patternRotationDeg: _surfacePatternRotationDeg,
                       guidePolylines: guidePolylines,
+                      reachabilityOverlay: reachabilityOverlay,
                     ),
                   ),
                 ),
@@ -7306,6 +8297,18 @@ Color _trajectoryHeightColor(double t) {
   return stops.last.color;
 }
 
+bool _isVisibleHeightTriangle(
+  StlMesh mesh,
+  _ProjectionBasis basis,
+  StlTriangle triangle,
+) {
+  final radial = triangle.center - mesh.bounds.center;
+  final outwardNormal = triangle.normal.dot(radial) < 0
+      ? triangle.normal * -1
+      : triangle.normal;
+  return basis.heightValue(outwardNormal) > 1e-5;
+}
+
 Color _actualPointColor(
   _ActualTrajectoryPoint point,
   ({double min, double max})? range,
@@ -7473,6 +8476,7 @@ void _drawGcodeZMapProjection({
   required double clearanceMm,
   required _SurfaceCommandCorrection? correction,
   required _LocalToMachineTransform? transform,
+  required bool interpolateVertices,
   double opacity = 0.52,
 }) {
   final bounds = mesh.bounds;
@@ -7481,18 +8485,17 @@ void _drawGcodeZMapProjection({
   final triangles = mesh.sampledTriangles(5200);
   if (triangles.isEmpty) return;
 
-  final cells = <({StlTriangle triangle, double z})>[];
+  final cells = <StlTriangle>[];
   var minZ = double.infinity;
   var maxZ = -double.infinity;
 
-  double commandZFor(StlTriangle triangle) {
-    final center = triangle.center;
-    final projected = basis.project(center);
+  double commandZFor(StlVector3 point) {
+    final projected = basis.project(point);
     final local = Offset(
       projected.dx - centerUv.dx,
       projected.dy - centerUv.dy,
     );
-    final surfaceHeight = basis.heightValue(center) - minHeight;
+    final surfaceHeight = basis.heightValue(point) - minHeight;
     final targetZ = bedZ + clearanceMm + surfaceHeight;
     final activeCorrection = correction;
     if (activeCorrection == null) return targetZ;
@@ -7511,11 +8514,23 @@ void _drawGcodeZMapProjection({
   }
 
   for (final triangle in triangles) {
-    final z = commandZFor(triangle);
-    if (!z.isFinite) continue;
-    cells.add((triangle: triangle, z: z));
-    minZ = math.min(minZ, z);
-    maxZ = math.max(maxZ, z);
+    if (interpolateVertices &&
+        !_isVisibleHeightTriangle(mesh, basis, triangle)) {
+      continue;
+    }
+    final zValues = interpolateVertices
+        ? [
+            commandZFor(triangle.a),
+            commandZFor(triangle.b),
+            commandZFor(triangle.c),
+          ]
+        : [commandZFor(triangle.center)];
+    if (zValues.any((z) => !z.isFinite)) continue;
+    cells.add(triangle);
+    for (final z in zValues) {
+      minZ = math.min(minZ, z);
+      maxZ = math.max(maxZ, z);
+    }
   }
   if (cells.isEmpty || !minZ.isFinite || !maxZ.isFinite) return;
 
@@ -7530,19 +8545,29 @@ void _drawGcodeZMapProjection({
   final paint = Paint()
     ..style = PaintingStyle.fill
     ..isAntiAlias = false;
-  for (final cell in cells) {
-    final t = (cell.z - minZ) / range;
-    final triangle = cell.triangle;
+  for (final triangle in cells) {
     final a = vertexToCanvas(triangle.a);
     final b = vertexToCanvas(triangle.b);
     final c = vertexToCanvas(triangle.c);
-    final path = Path()
-      ..moveTo(a.dx, a.dy)
-      ..lineTo(b.dx, b.dy)
-      ..lineTo(c.dx, c.dy)
-      ..close();
-    paint.color = _trajectoryHeightColor(t).withValues(alpha: opacity);
-    canvas.drawPath(path, paint);
+    final colors = interpolateVertices
+        ? [triangle.a, triangle.b, triangle.c]
+              .map(
+                (point) => _trajectoryHeightColor(
+                  (commandZFor(point) - minZ) / range,
+                ).withValues(alpha: opacity),
+              )
+              .toList(growable: false)
+        : List<Color>.filled(
+            3,
+            _trajectoryHeightColor(
+              (commandZFor(triangle.center) - minZ) / range,
+            ).withValues(alpha: opacity),
+          );
+    canvas.drawVertices(
+      ui.Vertices(ui.VertexMode.triangles, [a, b, c], colors: colors),
+      BlendMode.srcOver,
+      paint,
+    );
   }
 
   _drawGcodeZMapScale(canvas, legendBounds, (min: minZ, max: maxZ));
@@ -7748,13 +8773,42 @@ void _drawImageTrajectoryGuide(Canvas canvas, List<Offset> points) {
   );
 }
 
+void _drawSurfaceReachabilityOverlay(
+  Canvas canvas,
+  _SurfaceReachabilityOverlay? overlay,
+  Offset Function(Offset point) localToCanvas,
+) {
+  if (overlay == null) return;
+  final paints = <_SurfaceReachabilityStatus, Paint>{
+    _SurfaceReachabilityStatus.reachable: Paint()
+      ..style = PaintingStyle.fill
+      ..color = const Color(0xFF66BB6A).withValues(alpha: 0.28),
+    _SurfaceReachabilityStatus.unreachable: Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.deepOrangeAccent.withValues(alpha: 0.30),
+    _SurfaceReachabilityStatus.yawSingular: Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.blueGrey.withValues(alpha: 0.24),
+  };
+  for (final triangle in overlay.triangles) {
+    final path = Path()
+      ..moveTo(localToCanvas(triangle.a).dx, localToCanvas(triangle.a).dy)
+      ..lineTo(localToCanvas(triangle.b).dx, localToCanvas(triangle.b).dy)
+      ..lineTo(localToCanvas(triangle.c).dx, localToCanvas(triangle.c).dy)
+      ..close();
+    canvas.drawPath(path, paints[triangle.status]!);
+  }
+}
+
 class _SurfaceTrajectoryPainter extends CustomPainter {
   final StlMesh mesh;
   final _ContactFace contactFace;
+  final _SurfaceReachabilityOverlay? reachabilityOverlay;
   final List<_SurfaceToolPoint> trajectory;
   final List<_GcodeTrajectoryPoint> gcodeTrajectory;
   final List<_ActualTrajectoryPoint> actualTrajectory;
   final bool showGcodeZMap;
+  final bool interpolateGcodeZMapVertices;
   final double bedZ;
   final double clearanceMm;
   final _SurfaceCommandCorrection? gcodeZMapCorrection;
@@ -7768,10 +8822,12 @@ class _SurfaceTrajectoryPainter extends CustomPainter {
   const _SurfaceTrajectoryPainter({
     required this.mesh,
     required this.contactFace,
+    required this.reachabilityOverlay,
     required this.trajectory,
     required this.gcodeTrajectory,
     required this.actualTrajectory,
     required this.showGcodeZMap,
+    required this.interpolateGcodeZMapVertices,
     required this.bedZ,
     required this.clearanceMm,
     required this.gcodeZMapCorrection,
@@ -7871,7 +8927,8 @@ class _SurfaceTrajectoryPainter extends CustomPainter {
         clearanceMm: clearanceMm,
         correction: gcodeZMapCorrection,
         transform: gcodeZMapTransform,
-        opacity: 0.50,
+        interpolateVertices: interpolateGcodeZMapVertices,
+        opacity: 0.74,
       );
       canvas.drawPath(
         modelPath,
@@ -7881,6 +8938,12 @@ class _SurfaceTrajectoryPainter extends CustomPainter {
           ..color = Colors.lightBlueAccent.withValues(alpha: 0.72),
       );
     }
+
+    _drawSurfaceReachabilityOverlay(
+      canvas,
+      reachabilityOverlay,
+      (point) => localToCanvas(point.dx, point.dy),
+    );
 
     final axisPaint = Paint()
       ..style = PaintingStyle.stroke
@@ -8019,10 +9082,13 @@ class _SurfaceTrajectoryPainter extends CustomPainter {
   bool shouldRepaint(covariant _SurfaceTrajectoryPainter oldDelegate) {
     return oldDelegate.mesh != mesh ||
         oldDelegate.contactFace != contactFace ||
+        oldDelegate.reachabilityOverlay != reachabilityOverlay ||
         oldDelegate.trajectory != trajectory ||
         oldDelegate.gcodeTrajectory != gcodeTrajectory ||
         oldDelegate.actualTrajectory != actualTrajectory ||
         oldDelegate.showGcodeZMap != showGcodeZMap ||
+        oldDelegate.interpolateGcodeZMapVertices !=
+            interpolateGcodeZMapVertices ||
         oldDelegate.bedZ != bedZ ||
         oldDelegate.clearanceMm != clearanceMm ||
         oldDelegate.gcodeZMapCorrection != gcodeZMapCorrection ||
@@ -8039,6 +9105,7 @@ class _SurfaceTrajectoryPhotoPainter extends CustomPainter {
   final StlMesh mesh;
   final Size imageSize;
   final _ContactFace contactFace;
+  final _SurfaceReachabilityOverlay? reachabilityOverlay;
   final Offset offsetPx;
   final double yawDeg;
   final double scalePxPerMm;
@@ -8047,6 +9114,7 @@ class _SurfaceTrajectoryPhotoPainter extends CustomPainter {
   final List<_ActualTrajectoryPoint> actualTrajectory;
   final List<_PlannedImageTrajectoryPoint> plannedImageTrajectory;
   final bool showGcodeZMap;
+  final bool interpolateGcodeZMapVertices;
   final double bedZ;
   final double clearanceMm;
   final _SurfaceCommandCorrection? gcodeZMapCorrection;
@@ -8061,6 +9129,7 @@ class _SurfaceTrajectoryPhotoPainter extends CustomPainter {
     required this.mesh,
     required this.imageSize,
     required this.contactFace,
+    required this.reachabilityOverlay,
     required this.offsetPx,
     required this.yawDeg,
     required this.scalePxPerMm,
@@ -8069,6 +9138,7 @@ class _SurfaceTrajectoryPhotoPainter extends CustomPainter {
     required this.actualTrajectory,
     required this.plannedImageTrajectory,
     required this.showGcodeZMap,
+    required this.interpolateGcodeZMapVertices,
     required this.bedZ,
     required this.clearanceMm,
     required this.gcodeZMapCorrection,
@@ -8098,9 +9168,16 @@ class _SurfaceTrajectoryPhotoPainter extends CustomPainter {
         clearanceMm: clearanceMm,
         correction: gcodeZMapCorrection,
         transform: gcodeZMapTransform,
-        opacity: 0.48,
+        interpolateVertices: interpolateGcodeZMapVertices,
+        opacity: 0.80,
       );
     }
+
+    _drawSurfaceReachabilityOverlay(
+      canvas,
+      reachabilityOverlay,
+      (point) => _stlProjectionLocalToCanvas(point, imageRect),
+    );
 
     if (plannedImageTrajectory.length >= 2) {
       _drawImageTrajectoryGuide(
@@ -8320,6 +9397,7 @@ class _SurfaceTrajectoryPhotoPainter extends CustomPainter {
     return oldDelegate.mesh != mesh ||
         oldDelegate.imageSize != imageSize ||
         oldDelegate.contactFace != contactFace ||
+        oldDelegate.reachabilityOverlay != reachabilityOverlay ||
         oldDelegate.offsetPx != offsetPx ||
         oldDelegate.yawDeg != yawDeg ||
         oldDelegate.scalePxPerMm != scalePxPerMm ||
@@ -8328,6 +9406,8 @@ class _SurfaceTrajectoryPhotoPainter extends CustomPainter {
         oldDelegate.actualTrajectory != actualTrajectory ||
         oldDelegate.plannedImageTrajectory != plannedImageTrajectory ||
         oldDelegate.showGcodeZMap != showGcodeZMap ||
+        oldDelegate.interpolateGcodeZMapVertices !=
+            interpolateGcodeZMapVertices ||
         oldDelegate.bedZ != bedZ ||
         oldDelegate.clearanceMm != clearanceMm ||
         oldDelegate.gcodeZMapCorrection != gcodeZMapCorrection ||
@@ -8349,6 +9429,7 @@ class _StlTopProjectionPainter extends CustomPainter {
   final double scalePxPerMm;
   final double opacity;
   final bool showHeightMap;
+  final bool interpolateHeightVertices;
   final bool showMesh;
   final bool showAxes;
   final bool showBounds;
@@ -8362,6 +9443,7 @@ class _StlTopProjectionPainter extends CustomPainter {
     required this.scalePxPerMm,
     required this.opacity,
     required this.showHeightMap,
+    required this.interpolateHeightVertices,
     required this.showMesh,
     required this.showAxes,
     required this.showBounds,
@@ -8465,21 +9547,32 @@ class _StlTopProjectionPainter extends CustomPainter {
     final paint = Paint()..style = PaintingStyle.fill;
 
     for (final triangle in mesh.sampledTriangles(4200)) {
-      final normalizedHeight =
-          ((basis.heightValue(triangle.center) - minHeight) / heightRange)
-              .clamp(0.0, 1.0);
+      if (interpolateHeightVertices &&
+          !_isVisibleHeightTriangle(mesh, basis, triangle)) {
+        continue;
+      }
       final a = _modelToCanvas(triangle.a, imageRect);
       final b = _modelToCanvas(triangle.b, imageRect);
       final c = _modelToCanvas(triangle.c, imageRect);
-      final path = Path()
-        ..moveTo(a.dx, a.dy)
-        ..lineTo(b.dx, b.dy)
-        ..lineTo(c.dx, c.dy)
-        ..close();
-      paint.color = _heightMapColor(
-        normalizedHeight,
-      ).withValues(alpha: opacity * 0.48);
-      canvas.drawPath(path, paint);
+      final colors = interpolateHeightVertices
+          ? [triangle.a, triangle.b, triangle.c]
+                .map(
+                  (point) => _heightMapColor(
+                    (basis.heightValue(point) - minHeight) / heightRange,
+                  ).withValues(alpha: opacity * 0.90),
+                )
+                .toList(growable: false)
+          : List<Color>.filled(
+              3,
+              _heightMapColor(
+                (basis.heightValue(triangle.center) - minHeight) / heightRange,
+              ).withValues(alpha: opacity * 0.48),
+            );
+      canvas.drawVertices(
+        ui.Vertices(ui.VertexMode.triangles, [a, b, c], colors: colors),
+        BlendMode.srcOver,
+        paint,
+      );
     }
   }
 
@@ -8715,6 +9808,8 @@ class _StlTopProjectionPainter extends CustomPainter {
         oldDelegate.yawDeg != yawDeg ||
         oldDelegate.scalePxPerMm != scalePxPerMm ||
         oldDelegate.opacity != opacity ||
+        oldDelegate.showHeightMap != showHeightMap ||
+        oldDelegate.interpolateHeightVertices != interpolateHeightVertices ||
         oldDelegate.showMesh != showMesh ||
         oldDelegate.showAxes != showAxes ||
         oldDelegate.showBounds != showBounds;
@@ -9019,6 +10114,7 @@ class _PreviewStats extends StatelessWidget {
 
 enum _SurfacePattern {
   line('直线', false),
+  semicircle('半圆', true),
   rectangle('矩形', true),
   cross('十字', true);
 
@@ -9033,6 +10129,15 @@ enum _SurfacePattern {
     return switch (this) {
       _SurfacePattern.line => [
         [Offset(-halfW, 0), Offset(halfW, 0)],
+      ],
+      _SurfacePattern.semicircle => [
+        [
+          for (var i = 0; i <= 32; i++)
+            Offset(
+              halfW * math.cos(math.pi - math.pi * i / 32),
+              halfH * math.sin(math.pi - math.pi * i / 32),
+            ),
+        ],
       ],
       _SurfacePattern.rectangle => [
         [
@@ -9051,13 +10156,71 @@ enum _SurfacePattern {
   }
 }
 
+class _SurfaceSample {
+  final double height;
+  final StlVector3 normal;
+
+  const _SurfaceSample({required this.height, required this.normal});
+}
+
+enum _SurfaceReachabilityStatus { reachable, unreachable, yawSingular }
+
+class _SurfaceReachabilityTriangle {
+  final Offset a;
+  final Offset b;
+  final Offset c;
+  final _SurfaceReachabilityStatus status;
+
+  const _SurfaceReachabilityTriangle({
+    required this.a,
+    required this.b,
+    required this.c,
+    required this.status,
+  });
+}
+
+class _SurfaceReachabilityOverlay {
+  final List<_SurfaceReachabilityTriangle> triangles;
+
+  const _SurfaceReachabilityOverlay(this.triangles);
+}
+
+class _SurfaceReachabilityOverlayKey {
+  final StlMesh mesh;
+  final _ContactFace contactFace;
+  final double localizationYawDeg;
+  final SurfaceToolOrientationConfig config;
+
+  const _SurfaceReachabilityOverlayKey({
+    required this.mesh,
+    required this.contactFace,
+    required this.localizationYawDeg,
+    required this.config,
+  });
+
+  bool matches(_SurfaceReachabilityOverlayKey other) =>
+      identical(mesh, other.mesh) &&
+      contactFace == other.contactFace &&
+      localizationYawDeg == other.localizationYawDeg &&
+      config.mode == other.config.mode &&
+      config.yawOffsetDeg == other.config.yawOffsetDeg &&
+      config.pitchOffsetDeg == other.config.pitchOffsetDeg &&
+      config.reverseYaw == other.config.reverseYaw &&
+      config.reversePitch == other.config.reversePitch;
+}
+
 class _SurfaceToolPoint {
   final double localX;
   final double localY;
   final double surfaceHeight;
+  final StlVector3? surfaceNormal;
+  final SurfaceToolPose? toolPose;
   final double machineX;
   final double machineY;
   final double machineZ;
+  final double? referenceMachineX;
+  final double? referenceMachineY;
+  final double? referenceMachineZ;
   final double? targetMachineX;
   final double? targetMachineY;
   final double? targetMachineZ;
@@ -9076,9 +10239,14 @@ class _SurfaceToolPoint {
     required this.localX,
     required this.localY,
     required this.surfaceHeight,
+    this.surfaceNormal,
+    this.toolPose,
     required this.machineX,
     required this.machineY,
     required this.machineZ,
+    this.referenceMachineX,
+    this.referenceMachineY,
+    this.referenceMachineZ,
     this.targetMachineX,
     this.targetMachineY,
     this.targetMachineZ,
@@ -9100,9 +10268,14 @@ class _SurfaceToolPoint {
   bool get safeIsControlPoint => isControlPoint ?? travel;
 
   _SurfaceToolPoint copyWith({
+    StlVector3? surfaceNormal,
+    SurfaceToolPose? toolPose,
     double? machineX,
     double? machineY,
     double? machineZ,
+    double? referenceMachineX,
+    double? referenceMachineY,
+    double? referenceMachineZ,
     double? targetMachineX,
     double? targetMachineY,
     double? targetMachineZ,
@@ -9116,9 +10289,14 @@ class _SurfaceToolPoint {
       localX: localX,
       localY: localY,
       surfaceHeight: surfaceHeight,
+      surfaceNormal: surfaceNormal ?? this.surfaceNormal,
+      toolPose: toolPose ?? this.toolPose,
       machineX: machineX ?? this.machineX,
       machineY: machineY ?? this.machineY,
       machineZ: machineZ ?? this.machineZ,
+      referenceMachineX: referenceMachineX ?? this.referenceMachineX,
+      referenceMachineY: referenceMachineY ?? this.referenceMachineY,
+      referenceMachineZ: referenceMachineZ ?? this.referenceMachineZ,
       targetMachineX: targetMachineX ?? this.targetMachineX,
       targetMachineY: targetMachineY ?? this.targetMachineY,
       targetMachineZ: targetMachineZ ?? this.targetMachineZ,
@@ -9144,9 +10322,14 @@ class _SurfaceToolPoint {
       localX: localX,
       localY: localY,
       surfaceHeight: surfaceHeight,
+      surfaceNormal: surfaceNormal,
+      toolPose: toolPose,
       machineX: machineX,
       machineY: machineY,
       machineZ: machineZ,
+      referenceMachineX: referenceMachineX,
+      referenceMachineY: referenceMachineY,
+      referenceMachineZ: referenceMachineZ,
       targetMachineX: targetMachineX,
       targetMachineY: targetMachineY,
       targetMachineZ: targetMachineZ,
@@ -9577,6 +10760,12 @@ class _ProjectionBasis {
   Offset project(StlVector3 point) {
     return Offset(_axisValue(point, uAxis), _axisValue(point, vAxis));
   }
+
+  StlVector3 projectNormal(StlVector3 normal) => StlVector3(
+    _axisValue(normal, uAxis),
+    _axisValue(normal, vAxis),
+    _axisValue(normal, heightAxis),
+  ).normalized();
 
   Size projectedSize(StlBounds bounds) {
     return Size(maxU(bounds) - minU(bounds), maxV(bounds) - minV(bounds));

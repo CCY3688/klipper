@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/config_store.dart';
+
 class CameraViewerController extends ChangeNotifier {
   static const defaultBaseUrl = 'http://127.0.0.1:8765';
   static const _kBaseUrl = 'camera_viewer_base_url';
@@ -159,11 +161,21 @@ class CameraViewerController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final environment = Map<String, String>.from(Platform.environment);
+      final explicitHost = environment['CAMERA_SSH_HOST']?.trim();
+      if (explicitHost == null || explicitHost.isEmpty) {
+        final saved = await ConfigStore().load();
+        final savedHost = saved?.$1.host.trim();
+        if (savedHost != null && savedHost.isNotEmpty) {
+          environment['CAMERA_SSH_HOST'] = savedHost;
+        }
+      }
       final process = await Process.start(
         _pythonExecutable,
         <String>[script.path],
         workingDirectory: Directory.current.path,
         runInShell: true,
+        environment: environment,
         mode: ProcessStartMode.normal,
       );
       _serviceProcess = process;
@@ -193,6 +205,16 @@ class CameraViewerController extends ChangeNotifier {
       _serviceError = '启动相机服务失败：$error';
     }
     notifyListeners();
+  }
+
+  /// Restarts an already running service so it picks up a newly saved
+  /// connection host. A stopped service is left stopped.
+  Future<void> restartCameraServiceIfRunning() async {
+    if (_serviceProcess == null && !_serviceStarting) {
+      return;
+    }
+    await stopCameraService();
+    await startCameraService();
   }
 
   Future<void> stopCameraService() async {
@@ -267,8 +289,7 @@ class CameraViewerController extends ChangeNotifier {
         if (response.data?.containsKey('camera_name') == true) {
           return true;
         }
-      } catch (_) {
-      }
+      } catch (_) {}
       await Future<void>.delayed(const Duration(milliseconds: 600));
     }
     return false;
